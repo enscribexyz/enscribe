@@ -1,6 +1,7 @@
 import React from 'react'
 import Layout from '../components/Layout'
 import ContractHistory from '../components/ContractHistory'
+import { useAccount } from 'wagmi'
 
 const contractsHistory = [
     {
@@ -16,12 +17,19 @@ const contractsHistory = [
 ]
 
 export default function HistoryPage() {
+    const { isConnected } = useAccount()
+
     return (
         <Layout>
             <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">
                 Contract History
             </h1>
-            <ContractHistory contracts={contractsHistory} />
+
+            {isConnected ? (
+                <ContractHistory contracts={contractsHistory} />
+            ) : (
+                <p className="text-red-500 text-lg">Please connect your wallet to view contract history.</p>
+            )}
         </Layout>
     )
 }

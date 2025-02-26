@@ -6,10 +6,11 @@ export default function Home() {
     <Layout>
       <div className="p-6">
         <h2 className="text-3xl font-bold mb-4 text-gray-900 dark:text-white">
-          DApp to Deploy Contract with Primary ENS name
+          DApp to Deploy Contracts with Primary ENS name
         </h2>
         <p className="text-gray-700 dark:text-gray-300">
-          Welcome! Use the sidebar to navigate between deploying a new contract and viewing contract history.
+          Welcome! <br />
+          Use the sidebar to navigate between deploying a new contract and viewing contract history.
         </p>
       </div>
     </Layout>

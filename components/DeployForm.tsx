@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { ethers, namehash } from 'ethers'
-import { useWeb3Context } from '../context/Web3Context'
+// import { useWeb3Context } from '../context/Web3Context'
 import contractABI from '../contracts/Web3LabsContract'
 import ensABI from '../contracts/NameWrapper'
+import { useAccount, useWalletClient } from 'wagmi'
 import { Log } from 'ethers'
 
 const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437'
@@ -18,10 +19,13 @@ const checkIfOwnable = (bytecode: string): boolean => {
 };
 
 export default function DeployForm() {
-    const { isConnected, signer, provider, address } = useWeb3Context()
+    const { address, isConnected } = useAccount()
+    const { data: walletClient } = useWalletClient()
+    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+
 
     const [bytecode, setBytecode] = useState('')
-    const [label, setLabel] = useState('v5')
+    const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
     const [parentName, setParentName] = useState('named.web3labs2.eth')
     const [txHash, setTxHash] = useState('')
@@ -44,11 +48,11 @@ export default function DeployForm() {
 
     useEffect(() => {
         const fetchPrimaryENS = async () => {
-            if (!signer || !provider || !address || parentType !== 'own') return
+            if (!signer || !address || parentType !== 'own') return
 
             try {
                 setParentName("fetching primary ens name...")
-                const ensName = await provider.lookupAddress(address) || ''
+                const ensName = await (await signer).provider.lookupAddress(address) || ''
 
                 setParentName(ensName)
 
@@ -59,7 +63,7 @@ export default function DeployForm() {
         }
 
         fetchPrimaryENS()
-    }, [signer, provider, address, parentType])
+    }, [signer, address, parentType])
 
     const deployContract = async () => {
         if (!isValidBytecode) {
@@ -104,11 +108,6 @@ export default function DeployForm() {
                 // tx = await nameWrapperContract.safeTransferFrom()
             }
 
-            // Reset the form fields
-            setBytecode('')
-            setLabel('')
-            setParentType('web3labs')
-            setParentName('named.web3labs2.eth')
         } catch (err: any) {
             console.error(err)
             setError(err?.code || 'Error deploying contract')
@@ -233,14 +232,23 @@ export default function DeployForm() {
                         </a>
 
                         <button
-                            onClick={() => setShowPopup(false)}
+                            onClick={() => {
+                                setShowPopup(false)
+                                // Reset the form fields
+                                setBytecode('')
+                                setLabel('')
+                                setParentType('web3labs')
+                                setParentName('named.web3labs2.eth')
+                            }
+                            }
                             className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
                         >
                             Close
                         </button>
                     </div>
                 </div>
-            )}
-        </div>
+            )
+            }
+        </div >
     )
 }
