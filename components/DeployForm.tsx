@@ -3,6 +3,7 @@ import { ethers, namehash } from 'ethers'
 import { useWeb3Context } from '../context/Web3Context'
 import contractABI from '../contracts/Web3LabsContract'
 import ensABI from '../contracts/NameWrapper'
+import { Log } from 'ethers'
 
 const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437'
 const ensContractAddress = '0x0635513f179D50A207757E05759CbD106d7dFcE8'
@@ -17,10 +18,10 @@ const checkIfOwnable = (bytecode: string): boolean => {
 };
 
 export default function DeployForm() {
-    const { isConnected, signer, address } = useWeb3Context()
+    const { isConnected, signer, provider, address } = useWeb3Context()
 
     const [bytecode, setBytecode] = useState('')
-    const [label, setLabel] = useState('')
+    const [label, setLabel] = useState('v5')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
     const [parentName, setParentName] = useState('named.web3labs2.eth')
     const [txHash, setTxHash] = useState('')
@@ -40,6 +41,25 @@ export default function DeployForm() {
             setIsValidBytecode(checkIfOwnable(bytecode))
         }
     }, [bytecode])
+
+    useEffect(() => {
+        const fetchPrimaryENS = async () => {
+            if (!signer || !provider || !address || parentType !== 'own') return
+
+            try {
+                setParentName("fetching primary ens name...")
+                const ensName = await provider.lookupAddress(address) || ''
+
+                setParentName(ensName)
+
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
+                setParentName('')
+            }
+        }
+
+        fetchPrimaryENS()
+    }, [signer, provider, address, parentType])
 
     const deployContract = async () => {
         if (!isValidBytecode) {
@@ -61,6 +81,7 @@ export default function DeployForm() {
             const namingContract = new ethers.Contract(contractAddress, contractABI, signer)
             const nameWrapperContract = new ethers.Contract(ensContractAddress, ensABI, signer)
             const parentNode = getParentNode(parentName)
+            const topic0 = "0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf";
 
             let tx
             if (parentType === 'web3labs') {
@@ -69,21 +90,21 @@ export default function DeployForm() {
                 console.log("parentName - ", parentName)
                 console.log("parentNode - ", parentNode)
                 tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode)
+                const txReceipt = await tx.wait()
+                setTxHash(txReceipt.hash)
+                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
+
+                // Retrieve the deployed contract address.
+                // This might be available in the receipt or via event logs.
+                const deployedContractAddress = "0x" + matchingLog.data.slice(-40);
+                setDeployedAddress(deployedContractAddress)
+                setReceipt(txReceipt)
+                setShowPopup(true)
             } else {
                 // tx = await nameWrapperContract.safeTransferFrom()
             }
 
-            const txReceipt = await tx.wait()
-            setTxHash(txReceipt.transactionHash)
-
-            // Retrieve the deployed contract address.
-            // This might be available in the receipt or via event logs.
-            const deployedContractAddress = txReceipt.contractAddress || "0xDeployedContractAddress"
-            setDeployedAddress(deployedContractAddress)
-            setReceipt(txReceipt)
-            setShowPopup(true)
-
-            // Reset the form fields upon successful deployment.
+            // Reset the form fields
             setBytecode('')
             setLabel('')
             setParentType('web3labs')
@@ -171,22 +192,49 @@ export default function DeployForm() {
                 <p className="mt-4 text-red-500 text-lg">Error: {error}</p>
             )}
 
-            {/* Popup Modal */}
             {showPopup && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
                     <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg max-w-lg w-full">
-                        <h3 className="text-xl font-semibold mb-4">Deployment Successful!</h3>
-                        <p><strong>Transaction Hash:</strong> {txHash}</p>
-                        <p className="mt-2"><strong>Contract Address:</strong> {deployedAddress}</p>
-                        <div className="mt-4">
-                            <strong>Receipt:</strong>
-                            <pre className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-xs mt-1">
-                                {JSON.stringify(receipt, null, 2)}
-                            </pre>
+                        <h3 className="text-xl font-semibold mb-4 text-black text-center">Deployment Successful!</h3>
+
+                        <p className="text-black"><strong>Transaction Hash:</strong></p>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-sm text-black break-words">
+                            {txHash}
                         </div>
+
+                        <p className="mt-2 text-black"><strong>Contract Address:</strong></p>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-sm text-black break-words">
+                            {deployedAddress}
+                        </div>
+
+                        <p className="mt-2 text-black"><strong>ENS name:</strong></p>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-sm text-black break-words">
+                            {`${label}.${parentName}`}
+                        </div>
+
+                        {/* View on Etherscan */}
+                        <a
+                            href={`https://sepolia.etherscan.io/tx/${txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-center"
+                        >
+                            View Transaction on Etherscan
+                        </a>
+
+                        {/* View on ENS App */}
+                        <a
+                            href={`https://app.ens.domains/${label}.${parentName}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-4 block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-center"
+                        >
+                            View Name in ENS App
+                        </a>
+
                         <button
                             onClick={() => setShowPopup(false)}
-                            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+                            className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
                         >
                             Close
                         </button>
