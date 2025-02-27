@@ -82,8 +82,8 @@ export default function DeployForm() {
                 return
             }
 
-            const namingContract = new ethers.Contract(contractAddress, contractABI, signer)
-            const nameWrapperContract = new ethers.Contract(ensContractAddress, ensABI, signer)
+            const namingContract = new ethers.Contract(contractAddress, contractABI, (await signer))
+            const nameWrapperContract = new ethers.Contract(ensContractAddress, ensABI, (await signer))
             const parentNode = getParentNode(parentName)
             const topic0 = "0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf";
 
@@ -128,8 +128,14 @@ export default function DeployForm() {
                     value={bytecode}
                     onChange={(e) => setBytecode(e.target.value)}
                     placeholder="0x60037..."
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''}`}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${(!isValidBytecode || !bytecode.startsWith("0x")) ? 'border-red-500' : ''
+                        }`}
                 />
+
+                {!bytecode.startsWith("0x") && bytecode.length > 0 && (
+                    <p className="text-red-500">Bytecode must start with "0x".</p>
+                )}
+
                 {!isValidBytecode && bytecode.length > 0 && (
                     <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable.</p>
                 )}
