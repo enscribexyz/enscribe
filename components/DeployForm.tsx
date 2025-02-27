@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 import { ethers, namehash } from 'ethers'
-// import { useWeb3Context } from '../context/Web3Context'
 import contractABI from '../contracts/Web3LabsContract'
 import ensABI from '../contracts/NameWrapper'
 import { useAccount, useWalletClient } from 'wagmi'
@@ -97,9 +96,6 @@ export default function DeployForm() {
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
-
-                // Retrieve the deployed contract address.
-                // This might be available in the receipt or via event logs.
                 const deployedContractAddress = "0x" + matchingLog.data.slice(-40);
                 setDeployedAddress(deployedContractAddress)
                 setReceipt(txReceipt)
@@ -127,15 +123,17 @@ export default function DeployForm() {
                     type="text"
                     value={bytecode}
                     onChange={(e) => setBytecode(e.target.value)}
+                    onBlur={() => {
+                        if (bytecode && !bytecode.startsWith("0x")) {
+                            setBytecode("0x" + bytecode);
+                        }
+                    }}
                     placeholder="0x60037..."
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${(!isValidBytecode || !bytecode.startsWith("0x")) ? 'border-red-500' : ''
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
                         }`}
                 />
 
-                {!bytecode.startsWith("0x") && bytecode.length > 0 && (
-                    <p className="text-red-500">Bytecode must start with "0x".</p>
-                )}
-
+                {/* Error message for invalid Ownable bytecode */}
                 {!isValidBytecode && bytecode.length > 0 && (
                     <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable.</p>
                 )}

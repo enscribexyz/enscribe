@@ -19,8 +19,8 @@ export default function ContractHistory() {
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
 
-    const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437' // Filtering condition
-    const topic0 = '0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf' // Event signature
+    const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437'
+    const topic0 = '0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf'
     const etherscanApiKey = 'UKKN3D9CCGXXA2N8JMIAIQZS18HA9BAMUK'
 
     useEffect(() => {

@@ -1,6 +1,5 @@
 import type { AppProps } from 'next/app'
-import { WagmiProvider, createConfig } from 'wagmi'
-import { http, createClient } from 'viem'
+import { WagmiProvider } from 'wagmi'
 import { mainnet, sepolia } from 'wagmi/chains'
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

@@ -3,18 +3,6 @@ import Layout from '../components/Layout'
 import ContractHistory from '../components/ContractHistory'
 import { useAccount } from 'wagmi'
 
-const contractsHistory = [
-    {
-        ensName: "example1.eth",
-        contractAddress: "0xAbcdefabcdefabcdefabcdefabcdefabcdefabcd",
-        txHash: "0x123456789abcdef123456789abcdef123456789abcdef123456789abcdef",
-    },
-    {
-        ensName: "example2.eth",
-        contractAddress: "0x1234512345123451234512345123451234512345",
-        txHash: "0x987654321fedcba987654321fedcba987654321fedcba987654321fedcba",
-    },
-]
 
 export default function HistoryPage() {
     const { isConnected } = useAccount()
@@ -26,7 +14,7 @@ export default function HistoryPage() {
             </h1>
 
             {isConnected ? (
-                <ContractHistory contracts={contractsHistory} />
+                <ContractHistory />
             ) : (
                 <p className="text-red-500 text-lg">Please connect your wallet to view contract history.</p>
             )}
