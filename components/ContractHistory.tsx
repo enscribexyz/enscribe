@@ -100,6 +100,15 @@ export default function ContractHistory() {
         }
     }
 
+    const truncateText = (text: string) => {
+        if (text.length <= 20) return text
+        return text.slice(0, 40) + "..." + text.slice(-3)
+    }
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text)
+    }
+
     const totalPages = Math.ceil(contracts.length / itemsPerPage)
     const paginatedContracts = contracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
@@ -147,28 +156,35 @@ export default function ContractHistory() {
                                     <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
                                         <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
                                             <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                                {contract.txHash}
+                                                {truncateText(contract.txHash)}
                                             </a>
                                         </Link>
                                     </td>
                                     {/* View on Apps Column */}
                                     <td className="py-2 px-4 border text-center">
-                                        <div className="flex gap-2 justify-center">
-                                            <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
-                                                <a target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded">
-                                                    Etherscan
-                                                </a>
-                                            </Link>
-                                            <Link href={`https://app.ens.domains/${contract.ensName}`} legacyBehavior passHref>
-                                                <a target="_blank" rel="noopener noreferrer" className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded">
-                                                    ENS App
-                                                </a>
-                                            </Link>
-                                            <Link href={`https://eth-sepolia.blockscout.com/tx/${contract.txHash}`} legacyBehavior passHref>
-                                                <a target="_blank" rel="noopener noreferrer" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded">
-                                                    Blockscout
-                                                </a>
-                                            </Link>
+                                        <div className="flex flex-col items-center gap-2 w-full">
+                                            {/* First Row - Etherscan & Blockscout */}
+                                            <div className="flex gap-2 w-full">
+                                                <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
+                                                    <a target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex-1 text-center">
+                                                        Etherscan
+                                                    </a>
+                                                </Link>
+                                                <Link href={`https://eth-sepolia.blockscout.com/tx/${contract.txHash}`} legacyBehavior passHref>
+                                                    <a target="_blank" rel="noopener noreferrer" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex-1 text-center">
+                                                        Blockscout
+                                                    </a>
+                                                </Link>
+                                            </div>
+
+                                            {/* Second Row - Full-Width ENS App */}
+                                            <div className="w-full">
+                                                <Link href={`https://app.ens.domains/${contract.ensName}`} legacyBehavior passHref>
+                                                    <a target="_blank" rel="noopener noreferrer" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded block w-full text-center">
+                                                        ENS App
+                                                    </a>
+                                                </Link>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
