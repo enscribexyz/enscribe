@@ -20,7 +20,9 @@ export default function ContractHistory() {
     const itemsPerPage = 10
 
     const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437'
-    const topic0 = '0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf'
+    const topic0_deployment = "0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf" // Deployment event topic
+    const topic0_nameChanged = "0xb7d29e911041e8d9b843369e890bcb72c9388692ba48b65ac54e7214c4c348f7" // NameChanged event topic
+
     const etherscanApiKey = 'UKKN3D9CCGXXA2N8JMIAIQZS18HA9BAMUK'
 
     useEffect(() => {
@@ -44,7 +46,9 @@ export default function ContractHistory() {
                 console.log("No transactions found")
             }
 
-            const filteredTxs = data.result.filter((tx: any) => tx.to.toLowerCase() === contractAddress.toLowerCase())
+            const filteredTxs = data.result.filter((tx: any) =>
+                tx.to.toLowerCase() === contractAddress.toLowerCase()
+            )
 
             const contractData: Contract[] = []
             for (const tx of filteredTxs) {
@@ -58,7 +62,7 @@ export default function ContractHistory() {
                 }
             }
 
-            setContracts(contractData.reverse()) // Reverse to show latest first
+            setContracts(contractData.reverse())
         } catch (error: any) {
             console.error('Error fetching contract history:', error)
             setError('Failed to fetch contract history')
@@ -75,26 +79,27 @@ export default function ContractHistory() {
             const signer = await provider.getSigner()
 
             const receipt = await signer.provider.getTransactionReceipt(txHash)
-
             if (!receipt || !receipt.logs) return { deployedAddress: null, ensName: null }
 
-            const log = receipt.logs.find(log => log.topics[0] === topic0)
-            if (log) {
-                const deployedAddr = ethers.getAddress("0x" + log.data.slice(-40))
+            let deployedAddr: string | null = null
+            let ensName: string | null = null
 
-                // Lookup ENS name
-                const ensName = await signer.provider.lookupAddress(deployedAddr)
-
-                return { deployedAddress: deployedAddr, ensName }
+            for (const log of receipt.logs) {
+                if (log.topics[0] === topic0_deployment) {
+                    deployedAddr = ethers.getAddress("0x" + log.data.slice(-40))
+                } else if (log.topics[0] === topic0_nameChanged) {
+                    const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(["string"], log.data)
+                    ensName = decodedData[0]
+                }
             }
-            return { deployedAddress: null, ensName: null }
+
+            return { deployedAddress: deployedAddr, ensName }
         } catch (error) {
-            console.error('Error fetching transaction receipt:', error)
+            console.error("Error fetching transaction receipt:", error)
             return { deployedAddress: null, ensName: null }
         }
     }
 
-    // Pagination logic
     const totalPages = Math.ceil(contracts.length / itemsPerPage)
     const paginatedContracts = contracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
@@ -122,25 +127,46 @@ export default function ContractHistory() {
                         <tbody>
                             {paginatedContracts.map((contract, index) => (
                                 <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-900">
+                                    {/* ENS Name Column */}
                                     <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
-                                        {contract.ensName}
+                                        <Link href={`https://app.ens.domains/${contract.ensName}`} legacyBehavior passHref>
+                                            <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                {contract.ensName}
+                                            </a>
+                                        </Link>
                                     </td>
+                                    {/* Contract Address Column */}
                                     <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
-                                        {contract.contractAddress}
+                                        <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} legacyBehavior passHref>
+                                            <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                {contract.contractAddress}
+                                            </a>
+                                        </Link>
                                     </td>
+                                    {/* Transaction Hash Column */}
                                     <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
-                                        {contract.txHash}
+                                        <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
+                                            <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                                {contract.txHash}
+                                            </a>
+                                        </Link>
                                     </td>
+                                    {/* View on Apps Column */}
                                     <td className="py-2 px-4 border text-center">
                                         <div className="flex gap-2 justify-center">
-                                            <Link legacyBehavior href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} passHref>
+                                            <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
                                                 <a target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded">
                                                     Etherscan
                                                 </a>
                                             </Link>
-                                            <Link legacyBehavior href={`https://app.ens.domains/${contract.ensName}`} passHref>
+                                            <Link href={`https://app.ens.domains/${contract.ensName}`} legacyBehavior passHref>
                                                 <a target="_blank" rel="noopener noreferrer" className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded">
                                                     ENS App
+                                                </a>
+                                            </Link>
+                                            <Link href={`https://eth-sepolia.blockscout.com/tx/${contract.txHash}`} legacyBehavior passHref>
+                                                <a target="_blank" rel="noopener noreferrer" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-1 px-3 rounded">
+                                                    Blockscout
                                                 </a>
                                             </Link>
                                         </div>

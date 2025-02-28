@@ -27,6 +27,7 @@ export default function DeployForm() {
     const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
     const [parentName, setParentName] = useState('named.web3labs2.eth')
+    const [userEditedParentName, setUserEditedParentName] = useState(false)
     const [txHash, setTxHash] = useState('')
     const [deployedAddress, setDeployedAddress] = useState('')
     const [receipt, setReceipt] = useState<any>(null)
@@ -47,14 +48,12 @@ export default function DeployForm() {
 
     useEffect(() => {
         const fetchPrimaryENS = async () => {
-            if (!signer || !address || parentType !== 'own') return
+            if (!signer || !address || parentType !== 'own' || userEditedParentName) return
 
             try {
                 setParentName("fetching primary ens name...")
                 const ensName = await (await signer).provider.lookupAddress(address) || ''
-
                 setParentName(ensName)
-
             } catch (error) {
                 console.error("Error fetching ENS name:", error)
                 setParentName('')
@@ -62,7 +61,7 @@ export default function DeployForm() {
         }
 
         fetchPrimaryENS()
-    }, [signer, address, parentType])
+    }, [signer, address, parentType, userEditedParentName])
 
     const deployContract = async () => {
         if (!isValidBytecode) {
@@ -86,13 +85,12 @@ export default function DeployForm() {
             const parentNode = getParentNode(parentName)
             const topic0 = "0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf";
 
-            let tx
             if (parentType === 'web3labs') {
                 console.log("bytecode - ", bytecode)
                 console.log("label - ", label)
                 console.log("parentName - ", parentName)
                 console.log("parentNode - ", parentNode)
-                tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode)
+                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode)
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
@@ -101,7 +99,17 @@ export default function DeployForm() {
                 setReceipt(txReceipt)
                 setShowPopup(true)
             } else {
-                // tx = await nameWrapperContract.safeTransferFrom()
+                const tokenId = BigInt(namehash(parentName)).toString()
+                let tx1 = await nameWrapperContract.safeTransferFrom(address, contractAddress, tokenId, 1, "0x")
+                await tx1.wait()
+                let tx2 = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode)
+                const tx2Receipt = await tx2.wait()
+                setTxHash(tx2Receipt.hash)
+                const matchingLog = tx2Receipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
+                const deployedContractAddress = "0x" + matchingLog.data.slice(-40);
+                setDeployedAddress(deployedContractAddress)
+                setReceipt(tx2Receipt)
+                setShowPopup(true)
             }
 
         } catch (err: any) {
@@ -155,8 +163,10 @@ export default function DeployForm() {
                         setParentType(selected)
                         if (selected === 'web3labs') {
                             setParentName('named.web3labs2.eth')
+                            setUserEditedParentName(false)
                         } else {
                             setParentName('')
+                            setUserEditedParentName(false)
                         }
                     }}
                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
@@ -170,7 +180,10 @@ export default function DeployForm() {
                         <input
                             type="text"
                             value={parentName}
-                            onChange={(e) => setParentName(e.target.value)}
+                            onChange={(e) => {
+                                setUserEditedParentName(true)
+                                setParentName(e.target.value)
+                            }}
                             placeholder="mydomain.eth"
                             className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                         />
