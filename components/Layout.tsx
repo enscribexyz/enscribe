@@ -11,7 +11,9 @@ export default function Layout({ children }: LayoutProps) {
         <div className="flex flex-col min-h-screen">
             <nav className="w-full flex justify-between items-center bg-blue-500 dark:bg-gray-800 shadow-md p-4">
                 <Link legacyBehavior href="/">
-                    <h1 className="text-2xl font-bold text-white hover:underline">Named</h1>
+                    <a className="text-2xl font-bold text-white hover:underline">
+                        <h1>Enscribe</h1>
+                    </a>
                 </Link>
                 <ConnectButton />
             </nav>

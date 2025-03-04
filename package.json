@@ -1,5 +1,5 @@
 {
-  "name": "named-dev",
+  "name": "enscribe-dev",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1",
     "@rainbow-me/rainbowkit": "^2.2.4",
     "ethers": "^6.13.5",
     "next": "^15.1.7",
