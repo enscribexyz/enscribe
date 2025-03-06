@@ -19,11 +19,11 @@ export default function ContractHistory() {
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 10
 
-    const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437'
-    const topic0_deployment = "0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf" // Deployment event topic
-    const topic0_nameChanged = "0xb7d29e911041e8d9b843369e890bcb72c9388692ba48b65ac54e7214c4c348f7" // NameChanged event topic
+    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x5CEDDD691070082e7106e8d4ECf0896F9D9930D8"
+    const topic0_deployment = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT // Deployment event topic
+    const topic0_nameChanged = process.env.NEXT_PUBLIC_TOPIC0_NAME_CHANGED // NameChanged event topic
 
-    const etherscanApiKey = 'UKKN3D9CCGXXA2N8JMIAIQZS18HA9BAMUK'
+    const etherscanApiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API
 
     useEffect(() => {
         if (!isConnected || !address || !walletClient) return
@@ -35,7 +35,7 @@ export default function ContractHistory() {
         setError(null)
 
         try {
-            const url = `https://api-sepolia.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=7302640&endblock=99999999&sort=asc&apikey=${etherscanApiKey}`
+            const url = process.env.NEXT_PUBLIC_ETHERSCAN_URL + `&address=${address}`
             const response = await fetch(url)
             const data = await response.json()
 

@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react'
-import { ethers, namehash } from 'ethers'
+import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Web3LabsContract'
-import ensABI from '../contracts/NameWrapper'
+import ensRegistryABI from '../contracts/ENSRegistry'
+import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import { useAccount, useWalletClient } from 'wagmi'
-import { Log } from 'ethers'
 
-const contractAddress = '0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437'
-const ensContractAddress = '0x0635513f179D50A207757E05759CbD106d7dFcE8'
+const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x5CEDDD691070082e7106e8d4ECf0896F9D9930D8"
+const ensRegistryContractAddress = process.env.NEXT_PUBLIC_ENS_REGISTRY || "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
+const ensBaseRegistratContractAddress = process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION || "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+const topic0 = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT;
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -26,8 +28,8 @@ export default function DeployForm() {
     const [bytecode, setBytecode] = useState('')
     const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
-    const [parentName, setParentName] = useState('named.web3labs2.eth')
-    const [userEditedParentName, setUserEditedParentName] = useState(false)
+    const [parentName, setParentName] = useState('testapp.eth')
+    const [fetchingENS, setFetchingENS] = useState(false)
     const [txHash, setTxHash] = useState('')
     const [deployedAddress, setDeployedAddress] = useState('')
     const [receipt, setReceipt] = useState<any>(null)
@@ -35,6 +37,7 @@ export default function DeployForm() {
     const [loading, setLoading] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
     const [isValidBytecode, setIsValidBytecode] = useState(true)
+    const [ensNameTaken, setEnsNameTaken] = useState(false)
 
     const getParentNode = (name: string) => {
         return namehash(name)
@@ -46,24 +49,72 @@ export default function DeployForm() {
         }
     }, [bytecode])
 
-    useEffect(() => {
-        const fetchPrimaryENS = async () => {
-            if (!signer || !address || parentType !== 'own' || userEditedParentName) return
+    const fetchPrimaryENS = async () => {
+        if (!signer || !address) return
 
-            try {
-                setParentName("fetching primary ens name...")
-                const ensName = await (await signer).provider.lookupAddress(address) || ''
+        setFetchingENS(true)
+        try {
+            const provider = (await signer).provider
+            const ensName = await provider.lookupAddress(address)
+
+            if (ensName) {
                 setParentName(ensName)
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName('')
+            } else {
+                setParentName("")
             }
+        } catch (error) {
+            console.error("Error fetching ENS name:", error)
+            setParentName("")
+        }
+        setFetchingENS(false)
+    }
+
+    const checkENSReverseResolution = async () => {
+        if (!signer) return
+
+        // Validate label and parent name before checking
+        if (!label.trim()) {
+            setError("Label cannot be empty")
+            setEnsNameTaken(true)
+            return
+        }
+        if (!parentName.trim()) {
+            setError("Parent name cannot be empty")
+            setEnsNameTaken(true)
+            return
         }
 
-        fetchPrimaryENS()
-    }, [signer, address, parentType, userEditedParentName])
+        try {
+            const provider = (await signer).provider
+            const fullEnsName = `${label}.${parentName}`
+            const resolvedAddress = await provider.resolveName(fullEnsName)
+
+            if (resolvedAddress) {
+                setEnsNameTaken(true)
+                setError("ENS name already used, please change label")
+            } else {
+                setEnsNameTaken(false)
+                setError("")
+            }
+        } catch (err) {
+            console.error("Error checking ENS name:", err)
+            setEnsNameTaken(false)
+        }
+    }
 
     const deployContract = async () => {
+        if (!label.trim()) {
+            setError("Label cannot be empty")
+            return
+        }
+        if (!parentName.trim()) {
+            setError("Parent name cannot be empty")
+            return
+        }
+        if (ensNameTaken) {
+            setError("ENS name already used, please change label")
+            return
+        }
         if (!isValidBytecode) {
             setError('Invalid contract bytecode. It does not extend Ownable.')
             return
@@ -81,16 +132,30 @@ export default function DeployForm() {
             }
 
             const namingContract = new ethers.Contract(contractAddress, contractABI, (await signer))
-            const nameWrapperContract = new ethers.Contract(ensContractAddress, ensABI, (await signer))
+            const ensRegistryContract = new ethers.Contract(ensRegistryContractAddress, ensRegistryABI, (await signer))
+            const ensBaseRegistrarContract = new ethers.Contract(ensBaseRegistratContractAddress, ensBaseRegistrarImplementationABI, (await signer))
             const parentNode = getParentNode(parentName)
-            const topic0 = "0x8ffcdc15a283d706d38281f500270d8b5a656918f555de0913d7455e3e6bc1bf";
+
+            console.log("label - ", label)
+            console.log("parentName - ", parentName)
+            console.log("parentNode - ", parentNode)
+
+
 
             if (parentType === 'web3labs') {
-                console.log("bytecode - ", bytecode)
-                console.log("label - ", label)
-                console.log("parentName - ", parentName)
-                console.log("parentNode - ", parentNode)
-                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode)
+                const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
+                const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
+
+                // Calculate total cost - 15% buffer
+                const estimatedCost = estimatedGas * gasPrice;
+                const txCost = (estimatedCost * 15n) / 100n;
+
+                console.log(`Estimated Gas: ${estimatedGas.toString()}`);
+                console.log(`Gas Price: ${gasPrice}`);
+                console.log(`Tx Cost: ${txCost}`)
+                console.log("Web3 labs deployment type")
+                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
@@ -99,16 +164,52 @@ export default function DeployForm() {
                 setReceipt(txReceipt)
                 setShowPopup(true)
             } else {
-                const tokenId = BigInt(namehash(parentName)).toString()
-                let tx1 = await nameWrapperContract.safeTransferFrom(address, contractAddress, tokenId, 1, "0x")
-                await tx1.wait()
-                let tx2 = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode)
-                const tx2Receipt = await tx2.wait()
-                setTxHash(tx2Receipt.hash)
-                const matchingLog = tx2Receipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
+                console.log("User's parent deployment type")
+                const manager = await ensRegistryContract.owner(parentNode);
+                console.log(`Current Manager of ${parentName}: ${manager}`);
+
+                if (manager.toLowerCase() !== contractAddress.toLowerCase()) {
+                    const numDots = (parentName.match(/\./g) || []).length;
+
+                    if (numDots === 1) {
+                        // 2LD (Second-Level Domain) → Call `reclaim()`
+                        const labelHash = keccak256(ethers.toUtf8Bytes(parentName.split(".")[0])); // Get label hash
+                        const tokenId = BigInt(labelHash).toString();
+
+                        console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
+
+                        const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, contractAddress);
+                        await txReclaim.wait();
+
+                        console.log(`2LD Manager updated: ${txReclaim.hash}`);
+                    } else {
+                        // 3LD+ (Subdomain) → Call `setOwner()`
+                        console.log(`3LD+ detected. Changing ownership via ENS Registry`);
+
+                        const txSetOwner = await ensRegistryContract.setOwner(parentNode, contractAddress);
+                        await txSetOwner.wait();
+
+                        console.log(`3LD Manager updated: ${txSetOwner.hash}`);
+                    }
+                }
+                const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
+                const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
+
+                // Calculate total cost - 15% buffer
+                const estimatedCost = estimatedGas * gasPrice;
+                const txCost = (estimatedCost * 15n) / 100n;
+
+                console.log(`Estimated Gas: ${estimatedGas.toString()}`);
+                console.log(`Gas Price: ${gasPrice}`);
+                console.log(`Tx Cost: ${txCost}`)
+
+                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                const txReceipt = await tx.wait()
+                setTxHash(txReceipt.hash)
+                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
                 const deployedContractAddress = "0x" + matchingLog.data.slice(-40);
                 setDeployedAddress(deployedContractAddress)
-                setReceipt(tx2Receipt)
+                setReceipt(txReceipt)
                 setShowPopup(true)
             }
 
@@ -150,7 +251,11 @@ export default function DeployForm() {
                 <input
                     type="text"
                     value={label}
-                    onChange={(e) => setLabel(e.target.value)}
+                    onChange={(e) => {
+                        setLabel(e.target.value)
+                        setError("")
+                    }}
+                    onBlur={checkENSReverseResolution}
                     placeholder="my-label"
                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                 />
@@ -162,31 +267,33 @@ export default function DeployForm() {
                         const selected = e.target.value as 'web3labs' | 'own'
                         setParentType(selected)
                         if (selected === 'web3labs') {
-                            setParentName('named.web3labs2.eth')
-                            setUserEditedParentName(false)
+                            setParentName('testapp.eth')
                         } else {
                             setParentName('')
-                            setUserEditedParentName(false)
+                            fetchPrimaryENS()
                         }
                     }}
                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                 >
-                    <option className="text-gray-900" value="web3labs">named.web3labs2.eth</option>
+                    <option className="text-gray-900" value="web3labs">testapp.eth</option>
                     <option className="text-gray-900" value="own">Your ENS Parent</option>
                 </select>
                 {parentType === 'own' && (
                     <>
                         <label className="block text-gray-700 dark:text-gray-300">Parent Name</label>
-                        <input
-                            type="text"
-                            value={parentName}
-                            onChange={(e) => {
-                                setUserEditedParentName(true)
-                                setParentName(e.target.value)
-                            }}
-                            placeholder="mydomain.eth"
-                            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                        />
+                        {fetchingENS ? (
+                            <p className="text-gray-500 dark:text-gray-400">Fetching primary ENS name...</p>
+                        ) : (
+                            <input
+                                type="text"
+                                value={parentName}
+                                onChange={(e) => {
+                                    setParentName(e.target.value)
+                                }}
+                                placeholder="mydomain.eth"
+                                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            />
+                        )}
                     </>
                 )}
             </div>
