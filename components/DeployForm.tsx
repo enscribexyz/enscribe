@@ -141,7 +141,7 @@ export default function DeployForm() {
             console.log("parentNode - ", parentNode)
 
 
-            const txCost = 200000000000000n
+            const txCost = 500000000000000n
 
             if (parentType === 'web3labs') {
                 // const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
