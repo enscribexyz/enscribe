@@ -180,7 +180,17 @@ export default function DeployForm() {
 
                         console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
 
-                        const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, contractAddress);
+                        let gasLimit;
+                        try {
+                            gasLimit = await ensBaseRegistrarContract.reclaim.estimateGas(tokenId, contractAddress);
+                        } catch (error) {
+                            console.warn("estimateGas failed, using manual gas limit:", error);
+                            gasLimit = 50000;
+                        }
+
+                        const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, contractAddress, {
+                            gasLimit: gasLimit,
+                        });
                         await txReclaim.wait();
 
                         console.log(`2LD Manager updated: ${txReclaim.hash}`);
@@ -188,7 +198,17 @@ export default function DeployForm() {
                         // 3LD+ (Subdomain) → Call `setOwner()`
                         console.log(`3LD+ detected. Changing ownership via ENS Registry`);
 
-                        const txSetOwner = await ensRegistryContract.setOwner(parentNode, contractAddress);
+                        let gasLimit;
+                        try {
+                            gasLimit = await ensRegistryContract.setOwner.estimateGas(parentNode, contractAddress);
+                        } catch (error) {
+                            console.warn("estimateGas failed, using manual gas limit:", error);
+                            gasLimit = 40000;
+                        }
+
+                        const txSetOwner = await ensRegistryContract.setOwner(parentNode, contractAddress, {
+                            gasLimit: gasLimit,
+                        });
                         await txSetOwner.wait();
 
                         console.log(`3LD Manager updated: ${txSetOwner.hash}`);
