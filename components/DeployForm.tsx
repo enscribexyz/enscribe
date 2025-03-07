@@ -141,19 +141,21 @@ export default function DeployForm() {
             console.log("parentNode - ", parentNode)
 
 
+            const txCost = 200000000000000n
 
             if (parentType === 'web3labs') {
-                const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
-                const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
+                // const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
+                // const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
 
-                // Calculate total cost - 15% buffer
-                const estimatedCost = estimatedGas * gasPrice;
-                const txCost = (estimatedCost * 15n) / 100n;
+                // // Calculate total cost - 15% buffer
+                // const estimatedCost = estimatedGas * gasPrice;
+                // const txCost = (estimatedCost * 15n) / 100n;
 
-                console.log(`Estimated Gas: ${estimatedGas.toString()}`);
-                console.log(`Gas Price: ${gasPrice}`);
-                console.log(`Tx Cost: ${txCost}`)
-                console.log("Web3 labs deployment type")
+                // console.log(`Estimated Gas: ${estimatedGas.toString()}`);
+                // console.log(`Gas Price: ${gasPrice}`);
+                // console.log(`Tx Cost: ${txCost}`)
+                // console.log("Web3 labs deployment type")
+
                 let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
 
                 const txReceipt = await tx.wait()
@@ -192,16 +194,16 @@ export default function DeployForm() {
                         console.log(`3LD Manager updated: ${txSetOwner.hash}`);
                     }
                 }
-                const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
-                const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
+                // const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
+                // const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
 
-                // Calculate total cost - 15% buffer
-                const estimatedCost = estimatedGas * gasPrice;
-                const txCost = (estimatedCost * 15n) / 100n;
+                // // Calculate total cost - 15% buffer
+                // const estimatedCost = estimatedGas * gasPrice;
+                // const txCost = (estimatedCost * 15n) / 100n;
 
-                console.log(`Estimated Gas: ${estimatedGas.toString()}`);
-                console.log(`Gas Price: ${gasPrice}`);
-                console.log(`Tx Cost: ${txCost}`)
+                // console.log(`Estimated Gas: ${estimatedGas.toString()}`);
+                // console.log(`Gas Price: ${gasPrice}`);
+                // console.log(`Tx Cost: ${txCost}`)
 
                 let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
                 const txReceipt = await tx.wait()

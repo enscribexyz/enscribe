@@ -23,8 +23,6 @@ export default function ContractHistory() {
     const topic0_deployment = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT // Deployment event topic
     const topic0_nameChanged = process.env.NEXT_PUBLIC_TOPIC0_NAME_CHANGED // NameChanged event topic
 
-    const etherscanApiKey = process.env.NEXT_PUBLIC_ETHERSCAN_API
-
     useEffect(() => {
         if (!isConnected || !address || !walletClient) return
         fetchTransactions()
