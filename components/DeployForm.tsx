@@ -3,11 +3,13 @@ import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Web3LabsContract'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
+import nameWrapperABI from '../contracts/NameWrapper'
 import { useAccount, useWalletClient } from 'wagmi'
 
-const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x5CEDDD691070082e7106e8d4ECf0896F9D9930D8"
+const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xDe3F100397CC5d9eFEc6Ae5c6e8B9adE2d5eaC97"
 const ensRegistryContractAddress = process.env.NEXT_PUBLIC_ENS_REGISTRY || "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
 const ensBaseRegistratContractAddress = process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION || "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
+const nameWrapperContractAddress = process.env.NEXT_PUBLIC_NAME_WRAPPER || "0x0635513f179D50A207757E05759CbD106d7dFcE8"
 const topic0 = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT;
 
 const OWNABLE_FUNCTION_SELECTORS = [
@@ -134,6 +136,7 @@ export default function DeployForm() {
             const namingContract = new ethers.Contract(contractAddress, contractABI, (await signer))
             const ensRegistryContract = new ethers.Contract(ensRegistryContractAddress, ensRegistryABI, (await signer))
             const ensBaseRegistrarContract = new ethers.Contract(ensBaseRegistratContractAddress, ensBaseRegistrarImplementationABI, (await signer))
+            const nameWrapperContract = new ethers.Contract(nameWrapperContractAddress, nameWrapperABI, (await signer))
             const parentNode = getParentNode(parentName)
 
             console.log("label - ", label)
@@ -141,21 +144,9 @@ export default function DeployForm() {
             console.log("parentNode - ", parentNode)
 
 
-            const txCost = 500000000000000n
+            const txCost = 100000000000000n
 
             if (parentType === 'web3labs') {
-                // const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
-                // const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
-
-                // // Calculate total cost - 15% buffer
-                // const estimatedCost = estimatedGas * gasPrice;
-                // const txCost = (estimatedCost * 15n) / 100n;
-
-                // console.log(`Estimated Gas: ${estimatedGas.toString()}`);
-                // console.log(`Gas Price: ${gasPrice}`);
-                // console.log(`Tx Cost: ${txCost}`)
-                // console.log("Web3 labs deployment type")
-
                 let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
 
                 const txReceipt = await tx.wait()
@@ -167,63 +158,51 @@ export default function DeployForm() {
                 setShowPopup(true)
             } else {
                 console.log("User's parent deployment type")
-                const manager = await ensRegistryContract.owner(parentNode);
-                console.log(`Current Manager of ${parentName}: ${manager}`);
+                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
 
-                if (manager.toLowerCase() !== contractAddress.toLowerCase()) {
+                if (isWrapped) {
+                    // Wrapped Names
+                    const isApprovedForAll = await nameWrapperContract.isApprovedForAll((await signer).address, contractAddress);
+                    if (!isApprovedForAll) {
+                        const txSetApproval = await nameWrapperContract.setApprovalForAll(contractAddress, true);
+                        await txSetApproval.wait();
+
+                        console.log(`Wrapped 2LD and 3LD+ approvalStatus changed: ${txSetApproval.hash}`);
+                    }
+
+                } else {
+                    //Unwrapped Names
+
                     const numDots = (parentName.match(/\./g) || []).length;
 
                     if (numDots === 1) {
-                        // 2LD (Second-Level Domain) → Call `reclaim()`
-                        const labelHash = keccak256(ethers.toUtf8Bytes(parentName.split(".")[0])); // Get label hash
-                        const tokenId = BigInt(labelHash).toString();
+                        const manager = await ensRegistryContract.owner(parentNode);
+                        console.log(`Current Manager of ${parentName}: ${manager}`);
+                        if (manager.toLowerCase() !== contractAddress.toLowerCase()) {
+                            // 2LD (Second-Level Domain) → Call `reclaim()`
+                            const labelHash = keccak256(ethers.toUtf8Bytes(parentName.split(".")[0])); // Get label hash
+                            const tokenId = BigInt(labelHash).toString();
 
-                        console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
+                            console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
 
-                        let gasLimit;
-                        try {
-                            gasLimit = await ensBaseRegistrarContract.reclaim.estimateGas(tokenId, contractAddress);
-                        } catch (error) {
-                            console.warn("estimateGas failed, using manual gas limit:", error);
-                            gasLimit = 50000;
+                            const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, contractAddress);
+                            await txReclaim.wait();
+
+                            console.log(`2LD Manager updated: ${txReclaim.hash}`);
                         }
 
-                        const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, contractAddress, {
-                            gasLimit: gasLimit,
-                        });
-                        await txReclaim.wait();
-
-                        console.log(`2LD Manager updated: ${txReclaim.hash}`);
                     } else {
                         // 3LD+ (Subdomain) → Call `setOwner()`
                         console.log(`3LD+ detected. Changing ownership via ENS Registry`);
+                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, contractAddress);
+                        if (!isApprovedForAll) {
+                            const txSetApproval = await ensRegistryContract.setApprovalForAll(contractAddress, true);
+                            await txSetApproval.wait();
 
-                        let gasLimit;
-                        try {
-                            gasLimit = await ensRegistryContract.setOwner.estimateGas(parentNode, contractAddress);
-                        } catch (error) {
-                            console.warn("estimateGas failed, using manual gas limit:", error);
-                            gasLimit = 40000;
+                            console.log(`Unwrapped 3LD approvalStatus changed: ${txSetApproval.hash}`);
                         }
-
-                        const txSetOwner = await ensRegistryContract.setOwner(parentNode, contractAddress, {
-                            gasLimit: gasLimit,
-                        });
-                        await txSetOwner.wait();
-
-                        console.log(`3LD Manager updated: ${txSetOwner.hash}`);
                     }
                 }
-                // const estimatedGas = (await namingContract.setNameAndDeploy.estimateGas(bytecode, label, parentName, parentNode));
-                // const gasPrice = (await (await signer).provider.getFeeData()).maxFeePerGas || BigInt(1);
-
-                // // Calculate total cost - 15% buffer
-                // const estimatedCost = estimatedGas * gasPrice;
-                // const txCost = (estimatedCost * 15n) / 100n;
-
-                // console.log(`Estimated Gas: ${estimatedGas.toString()}`);
-                // console.log(`Gas Price: ${gasPrice}`);
-                // console.log(`Tx Cost: ${txCost}`)
 
                 let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
                 const txReceipt = await tx.wait()
