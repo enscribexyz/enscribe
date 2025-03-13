@@ -1,0 +1,21 @@
+conor:
+  name: Conor Svensson
+  title: Founder
+  url: https://github.com/conor10
+  image_url: https://avatars.githubusercontent.com/u/2148266?v=4
+  page: true
+  socials:
+    x: conorsvensson
+    github: conor10
+    linkedin: conorsvensson
+    newsletter: https://web3perspectives.com/
+
+nischal:
+  name: Nischal Sharma
+  title: Enscribe Lead
+  url: https://github.com/NickSneo
+  image_url: https://avatars.githubusercontent.com/u/32759145?v=4
+  page: true
+  socials:
+    github: https://github.com/NickSneo
+
