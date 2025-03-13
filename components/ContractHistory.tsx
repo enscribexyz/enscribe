@@ -1,215 +1,190 @@
-import React, { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useAccount, useWalletClient } from 'wagmi'
-import { ethers } from 'ethers'
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useAccount, useWalletClient } from 'wagmi';
+import { ethers } from 'ethers';
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 interface Contract {
-    ensName: string
-    contractAddress: string
-    txHash: string
+    ensName: string;
+    contractAddress: string;
+    txHash: string;
 }
 
 export default function ContractHistory() {
-    const { address, isConnected } = useAccount()
-    const { data: walletClient } = useWalletClient()
+    const { address, isConnected } = useAccount();
+    const { data: walletClient } = useWalletClient();
 
-    const [contracts, setContracts] = useState<Contract[]>([])
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 10
+    const [contracts, setContracts] = useState<Contract[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
-    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xDe3F100397CC5d9eFEc6Ae5c6e8B9adE2d5eaC97"
-    const topic0_deployment = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT // Deployment event topic
-    const topic0_nameChanged = process.env.NEXT_PUBLIC_TOPIC0_NAME_CHANGED // NameChanged event topic
+    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xDe3F100397CC5d9eFEc6Ae5c6e8B9adE2d5eaC97";
+    const topic0_deployment = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT;
+    const topic0_nameChanged = process.env.NEXT_PUBLIC_TOPIC0_NAME_CHANGED;
 
     useEffect(() => {
-        if (!isConnected || !address || !walletClient) return
-        fetchTransactions()
-    }, [address, isConnected, walletClient])
+        if (!isConnected || !address || !walletClient) return;
+        fetchTransactions();
+    }, [address, isConnected, walletClient]);
 
     const fetchTransactions = async () => {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         try {
-            const url = process.env.NEXT_PUBLIC_ETHERSCAN_URL + `&address=${address}`
-            const response = await fetch(url)
-            const data = await response.json()
-
-            console.log("address - ", address)
-            console.log("api - ", data)
+            const url = process.env.NEXT_PUBLIC_ETHERSCAN_URL + `&address=${address}`;
+            const response = await fetch(url);
+            const data = await response.json();
 
             if (data.status !== '1' || !data.result) {
-                console.log("No transactions found")
+                setLoading(false);
+                return;
             }
 
             const filteredTxs = data.result.filter((tx: any) =>
                 tx.to.toLowerCase() === contractAddress.toLowerCase()
-            )
+            );
 
-            const contractData: Contract[] = []
+            const contractData: Contract[] = [];
             for (const tx of filteredTxs) {
-                const { deployedAddress, ensName } = await fetchTransactionReceipt(tx.hash)
+                const { deployedAddress, ensName } = await fetchTransactionReceipt(tx.hash);
                 if (deployedAddress) {
                     contractData.push({
                         ensName: ensName || 'N/A',
                         contractAddress: deployedAddress,
                         txHash: tx.hash
-                    })
+                    });
                 }
             }
 
-            setContracts(contractData.reverse())
+            setContracts(contractData.reverse());
         } catch (error: any) {
-            console.error('Error fetching contract history:', error)
-            setError('Failed to fetch contract history')
+            setError('Failed to fetch contract history');
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
+    };
 
     const fetchTransactionReceipt = async (txHash: string): Promise<{ deployedAddress: string | null; ensName: string | null }> => {
         try {
-            if (!walletClient) return { deployedAddress: null, ensName: null }
+            if (!walletClient) return { deployedAddress: null, ensName: null };
 
-            const provider = new ethers.BrowserProvider(window.ethereum)
-            const signer = await provider.getSigner()
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const receipt = await signer.provider.getTransactionReceipt(txHash);
 
-            const receipt = await signer.provider.getTransactionReceipt(txHash)
-            if (!receipt || !receipt.logs) return { deployedAddress: null, ensName: null }
+            if (!receipt || !receipt.logs) return { deployedAddress: null, ensName: null };
 
-            let deployedAddr: string | null = null
-            let ensName: string | null = null
+            let deployedAddr: string | null = null;
+            let ensName: string | null = null;
 
             for (const log of receipt.logs) {
                 if (log.topics[0] === topic0_deployment) {
-                    deployedAddr = ethers.getAddress("0x" + log.data.slice(-40))
+                    deployedAddr = ethers.getAddress("0x" + log.data.slice(-40));
                 } else if (log.topics[0] === topic0_nameChanged) {
-                    const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(["string"], log.data)
-                    ensName = decodedData[0]
+                    const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(["string"], log.data);
+                    ensName = decodedData[0];
                 }
             }
 
-            return { deployedAddress: deployedAddr, ensName }
+            return { deployedAddress: deployedAddr, ensName };
         } catch (error) {
-            console.error("Error fetching transaction receipt:", error)
-            return { deployedAddress: null, ensName: null }
+            return { deployedAddress: null, ensName: null };
         }
-    }
+    };
 
-    const truncateText = (text: string) => {
-        if (text.length <= 20) return text
-        return text.slice(0, 40) + "..." + text.slice(-3)
-    }
+    const truncateText = (text: string) => text.length <= 20 ? text : `${text.slice(0, 40)}...${text.slice(-3)}`;
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text)
-    }
-
-    const totalPages = Math.ceil(contracts.length / itemsPerPage)
-    const paginatedContracts = contracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    const totalPages = Math.ceil(contracts.length / itemsPerPage);
+    const paginatedContracts = contracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     return (
-        <div>
+        <div className="container mx-auto p-6">
             {!isConnected ? (
-                <p className="text-red-500 text-lg">Please connect your wallet to view contract history.</p>
+                <p className="text-red-500 text-lg text-center">Please connect your wallet to view contract history.</p>
             ) : loading ? (
-                <p className="text-gray-700 dark:text-gray-300">Loading contract history...</p>
+                <Skeleton className="h-10 w-full rounded-lg" />
             ) : error ? (
                 <p className="text-red-500">{error}</p>
             ) : contracts.length === 0 ? (
-                <p className="text-gray-700 dark:text-gray-300">No transactions found.</p>
+                <p className="text-gray-700 dark:text-gray-300 text-center">No transactions found.</p>
             ) : (
-                <>
-                    <table className="min-w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
-                        <thead>
-                            <tr className="bg-gray-200 dark:bg-gray-700">
-                                <th className="py-2 px-4 border text-gray-900 dark:text-white">ENS Name</th>
-                                <th className="py-2 px-4 border text-gray-900 dark:text-white">Contract Address</th>
-                                <th className="py-2 px-4 border text-gray-900 dark:text-white">Transaction Hash</th>
-                                <th className="py-2 px-4 border text-gray-900 dark:text-white">View on Apps</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                <Card className="p-6">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>ENS Name</TableHead>
+                                <TableHead>Contract Address</TableHead>
+                                <TableHead>Transaction Hash</TableHead>
+                                <TableHead className="text-center">View on Apps</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
                             {paginatedContracts.map((contract, index) => (
-                                <tr key={index} className="hover:bg-gray-100 dark:hover:bg-gray-900">
-                                    {/* ENS Name Column */}
-                                    <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
-                                        <Link href={`https://app.ens.domains/${contract.ensName}`} legacyBehavior passHref>
-                                            <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                                {contract.ensName}
-                                            </a>
+                                <TableRow key={index}>
+                                    <TableCell>
+                                        <Link href={`https://app.ens.domains/${contract.ensName}`} target="_blank" className="text-blue-600 hover:underline">
+                                            {contract.ensName}
                                         </Link>
-                                    </td>
-                                    {/* Contract Address Column */}
-                                    <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
-                                        <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} legacyBehavior passHref>
-                                            <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                                {contract.contractAddress}
-                                            </a>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
+                                            {contract.contractAddress}
                                         </Link>
-                                    </td>
-                                    {/* Transaction Hash Column */}
-                                    <td className="py-2 px-4 border break-all text-gray-700 dark:text-gray-300">
-                                        <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
-                                            <a target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                                {truncateText(contract.txHash)}
-                                            </a>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank" className="text-blue-600 hover:underline">
+                                            {truncateText(contract.txHash)}
                                         </Link>
-                                    </td>
-                                    {/* View on Apps Column */}
-                                    <td className="py-2 px-4 border text-center">
-                                        <div className="flex flex-col items-center gap-2 w-full">
-                                            {/* First Row - Etherscan & Blockscout */}
-                                            <div className="flex gap-2 w-full">
-                                                <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} legacyBehavior passHref>
-                                                    <a target="_blank" rel="noopener noreferrer" className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded flex-1 text-center">
-                                                        Etherscan
-                                                    </a>
-                                                </Link>
-                                                <Link href={`https://eth-sepolia.blockscout.com/tx/${contract.txHash}`} legacyBehavior passHref>
-                                                    <a target="_blank" rel="noopener noreferrer" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex-1 text-center">
-                                                        Blockscout
-                                                    </a>
-                                                </Link>
-                                            </div>
-
-                                            {/* Second Row - Full-Width ENS App */}
-                                            <div className="w-full">
-                                                <Link href={`https://app.ens.domains/${contract.ensName}`} legacyBehavior passHref>
-                                                    <a target="_blank" rel="noopener noreferrer" className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded block w-full text-center">
-                                                        ENS App
-                                                    </a>
-                                                </Link>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
+                                    </TableCell>
+                                    <TableCell className="flex gap-2 justify-center">
+                                        <Button asChild variant="outline">
+                                            <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank">
+                                                Etherscan
+                                            </Link>
+                                        </Button>
+                                        <Button asChild variant="outline">
+                                            <Link href={`https://eth-sepolia.blockscout.com/tx/${contract.txHash}`} target="_blank">
+                                                Blockscout
+                                            </Link>
+                                        </Button>
+                                        <Button asChild variant="outline">
+                                            <Link href={`https://app.ens.domains/${contract.ensName}`} target="_blank">
+                                                ENS App
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
                             ))}
-                        </tbody>
-                    </table>
+                        </TableBody>
+                    </Table>
 
-                    {/* Pagination Controls */}
-                    <div className="flex justify-center mt-4">
-                        <button
+                    {/* Pagination */}
+                    <div className="flex justify-center mt-4 space-x-4">
+                        <Button
+                            variant="ghost"
                             onClick={() => setCurrentPage(currentPage - 1)}
                             disabled={currentPage === 1}
-                            className="mx-2 bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg disabled:opacity-50"
                         >
                             Previous
-                        </button>
-                        <span className="text-gray-900 dark:text-white px-4 py-2">{`Page ${currentPage} of ${totalPages}`}</span>
-                        <button
+                        </Button>
+                        <Badge>{`Page ${currentPage} of ${totalPages}`}</Badge>
+                        <Button
+                            variant="ghost"
                             onClick={() => setCurrentPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
-                            className="mx-2 bg-gray-300 dark:bg-gray-700 px-4 py-2 rounded-lg disabled:opacity-50"
                         >
                             Next
-                        </button>
+                        </Button>
                     </div>
-                </>
+                </Card>
             )}
         </div>
-    )
+    );
 }

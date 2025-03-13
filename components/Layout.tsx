@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { PencilSquareIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -13,41 +13,107 @@ const navigation = [
 ];
 
 export default function Layout({ children }: LayoutProps) {
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-            {/* Sidebar */}
-            <aside className="w-70 bg-gray-900 text-white shadow-md flex flex-col justify-between">
-                <div>
-                    <div className="px-6 py-4 flex items-center border-b border-gray-700">
-                        <Link href="/" legacyBehavior>
-                            <a><h1 className="text-2xl font-bold">Enscribe</h1></a>
-                        </Link>
-                    </div>
-                    <nav className="px-4 py-6">
-                        <ul className="space-y-2">
-                            {navigation.map((item) => (
-                                <li key={item.name}>
-                                    <Link href={item.href} legacyBehavior>
-                                        <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 rounded-md">
-                                            <item.icon className="w-5 h-5 mr-3 text-gray-400" />
-                                            {item.name}
-                                        </a>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                    </nav>
+            {/* Sidebar for Large Screens */}
+            <aside className="hidden lg:flex lg:w-64 bg-gray-900 text-white shadow-md flex-col">
+                <div className="px-6 py-4 flex items-center space-x-2 border-b border-gray-700">
+                    <Link href="/" legacyBehavior>
+                        <a className="flex items-center space-x-2">
+                            {/* Logo */}
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="32" height="32" rx="4" fill="#151A2D" />
+                                <path d="M10 12L6 16L10 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M22 12L26 16L22 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M18 10L14 22" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+
+                            {/* Text */}
+                            <h2 className="text-2xl font-bold text-white">Enscribe</h2>
+                        </a>
+                    </Link>
                 </div>
-                <div className="p-4 border-t border-gray-700 flex justify-center">
+                <nav className="px-4 py-6">
+                    <ul className="space-y-2">
+                        {navigation.map((item) => (
+                            <li key={item.name}>
+                                <Link href={item.href} legacyBehavior>
+                                    <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 rounded-md">
+                                        <item.icon className="w-5 h-5 mr-3 text-gray-400" />
+                                        {item.name}
+                                    </a>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            </aside>
+
+            {/* Mobile Sidebar */}
+            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform lg:hidden`}>
+                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-700">
+                    <Link href="/" legacyBehavior>
+                        <a className="flex items-center space-x-2">
+                            {/* Logo */}
+                            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="32" height="32" rx="4" fill="#151A2D" />
+                                <path d="M10 12L6 16L10 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M22 12L26 16L22 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M18 10L14 22" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+
+                            {/* Text */}
+                            <h2 className="text-2xl font-bold text-white">Enscribe</h2>
+                        </a>
+                    </Link>
+                    <button onClick={() => setSidebarOpen(false)}>
+                        <XMarkIcon className="w-6 h-6 text-white" />
+                    </button>
+                </div>
+                <nav className="px-4 py-6">
+                    <ul className="space-y-2">
+                        {navigation.map((item) => (
+                            <li key={item.name}>
+                                <Link href={item.href} legacyBehavior>
+                                    <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 rounded-md">
+                                        <item.icon className="w-5 h-5 mr-3 text-gray-400" />
+                                        {item.name}
+                                    </a>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </nav>
+            </div>
+
+            {/* Main content area */}
+            <div className="flex flex-1 flex-col">
+                {/* Top Navbar */}
+                <header className="flex items-center p-4 bg-white dark:bg-gray-800 shadow-md">
+                    {/* Mobile Menu Button */}
+                    <div className="lg:hidden">
+                        <button onClick={() => setSidebarOpen(true)}>
+                            <Bars3Icon className="w-6 h-6 text-gray-900 dark:text-white" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1"></div>
+
+                    {/* WalletConnect Button */}
                     <ConnectButton accountStatus={{
                         smallScreen: 'avatar',
                         largeScreen: 'full',
-                    }} chainStatus="icon" showBalance={false} />
-                </div>
-            </aside>
+                    }} chainStatus={{
+                        smallScreen: 'icon',
+                        largeScreen: 'full',
+                    }} showBalance={{
+                        smallScreen: false,
+                        largeScreen: true,
+                    }} />
+                </header>
 
-            {/* Main content */}
-            <div className="flex flex-1 flex-col">
                 <main className="flex-1 p-6 bg-white dark:bg-gray-800">
                     {children}
                 </main>

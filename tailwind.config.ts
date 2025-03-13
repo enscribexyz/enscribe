@@ -6,45 +6,91 @@ export default {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
-  darkMode: "class", // Enables dark mode via a class (e.g., <html class="dark">)
+  darkMode: ["class", "class"], // Enables dark mode via a class (e.g., <html class="dark">)
   theme: {
-    extend: {
-      colors: {
-        background: "var(--background, #f8fafc)", // Light mode fallback
-        foreground: "var(--foreground, #1e293b)", // Dark mode fallback
-        primary: {
-          DEFAULT: "#6366F1", // Indigo-500
-          dark: "#4F46E5", // Indigo-600
-        },
-        secondary: {
-          DEFAULT: "#14B8A6", // Teal-500
-          dark: "#0D9488", // Teal-600
-        },
-        accent: {
-          DEFAULT: "#EAB308", // Amber-500
-          dark: "#CA8A04", // Amber-600
-        },
-        muted: "#64748B", // Gray-500
-      },
-      spacing: {
-        "18": "4.5rem", // 72px
-        "22": "5.5rem", // 88px
-        "28": "7rem", // 112px
-        "36": "9rem", // 144px
-      },
-      borderRadius: {
-        xl: "1rem",
-        "2xl": "1.5rem",
-        "3xl": "2rem",
-      },
-      fontSize: {
-        sm: ["0.875rem", "1.5rem"], // Small text with proper line height
-        base: ["1rem", "1.75rem"], // Default text size
-        lg: ["1.125rem", "2rem"], // Slightly larger for readability
-        xl: ["1.25rem", "2.25rem"], // Headings
-        "2xl": ["1.5rem", "2.5rem"], // Larger headings
-      },
-    },
+  	extend: {
+  		colors: {
+  			background: 'hsl(var(--background))',
+  			foreground: 'hsl(var(--foreground))',
+  			primary: {
+  				DEFAULT: 'hsl(var(--primary))',
+  				dark: '#4F46E5',
+  				foreground: 'hsl(var(--primary-foreground))'
+  			},
+  			secondary: {
+  				DEFAULT: 'hsl(var(--secondary))',
+  				dark: '#0D9488',
+  				foreground: 'hsl(var(--secondary-foreground))'
+  			},
+  			accent: {
+  				DEFAULT: 'hsl(var(--accent))',
+  				dark: '#CA8A04',
+  				foreground: 'hsl(var(--accent-foreground))'
+  			},
+  			muted: {
+  				DEFAULT: 'hsl(var(--muted))',
+  				foreground: 'hsl(var(--muted-foreground))'
+  			},
+  			card: {
+  				DEFAULT: 'hsl(var(--card))',
+  				foreground: 'hsl(var(--card-foreground))'
+  			},
+  			popover: {
+  				DEFAULT: 'hsl(var(--popover))',
+  				foreground: 'hsl(var(--popover-foreground))'
+  			},
+  			destructive: {
+  				DEFAULT: 'hsl(var(--destructive))',
+  				foreground: 'hsl(var(--destructive-foreground))'
+  			},
+  			border: 'hsl(var(--border))',
+  			input: 'hsl(var(--input))',
+  			ring: 'hsl(var(--ring))',
+  			chart: {
+  				'1': 'hsl(var(--chart-1))',
+  				'2': 'hsl(var(--chart-2))',
+  				'3': 'hsl(var(--chart-3))',
+  				'4': 'hsl(var(--chart-4))',
+  				'5': 'hsl(var(--chart-5))'
+  			}
+  		},
+  		spacing: {
+  			'18': '4.5rem',
+  			'22': '5.5rem',
+  			'28': '7rem',
+  			'36': '9rem'
+  		},
+  		borderRadius: {
+  			xl: '1rem',
+  			'2xl': '1.5rem',
+  			'3xl': '2rem',
+  			lg: 'var(--radius)',
+  			md: 'calc(var(--radius) - 2px)',
+  			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		fontSize: {
+  			sm: [
+  				'0.875rem',
+  				'1.5rem'
+  			],
+  			base: [
+  				'1rem',
+  				'1.75rem'
+  			],
+  			lg: [
+  				'1.125rem',
+  				'2rem'
+  			],
+  			xl: [
+  				'1.25rem',
+  				'2.25rem'
+  			],
+  			'2xl': [
+  				'1.5rem',
+  				'2.5rem'
+  			]
+  		}
+  	}
   },
-  plugins: [], // No plugins used
+  plugins: [require("tailwindcss-animate")], // No plugins used
 } satisfies Config;

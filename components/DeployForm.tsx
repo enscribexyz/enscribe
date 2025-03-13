@@ -5,6 +5,10 @@ import ensRegistryABI from '../contracts/ENSRegistry'
 import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import nameWrapperABI from '../contracts/NameWrapper'
 import { useAccount, useWalletClient } from 'wagmi'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xDe3F100397CC5d9eFEc6Ae5c6e8B9adE2d5eaC97"
 const ensRegistryContractAddress = process.env.NEXT_PUBLIC_ENS_REGISTRY || "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
@@ -229,7 +233,7 @@ export default function DeployForm() {
 
             <div className="space-y-6 mt-6">
                 <label className="block text-gray-700 dark:text-gray-300">Bytecode</label>
-                <input
+                <Input
                     type="text"
                     value={bytecode}
                     onChange={(e) => setBytecode(e.target.value)}
@@ -249,7 +253,7 @@ export default function DeployForm() {
                 )}
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
-                <input
+                <Input
                     type="text"
                     value={label}
                     onChange={(e) => {
@@ -262,10 +266,10 @@ export default function DeployForm() {
                 />
 
                 <label className="block text-gray-700 dark:text-gray-300">ENS Parent</label>
-                <select
+                <Select
                     value={parentType}
-                    onChange={(e) => {
-                        const selected = e.target.value as 'web3labs' | 'own'
+                    onValueChange={(e) => {
+                        const selected = e as 'web3labs' | 'own'
                         setParentType(selected)
                         if (selected === 'web3labs') {
                             setParentName('testapp.eth')
@@ -274,18 +278,22 @@ export default function DeployForm() {
                             fetchPrimaryENS()
                         }
                     }}
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                 >
-                    <option className="text-gray-900" value="web3labs">testapp.eth</option>
-                    <option className="text-gray-900" value="own">Your ENS Parent</option>
-                </select>
+                    <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
+                        <SelectValue className="text-gray-900" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
+                        <SelectItem value="web3labs">testapp.eth</SelectItem>
+                        <SelectItem value="own">Your ENS Parent</SelectItem>
+                    </SelectContent>
+                </Select>
                 {parentType === 'own' && (
                     <>
                         <label className="block text-gray-700 dark:text-gray-300">Parent Name</label>
                         {fetchingENS ? (
                             <p className="text-gray-500 dark:text-gray-400">Fetching primary ENS name...</p>
                         ) : (
-                            <input
+                            <Input
                                 type="text"
                                 value={parentName}
                                 onChange={(e) => {
@@ -299,10 +307,10 @@ export default function DeployForm() {
                 )}
             </div>
 
-            <button
+            <Button
                 onClick={deployContract}
                 disabled={!isConnected || loading || !isValidBytecode}
-                className="w-full mt-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg disabled:bg-gray-400 flex items-center justify-center"
+                className="w-full mt-6"
             >
                 {loading ? (
                     <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -310,68 +318,75 @@ export default function DeployForm() {
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                 ) : 'Deploy'}
-            </button>
+            </Button>
 
             {error && (
                 <p className="mt-4 text-red-500 text-lg">Error: {error}</p>
             )}
 
             {showPopup && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-                    <div className="bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg max-w-lg w-full">
-                        <h3 className="text-xl font-semibold mb-4 text-black text-center">Deployment Successful!</h3>
+                <Dialog open={showPopup} onOpenChange={setShowPopup}>
+                    <DialogContent className="max-w-lg bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+                        <DialogHeader>
+                            <DialogTitle className="text-gray-900 dark:text-white">Deployment Successful!</DialogTitle>
+                            <DialogDescription className="text-gray-600 dark:text-gray-300">
+                                Your contract has been successfully deployed.
+                            </DialogDescription>
+                        </DialogHeader>
 
-                        <p className="text-black"><strong>Transaction Hash:</strong></p>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-sm text-black break-words">
-                            {txHash}
+                        {/* Transaction Hash */}
+                        <div>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Transaction Hash:</p>
+                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                                {txHash}
+                            </div>
                         </div>
 
-                        <p className="mt-2 text-black"><strong>Contract Address:</strong></p>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-sm text-black break-words">
-                            {deployedAddress}
+                        {/* Contract Address */}
+                        <div>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
+                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                                {deployedAddress}
+                            </div>
                         </div>
 
-                        <p className="mt-2 text-black"><strong>ENS name:</strong></p>
-                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded overflow-x-auto text-sm text-black break-words">
-                            {`${label}.${parentName}`}
+                        {/* ENS Name */}
+                        <div>
+                            <p className="text-sm font-semibold text-gray-900 dark:text-white">ENS Name:</p>
+                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                                {`${label}.${parentName}`}
+                            </div>
                         </div>
 
                         {/* View on Etherscan */}
-                        <a
-                            href={`https://sepolia.etherscan.io/tx/${txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-4 block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded text-center"
-                        >
-                            View Transaction on Etherscan
-                        </a>
+                        <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                            <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
+                                View Transaction on Etherscan
+                            </a>
+                        </Button>
 
                         {/* View on ENS App */}
-                        <a
-                            href={`https://app.ens.domains/${label}.${parentName}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-4 block bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded text-center"
-                        >
-                            View Name in ENS App
-                        </a>
+                        <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
+                            <a href={`https://app.ens.domains/${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
+                                View Name in ENS App
+                            </a>
+                        </Button>
 
-                        <button
+                        {/* Close Button */}
+                        <Button
                             onClick={() => {
-                                setShowPopup(false)
-                                // Reset the form fields
-                                setBytecode('')
-                                setLabel('')
-                                setParentType('web3labs')
-                                setParentName('named.web3labs2.eth')
-                            }
-                            }
-                            className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded"
+                                setShowPopup(false);
+                                setBytecode('');
+                                setLabel('');
+                                setParentType('web3labs');
+                                setParentName('named.web3labs2.eth');
+                            }}
+                            className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                         >
                             Close
-                        </button>
-                    </div>
-                </div>
+                        </Button>
+                    </DialogContent>
+                </Dialog>
             )
             }
         </div >
