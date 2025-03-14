@@ -194,6 +194,15 @@ a.button:active {
   }
 }
 
+/* Fix external link icons in navbar and footer */
+.navbar__item svg,
+.footer__link-item svg {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
 /* Adjust image sizing in hero section */
 .hero-image {
   max-height: 450px;
