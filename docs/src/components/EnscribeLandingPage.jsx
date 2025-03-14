@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "@docusaurus/Link"
 import useBaseUrl from "@docusaurus/useBaseUrl"
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { FaShieldAlt, FaBolt, FaGlobe, FaStar, FaGithub, FaDiscord, FaUserAlt, FaLock, FaPlug } from "react-icons/fa"
 import { FaXTwitter } from "react-icons/fa6"
 import { SiFarcaster } from "react-icons/si";
@@ -29,6 +30,10 @@ const FAQItem = ({ question, answer }) => {
 }
 
 export default function EnscribeLandingPage() {
+  const {
+    siteConfig: {customFields},
+  } = useDocusaurusContext();  
+
   const faqs = [
     {
       question: "Why should I use Enscribe?",
@@ -106,7 +111,7 @@ export default function EnscribeLandingPage() {
               Blog
             </Link>
           </nav>
-          <Link to="#get-started" className="button-primary rounded-md">
+          <Link to={customFields.appUrl} className="button-primary rounded-md">
             Launch App
           </Link>
         </div>
@@ -126,7 +131,7 @@ export default function EnscribeLandingPage() {
                   resolve it by name from day one
                 </p>
                 <div className="flex flex-wrap gap-4">
-                  <Link to="#get-started" className="button-primary rounded-md">
+                  <Link to={customFields.appUrl} className="button-primary rounded-md">
                     Launch App
                   </Link>
                   <Link
@@ -379,7 +384,7 @@ export default function EnscribeLandingPage() {
                 Join the growing community of developers using Enscribe to deploy their smart contracts, enhancing trust
                 and transparency in their web3 apps.
               </p>
-              <Link to="#" className="button-primary rounded-md">
+              <Link to={customFields.appUrl} className="button-primary rounded-md">
                 Launch App
               </Link>
             </div>

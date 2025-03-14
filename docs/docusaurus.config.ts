@@ -1,6 +1,8 @@
 // @ts-check
 // Note: type annotations allow type checking and IDEs autocompletion
 
+import 'dotenv/config';
+
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Enscribe",
@@ -58,6 +60,11 @@ const config = {
       }),
     ],
   ],
+
+  customFields: {
+    // Put your custom environment here
+    appUrl : process.env.APP_URL,
+  },
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
