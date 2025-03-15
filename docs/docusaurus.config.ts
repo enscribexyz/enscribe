@@ -147,34 +147,6 @@ const config = {
       },
     }),
 }
-            ],
-          },
-          {
-            title: "More",
-            items: [
-              {
-                label: "Blog",
-                to: "/blog",
-              },
-              {
-                label: "GitHub",
-                href: "https://github.com/your-org/enscribe",
-              },
-            ],
-          },
-        ],
-        copyright: `Copyright © ${new Date().getFullYear()} Enscribe. All rights reserved.`,
-      },
-      prism: {
-        theme: require("prism-react-renderer").themes.dracula,
-      },
-      colorMode: {
-        defaultMode: "dark",
-        disableSwitch: false,
-        respectPrefersColorScheme: false,
-      },
-    }),
-}
 
 module.exports = config
 

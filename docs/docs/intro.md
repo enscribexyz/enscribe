@@ -5,44 +5,25 @@ slug: /
 
 # Introduction
 
-Enscribe allows you 
+When users access websites, they expect to do it with a human readable DNS name. However, when interacting with web3 apps and signing transactions from their wallets, users are presented with meaningless smart contract hexidecimal addresses to sign.
+
+This is wrong, and the Enscribe service has been created to address this issue.
+
+Since their launch in May 2017, the ENS service set out to replace wallet and smart contract addresses with human readable names. However, for a reason unbeknownst to us, very few smart contract developers name their smart contracts.
+
+In part this may be because their is limited support for them in wallets, but also its another thing that developers have do to after they deploy a contract.
+
+Enscribe is here to change this. By providing a service that creates ENS records for contracts at deployment, we can change Ethereum and L2s from being full of anonymous contracts and instead them being labelled and named, providing greater transparency and trust in on-chain applications for users.
+
+Web users don't have to deal with IP addresses, nor should Web3 users have to deal with hexadecimal addresses in apps.
+
+We believe this is an important step forward in enhancing user-experience on the EVM and our contract deployment service is the first piece of infrastructure serving this purpose.
 
 ## Getting Started
 
-Get started by **creating a new site**.
+The main entry point for Enscribe is via the Enscribe app hosted at  [app.enscribe.xyz](https://app.enscribe.xyz).
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+The Enscribe app contains the Contract Deployment Service for the deployment of new contracts and historical information about deployments.
 
-### What you'll need
+They are covered in the following sections.
 
-- [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
-
-## Generate a new site
-
-Generate a new Docusaurus site using the **classic template**.
-
-The classic template will automatically be added to your project after you run the command:
-
-```bash
-npm init docusaurus@latest my-website classic
-```
-
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
-
-The command also installs all necessary dependencies you need to run Docusaurus.
-
-## Start your site
-
-Run the development server:
-
-```bash
-cd my-website
-npm run start
-```
-
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
-
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
