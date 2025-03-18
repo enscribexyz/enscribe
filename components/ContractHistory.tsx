@@ -7,11 +7,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 
 interface Contract {
     ensName: string;
     contractAddress: string;
     txHash: string;
+    isPrimary: boolean;
+    isOwnable: boolean;
 }
 
 export default function ContractHistory() {
@@ -54,10 +57,15 @@ export default function ContractHistory() {
             for (const tx of filteredTxs) {
                 const { deployedAddress, ensName } = await fetchTransactionReceipt(tx.hash);
                 if (deployedAddress) {
+                    const isPrimary = await checkPrimaryENS(deployedAddress) || false
+                    const isOwnable = await checkOwnableContract(deployedAddress) || false
+
                     contractData.push({
                         ensName: ensName || 'N/A',
                         contractAddress: deployedAddress,
-                        txHash: tx.hash
+                        txHash: tx.hash,
+                        isPrimary,
+                        isOwnable
                     });
                 }
             }
@@ -84,7 +92,6 @@ export default function ContractHistory() {
             let ensName: string | null = null;
 
             for (const log of receipt.logs) {
-
                 if (log.topics[0] === topic0_setName) {
                     deployedAddr = ethers.getAddress("0x" + log.topics[1].slice(-40));
                     const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(['string'], log.data);
@@ -95,6 +102,28 @@ export default function ContractHistory() {
             return { deployedAddress: deployedAddr, ensName };
         } catch (error) {
             return { deployedAddress: null, ensName: null };
+        }
+    };
+
+    const checkPrimaryENS = async (address: string): Promise<boolean> => {
+        const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+        try {
+            if (!address || address === 'N/A') return false;
+            const ensName = await (await signer)?.provider.lookupAddress(address)
+            return ensName !== null;
+        } catch (error) {
+            return false;
+        }
+    };
+
+    const checkOwnableContract = async (contractAddress: string): Promise<boolean> => {
+        const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+        try {
+            const contract = new ethers.Contract(contractAddress, ["function owner() view returns (address)"], (await signer).provider);
+            await contract.owner();
+            return true;
+        } catch (err) {
+            return false;
         }
     };
 
@@ -131,11 +160,13 @@ export default function ContractHistory() {
                                         <Link href={`https://app.ens.domains/${contract.ensName}`} target="_blank" className="text-blue-600 hover:underline">
                                             {contract.ensName}
                                         </Link>
+                                        {contract.isPrimary && <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2" title="Primary Name" />}
                                     </TableCell>
                                     <TableCell>
                                         <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
                                             {contract.contractAddress}
                                         </Link>
+                                        {contract.isOwnable && <InformationCircleIcon className="w-5 h-5 inline text-gray-500 ml-2" title="Extends Ownable" />}
                                     </TableCell>
                                     <TableCell>
                                         <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank" className="text-blue-600 hover:underline">
@@ -159,6 +190,7 @@ export default function ContractHistory() {
                                             </Link>
                                         </Button>
                                     </TableCell>
+
                                 </TableRow>
                             ))}
                         </TableBody>

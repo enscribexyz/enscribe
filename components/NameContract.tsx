@@ -125,10 +125,6 @@ export default function NameContract() {
         }
     };
 
-    const setForwardResolution = async () => {
-
-    }
-
     const setPrimaryName = async (setPrimary: boolean) => {
         if (!label.trim()) {
             setError("Label cannot be empty")
@@ -276,7 +272,7 @@ export default function NameContract() {
 
                 {/* Error message for invalid Ownable bytecode */}
                 {!isOwnable && (
-                    <p className="text-red-500">Invalid contract address. It does not extend Ownable.</p>
+                    <p className="text-red-500">Contract address does not extend Ownable. Can't set Primary Name for this.</p>
                 )}
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>

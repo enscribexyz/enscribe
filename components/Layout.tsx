@@ -9,7 +9,7 @@ interface LayoutProps {
 
 const navigation = [
     { name: 'Deploy New Contract', href: '/deploy', icon: PencilSquareIcon },
-    { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
+    { name: 'Name Existing Contract', href: '/nameContract', icon: DocumentTextIcon },
     { name: 'Contract History', href: '/history', icon: ClockIcon }
 ];
 
@@ -21,7 +21,7 @@ export default function Layout({ children }: LayoutProps) {
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Sidebar for Large Screens */}
-            <aside className="hidden lg:flex lg:w-64 bg-gray-900 text-white shadow-md flex-col">
+            <aside className="hidden lg:flex lg:w-66 bg-gray-900 text-white shadow-md flex-col">
                 <div>
                     <div className="px-6 py-4 flex items-center space-x-2 border-b border-gray-700">
                         <Link href="/" legacyBehavior>
@@ -77,7 +77,7 @@ export default function Layout({ children }: LayoutProps) {
             </aside>
 
             {/* Mobile Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform lg:hidden flex flex-col h-full`}>
+            <div className={`fixed inset-y-0 left-0 z-50 w-66 bg-gray-900 text-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform lg:hidden flex flex-col h-full`}>
                 <div className="px-6 py-4 flex items-center justify-between border-b border-gray-700">
                     <Link href="/" legacyBehavior>
                         <a className="flex items-center space-x-2">
