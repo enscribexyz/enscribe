@@ -58,13 +58,17 @@ export default function Layout({ children }: LayoutProps) {
                 {/* Push buttons to the bottom */}
                 <div className="mt-auto px-4 py-4 flex space-x-4">
                     <Link href={productLink} legacyBehavior>
-                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md">
+                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+                            target="_blank"
+                            rel="noopener noreferrer">
                             <InformationCircleIcon className="w-5 h-5 mr-3 text-gray-400" />
                             About
                         </a>
                     </Link>
                     <Link href={productLink + "/docs"} legacyBehavior>
-                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md">
+                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+                            target="_blank"
+                            rel="noopener noreferrer">
                             <DocumentIcon className="w-5 h-5 mr-3 text-gray-400" />
                             Docs
                         </a>
@@ -112,14 +116,18 @@ export default function Layout({ children }: LayoutProps) {
 
                 {/* Bottom Buttons */}
                 <div className="mt-auto px-4 py-4 flex space-x-4">
-                    <Link href={productLink} legacyBehavior>
-                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md">
+                    <Link href={productLink} target="_blank" legacyBehavior>
+                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+                            target="_blank"
+                            rel="noopener noreferrer">
                             <InformationCircleIcon className="w-5 h-5 mr-3 text-gray-400" />
                             About
                         </a>
                     </Link>
-                    <Link href={`${productLink}/docs`} legacyBehavior>
-                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md">
+                    <Link href={`${productLink}/docs`} target="_blank" legacyBehavior>
+                        <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+                            target="_blank"
+                            rel="noopener noreferrer">
                             <DocumentIcon className="w-5 h-5 mr-3 text-gray-400" />
                             Docs
                         </a>
