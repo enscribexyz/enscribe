@@ -1,0 +1,29 @@
+---
+sidebar_position: 1
+slug: /
+---
+
+# Introduction
+
+When users access websites, they expect to do it with a human readable DNS name. However, when interacting with web3 apps and signing transactions from their wallets, users are presented with meaningless smart contract hexidecimal addresses to sign.
+
+This is wrong, and the Enscribe service has been created to address this issue.
+
+Since their launch in May 2017, the ENS service set out to replace wallet and smart contract addresses with human readable names. However, for a reason unbeknownst to us, very few smart contract developers name their smart contracts.
+
+In part this may be because their is limited support for them in wallets, but also its another thing that developers have do to after they deploy a contract.
+
+Enscribe is here to change this. By providing a service that creates ENS records for contracts at deployment, we can change Ethereum and L2s from being full of anonymous contracts and instead them being labelled and named, providing greater transparency and trust in on-chain applications for users.
+
+Web users don't have to deal with IP addresses, nor should Web3 users have to deal with hexadecimal addresses in apps.
+
+We believe this is an important step forward in enhancing user-experience on the EVM and our contract deployment service is the first piece of infrastructure serving this purpose.
+
+## Getting Started
+
+The main entry point for Enscribe is via the Enscribe app hosted at  [app.enscribe.xyz](https://app.enscribe.xyz).
+
+The Enscribe app contains the Contract Deployment Service for the deployment of new contracts and historical information about deployments.
+
+They are covered in the following sections.
+

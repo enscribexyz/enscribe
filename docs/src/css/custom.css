@@ -1,0 +1,237 @@
+/* Import Tailwind CSS v4 */
+@import "tailwindcss";
+
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #06b6d4; /* Tailwind cyan-500 */
+  --ifm-color-primary-dark: #0891b2; /* Tailwind cyan-600 */
+  --ifm-color-primary-darker: #0e7490; /* Tailwind cyan-700 */
+  --ifm-color-primary-darkest: #155e75; /* Tailwind cyan-800 */
+  --ifm-color-primary-light: #22d3ee; /* Tailwind cyan-400 */
+  --ifm-color-primary-lighter: #67e8f9; /* Tailwind cyan-300 */
+  --ifm-color-primary-lightest: #a5f3fc; /* Tailwind cyan-200 */
+
+  --ifm-background-color: #0f172a; /* Tailwind slate-900 */
+  --ifm-background-surface-color: #1e293b; /* Tailwind slate-800 */
+  --ifm-navbar-background-color: #0f172a; /* Tailwind slate-900 */
+  --ifm-footer-background-color: #1e293b; /* Tailwind slate-800 */
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(22, 212, 238, 0.1);
+
+  --ifm-font-color-base: #f8fafc; /* Tailwind slate-50 */
+  --ifm-heading-color: #ffffff;
+  --ifm-navbar-link-color: #f8fafc; /* Tailwind slate-50 */
+  --ifm-menu-color: #f8fafc; /* Tailwind slate-50 */
+  --ifm-footer-link-color: #f8fafc; /* Tailwind slate-50 */
+  --ifm-footer-title-color: #ffffff;
+
+  --ifm-link-color: var(--ifm-color-primary);
+  --ifm-link-hover-color: var(--ifm-color-primary-lighter);
+
+  --ifm-card-background-color: #1e293b; /* Tailwind slate-800 */
+  --ifm-toc-border-color: #334155; /* Tailwind slate-700 */
+  --ifm-hr-border-color: #334155; /* Tailwind slate-700 */
+}
+
+/* For readability concerns, you should choose a lighter palette in light mode */
+html[data-theme="light"] {
+  --ifm-color-primary: #0e7490; /* Tailwind cyan-700 */
+  --ifm-color-primary-dark: #0891b2; /* Tailwind cyan-600 */
+  --ifm-color-primary-darker: #06b6d4; /* Tailwind cyan-500 */
+  --ifm-color-primary-darkest: #0891b2; /* Tailwind cyan-600 */
+  --ifm-color-primary-light: #22d3ee; /* Tailwind cyan-400 */
+  --ifm-color-primary-lighter: #67e8f9; /* Tailwind cyan-300 */
+  --ifm-color-primary-lightest: #a5f3fc; /* Tailwind cyan-200 */
+
+  --ifm-background-color: #ffffff;
+  --ifm-background-surface-color: #f8fafc; /* Tailwind slate-50 */
+  --ifm-navbar-background-color: #ffffff;
+  --ifm-footer-background-color: #f8fafc; /* Tailwind slate-50 */
+
+  --ifm-font-color-base: #1e293b; /* Tailwind slate-800 */
+  --ifm-heading-color: #0f172a; /* Tailwind slate-900 */
+  --ifm-navbar-link-color: #1e293b; /* Tailwind slate-800 */
+  --ifm-menu-color: #1e293b; /* Tailwind slate-800 */
+  --ifm-footer-link-color: #1e293b; /* Tailwind slate-800 */
+  --ifm-footer-title-color: #0f172a; /* Tailwind slate-900 */
+
+  --ifm-card-background-color: #ffffff;
+  --ifm-toc-border-color: #e2e8f0; /* Tailwind slate-200 */
+  --ifm-hr-border-color: #e2e8f0; /* Tailwind slate-200 */
+
+  --docusaurus-highlighted-code-line-bg: rgba(14, 116, 144, 0.1);
+}
+
+/* Hide Docusaurus header and footer on landing page */
+html.enscribe-landing-page {
+  --ifm-navbar-height: 0;
+}
+
+html.enscribe-landing-page .navbar {
+  display: none;
+}
+
+html.enscribe-landing-page .footer {
+  display: none;
+}
+
+/* Adjust main container padding for landing page */
+html.enscribe-landing-page .main-wrapper {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Adjust main container padding for docs and blog */
+html:not(.enscribe-landing-page) .main-wrapper {
+  padding-top: var(--ifm-navbar-height);
+}
+
+/* Additional styles for better dark mode appearance */
+html[data-theme="dark"] .navbar {
+  border-bottom: 1px solid #334155; /* Tailwind slate-700 */
+}
+
+html[data-theme="dark"] .footer {
+  border-top: 1px solid #334155; /* Tailwind slate-700 */
+}
+
+/* Improve code block styling */
+.prism-code {
+  background-color: #020617 !important; /* Tailwind slate-950 */
+  border-radius: 8px;
+}
+
+/* Improve button styling in docs */
+.button {
+  background-color: var(--ifm-color-primary);
+  color: #0f172a; /* Tailwind slate-900 */
+  border: none;
+  transition: background-color 0.2s;
+  font-weight: 600;
+}
+
+.button:hover {
+  background-color: var(--ifm-color-primary-lighter);
+  color: #0f172a; /* Tailwind slate-900 */
+}
+
+/* Add this to your custom.css file to override Docusaurus link styling */
+.button-primary {
+  background-color: #4db8e8 !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600 !important;
+  padding: 0.75rem 1.5rem !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.button-primary:hover {
+  background-color: #3ca7d7 !important;
+  color: #ffffff !important;
+}
+
+/* Ensure links inside buttons maintain the button text color and alignment */
+a.button-primary,
+a.button-primary:hover,
+a.button-primary:focus,
+a.button-primary:active {
+  color: #ffffff !important;
+  text-decoration: none !important;
+  text-align: center !important;
+}
+
+/* Ensure links inside buttons maintain the button text color */
+a.button,
+a.button:hover,
+a.button:focus,
+a.button:active {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+/* Improve card styling */
+.card {
+  border: 1px solid var(--ifm-toc-border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* Navbar and footer styling for docs/blog pages */
+.navbar {
+  border-bottom: 1px solid var(--ifm-toc-border-color);
+}
+
+.footer {
+  border-top: 1px solid var(--ifm-toc-border-color);
+}
+
+/* Add some spacing to the main content area */
+.container {
+  padding: 1rem;
+}
+
+@media (max-width: 996px) {
+  .container {
+    padding: 0.75rem;
+  }
+}
+
+/* Fix external link icons in navbar and footer */
+.navbar__item svg,
+.footer__link-item svg {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  margin-bottom: 0.3rem;
+}
+
+/* Adjust image sizing in hero section */
+.hero-image {
+  max-height: 450px;
+  width: auto;
+}
+
+/* Add these styles for the hero section */
+.hero-section {
+  position: relative;
+  min-height: calc(100vh - 64px); /* Subtract header height */
+  display: flex;
+  align-items: center;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/img/grid.svg");
+  background-position: center;
+  background-size: 30px 30px;
+  opacity: 0.5;
+  mask-image: linear-gradient(to bottom, white, transparent);
+  -webkit-mask-image: linear-gradient(to bottom, white, transparent);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+
