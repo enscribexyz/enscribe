@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -9,7 +9,8 @@ interface LayoutProps {
 
 const navigation = [
     { name: 'Deploy New Contract', href: '/deploy', icon: PencilSquareIcon },
-    { name: 'Contract History', href: '/history', icon: ClockIcon },
+    { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
+    { name: 'Contract History', href: '/history', icon: ClockIcon }
 ];
 
 export default function Layout({ children }: LayoutProps) {

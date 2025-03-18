@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Web3LabsContract'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import nameWrapperABI from '../contracts/NameWrapper'
+import ownableContractABI from '../contracts/Ownable'
+import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import { useAccount, useWalletClient } from 'wagmi'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,24 +16,26 @@ const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x
 const ensRegistryContractAddress = process.env.NEXT_PUBLIC_ENS_REGISTRY || "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
 const ensBaseRegistratContractAddress = process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION || "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
 const nameWrapperContractAddress = process.env.NEXT_PUBLIC_NAME_WRAPPER || "0x0635513f179D50A207757E05759CbD106d7dFcE8"
-const topic0 = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
+const reverseRegistrarContractAddress = process.env.NEXT_PUBLIC_REVERSE_REGISTRAR || "0xCF75B92126B02C9811d8c632144288a3eb84afC8"
+const publicResolverContractAddress = process.env.NEXT_PUBLIC_PUBLIC_RESOLVER || "0x8948458626811dd0c23EB25Cc74291247077cC51"
+const topic0 = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT;
 
-const OWNABLE_FUNCTION_SELECTORS = [
-    "8da5cb5b",  // owner()
-    "f2fde38b",  // transferOwnership(address newOwner)
-];
+// const OWNABLE_FUNCTION_SELECTORS = [
+//     "8da5cb5b",  // owner()
+//     "f2fde38b",  // transferOwnership(address newOwner)
+// ];
 
-const checkIfOwnable = (bytecode: string): boolean => {
-    return OWNABLE_FUNCTION_SELECTORS.every(selector => bytecode.includes(selector));
-};
+// const checkIfOwnable = (bytecode: string): boolean => {
+//     return OWNABLE_FUNCTION_SELECTORS.every(selector => bytecode.includes(selector));
+// };
 
-export default function DeployForm() {
+export default function NameContract() {
     const { address, isConnected } = useAccount()
     const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
 
-    const [bytecode, setBytecode] = useState('')
+    const [existingContractAddress, setExistingContractAddress] = useState('')
     const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
     const [parentName, setParentName] = useState('testapp.eth')
@@ -42,18 +46,13 @@ export default function DeployForm() {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
-    const [isValidBytecode, setIsValidBytecode] = useState(true)
+    const [isOwnable, setIsOwnable] = useState<boolean | null>(true);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
+    const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
 
     const getParentNode = (name: string) => {
         return namehash(name)
     }
-
-    useEffect(() => {
-        if (bytecode.length > 0) {
-            setIsValidBytecode(checkIfOwnable(bytecode))
-        }
-    }, [bytecode])
 
     const fetchPrimaryENS = async () => {
         if (!signer || !address) return
@@ -108,21 +107,45 @@ export default function DeployForm() {
         }
     }
 
-    const deployContract = async () => {
+    const checkIfOwnable = async () => {
+        if (!ethers.isAddress(existingContractAddress)) {
+            setError("Invalid contract address");
+            setIsOwnable(false);
+            return false;
+        }
+        setError("")
+
+        try {
+            const contract = new ethers.Contract(existingContractAddress, ["function owner() view returns (address)"], (await signer));
+
+            const ownerAddress = await contract.owner();
+            setIsOwnable(true);
+        } catch (err) {
+            setIsOwnable(false);
+        }
+    };
+
+    const setForwardResolution = async () => {
+
+    }
+
+    const setPrimaryName = async (setPrimary: boolean) => {
         if (!label.trim()) {
             setError("Label cannot be empty")
             return
         }
+
+        if (!existingContractAddress.trim()) {
+            setError("contract address cannot be empty")
+            return
+        }
+
         if (!parentName.trim()) {
             setError("Parent name cannot be empty")
             return
         }
         if (ensNameTaken) {
             setError("ENS name already used, please change label")
-            return
-        }
-        if (!isValidBytecode) {
-            setError('Invalid contract bytecode. It does not extend Ownable.')
             return
         }
 
@@ -141,23 +164,22 @@ export default function DeployForm() {
             const ensRegistryContract = new ethers.Contract(ensRegistryContractAddress, ensRegistryABI, (await signer))
             const ensBaseRegistrarContract = new ethers.Contract(ensBaseRegistratContractAddress, ensBaseRegistrarImplementationABI, (await signer))
             const nameWrapperContract = new ethers.Contract(nameWrapperContractAddress, nameWrapperABI, (await signer))
+            const reverseRegistrarContract = new ethers.Contract(reverseRegistrarContractAddress, reverseRegistrarABI, (await signer))
+            const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, (await signer))
             const parentNode = getParentNode(parentName)
 
             console.log("label - ", label)
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
 
-
             const txCost = 100000000000000n
 
             if (parentType === 'web3labs') {
-                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
 
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
-                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
-                const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                setDeployedAddress(deployedContractAddress)
+                setDeployedAddress(existingContractAddress)
                 setReceipt(txReceipt)
                 setShowPopup(true)
             } else {
@@ -208,19 +230,28 @@ export default function DeployForm() {
                     }
                 }
 
-                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
-                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === topic0);
-                const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                setDeployedAddress(deployedContractAddress)
+                setDeployedAddress(existingContractAddress)
                 setReceipt(txReceipt)
+
+                try {
+                    if (setPrimary) {
+                        let tx2 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, publicResolverContractAddress, label + "." + parentName)
+                        await tx2.wait()
+                        setIsPrimaryNameSet(true)
+                    }
+                } catch (error) {
+                    console.log("Error while setting primary name - ", error)
+                }
+
                 setShowPopup(true)
             }
 
         } catch (err: any) {
             console.error(err)
-            setError(err?.code || 'Error deploying contract')
+            setError(err?.code || 'Error naming exisiting contract')
         } finally {
             setLoading(false)
         }
@@ -228,28 +259,24 @@ export default function DeployForm() {
 
     return (
         <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
-            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">Deploy New Contract</h2>
+            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">Name Exisiting Contract</h2>
             {!isConnected && <p className="text-red-500">Please connect your wallet.</p>}
 
             <div className="space-y-6 mt-6">
-                <label className="block text-gray-700 dark:text-gray-300">Bytecode</label>
+                <label className="block text-gray-700 dark:text-gray-300">Contract Address</label>
                 <Input
                     type="text"
-                    value={bytecode}
-                    onChange={(e) => setBytecode(e.target.value)}
-                    onBlur={() => {
-                        if (bytecode && !bytecode.startsWith("0x")) {
-                            setBytecode("0x" + bytecode);
-                        }
-                    }}
-                    placeholder="0x60037..."
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
+                    value={existingContractAddress}
+                    onChange={(e) => setExistingContractAddress(e.target.value)}
+                    onBlur={checkIfOwnable}
+                    placeholder="0xa56..."
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isOwnable ? 'border-red-500' : ''
                         }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
-                {!isValidBytecode && bytecode.length > 0 && (
-                    <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable.</p>
+                {!isOwnable && (
+                    <p className="text-red-500">Invalid contract address. It does not extend Ownable.</p>
                 )}
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
@@ -307,18 +334,33 @@ export default function DeployForm() {
                 )}
             </div>
 
-            <Button
-                onClick={deployContract}
-                disabled={!isConnected || loading || !isValidBytecode}
-                className="w-full mt-6"
-            >
-                {loading ? (
-                    <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                    </svg>
-                ) : 'Deploy'}
-            </Button>
+            <div className="flex gap-4 mt-6">
+                <Button
+                    onClick={() => setPrimaryName(true)}
+                    disabled={!isConnected || loading || !isOwnable}
+                    className="w-1/2"
+                >
+                    {loading ? (
+                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    ) : 'Set Primary Name'}
+                </Button>
+
+                <Button
+                    onClick={() => setPrimaryName(false)}
+                    disabled={!isConnected || loading}
+                    className="w-1/2"
+                >
+                    {loading ? (
+                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                    ) : 'Set Forward Resolution'}
+                </Button>
+            </div>
 
             {error && (
                 <p className="mt-4 text-red-500 text-lg">Error: {error}</p>
@@ -328,9 +370,9 @@ export default function DeployForm() {
                 <Dialog open={showPopup} onOpenChange={setShowPopup}>
                     <DialogContent className="max-w-lg bg-white dark:bg-gray-900 shadow-lg rounded-lg">
                         <DialogHeader>
-                            <DialogTitle className="text-gray-900 dark:text-white">Deployment Successful!</DialogTitle>
+                            <DialogTitle className="text-gray-900 dark:text-white">Naming Contract Successful!</DialogTitle>
                             <DialogDescription className="text-gray-600 dark:text-gray-300">
-                                Your contract has been successfully deployed.
+                                Your contract has been named successfully.
                             </DialogDescription>
                         </DialogHeader>
 
@@ -358,6 +400,13 @@ export default function DeployForm() {
                             </div>
                         </div>
 
+                        {/* ENS Resolution Message */}
+                        <div className="text-red-500 dark:text-white font-semibold text-sm mt-4">
+                            {isPrimaryNameSet
+                                ? "Primary ENS Name set for the contract Address"
+                                : "Only Forward Resolution of ENS name set for the contract address"}
+                        </div>
+
                         {/* View on Etherscan */}
                         <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
                             <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
@@ -376,10 +425,11 @@ export default function DeployForm() {
                         <Button
                             onClick={() => {
                                 setShowPopup(false);
-                                setBytecode('');
+                                setExistingContractAddress('');
                                 setLabel('');
                                 setParentType('web3labs');
                                 setParentName('named.web3labs2.eth');
+                                setIsPrimaryNameSet(false);
                             }}
                             className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                         >

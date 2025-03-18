@@ -24,9 +24,8 @@ export default function ContractHistory() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xDe3F100397CC5d9eFEc6Ae5c6e8B9adE2d5eaC97";
-    const topic0_deployment = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT;
-    const topic0_nameChanged = process.env.NEXT_PUBLIC_TOPIC0_NAME_CHANGED;
+    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xBAa97370ed6f0EF2e1ad20ddfB3CCe64E0Bc5a68";
+    const topic0_setName = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
 
     useEffect(() => {
         if (!isConnected || !address || !walletClient) return;
@@ -85,10 +84,10 @@ export default function ContractHistory() {
             let ensName: string | null = null;
 
             for (const log of receipt.logs) {
-                if (log.topics[0] === topic0_deployment) {
-                    deployedAddr = ethers.getAddress("0x" + log.data.slice(-40));
-                } else if (log.topics[0] === topic0_nameChanged) {
-                    const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(["string"], log.data);
+
+                if (log.topics[0] === topic0_setName) {
+                    deployedAddr = ethers.getAddress("0x" + log.topics[1].slice(-40));
+                    const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(['string'], log.data);
                     ensName = decodedData[0];
                 }
             }

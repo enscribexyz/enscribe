@@ -36,6 +36,31 @@ const web3labsContractABI = [
 		"inputs": [
 			{
 				"indexed": false,
+				"internalType": "string",
+				"name": "parentName",
+				"type": "string"
+			},
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "parentNode",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "uint256",
+				"name": "tokenID",
+				"type": "uint256"
+			}
+		],
+		"name": "ContractStarted",
+		"type": "event"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
 				"internalType": "address",
 				"name": "sender",
 				"type": "address"
@@ -55,12 +80,18 @@ const web3labsContractABI = [
 		"inputs": [
 			{
 				"indexed": false,
+				"internalType": "string",
+				"name": "msg",
+				"type": "string"
+			},
+			{
+				"indexed": false,
 				"internalType": "uint256",
-				"name": "gasLeftStart",
+				"name": "tokenId",
 				"type": "uint256"
 			}
 		],
-		"name": "GasLeftStarted",
+		"name": "IsWrapped",
 		"type": "event"
 	},
 	{
@@ -164,7 +195,33 @@ const web3labsContractABI = [
 	},
 	{
 		"inputs": [],
+		"name": "BASE_REGISTRAR_ADDRESS",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "ENS_REGISTRY_ADDRESS",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "NAME_WRAPPER_ADDRESS",
 		"outputs": [
 			{
 				"internalType": "address",
@@ -196,6 +253,25 @@ const web3labsContractABI = [
 				"internalType": "address",
 				"name": "",
 				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "parentNode",
+				"type": "bytes32"
+			}
+		],
+		"name": "checkWrapped",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
 			}
 		],
 		"stateMutability": "view",
@@ -318,6 +394,19 @@ const web3labsContractABI = [
 	},
 	{
 		"inputs": [],
+		"name": "pricing",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "renounceOwnership",
 		"outputs": [],
 		"stateMutability": "nonpayable",
@@ -354,7 +443,7 @@ const web3labsContractABI = [
 				"type": "bool"
 			}
 		],
-		"stateMutability": "nonpayable",
+		"stateMutability": "payable",
 		"type": "function"
 	},
 	{
@@ -419,6 +508,19 @@ const web3labsContractABI = [
 			}
 		],
 		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "updatedPrice",
+				"type": "uint256"
+			}
+		],
+		"name": "updatePricing",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
