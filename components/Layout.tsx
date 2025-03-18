@@ -57,7 +57,7 @@ export default function Layout({ children }: LayoutProps) {
 
                 {/* Push buttons to the bottom */}
                 <div className="mt-auto px-4 py-4 flex space-x-4">
-                    <Link href={productLink} legacyBehavior>
+                    <Link href={productLink || "/"} legacyBehavior>
                         <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
                             target="_blank"
                             rel="noopener noreferrer">
@@ -116,7 +116,7 @@ export default function Layout({ children }: LayoutProps) {
 
                 {/* Bottom Buttons */}
                 <div className="mt-auto px-4 py-4 flex space-x-4">
-                    <Link href={productLink} target="_blank" legacyBehavior>
+                    <Link href={productLink || "/"} target="_blank" legacyBehavior>
                         <a className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
                             target="_blank"
                             rel="noopener noreferrer">

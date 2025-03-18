@@ -88,6 +88,10 @@ export default function NameContract() {
             setEnsNameTaken(true)
             return
         }
+        if (label.includes(".")) {
+            setError("Can't include '.' in label name")
+            return
+        }
 
         try {
             const provider = (await signer).provider
@@ -128,6 +132,11 @@ export default function NameContract() {
     const setPrimaryName = async (setPrimary: boolean) => {
         if (!label.trim()) {
             setError("Label cannot be empty")
+            return
+        }
+
+        if (label.includes(".")) {
+            setError("Can't include '.' in label name")
             return
         }
 

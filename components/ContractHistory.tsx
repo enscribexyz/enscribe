@@ -106,7 +106,7 @@ export default function ContractHistory() {
     };
 
     const checkPrimaryENS = async (address: string): Promise<boolean> => {
-        const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+        const signer = new ethers.BrowserProvider(window.ethereum).getSigner()
         try {
             if (!address || address === 'N/A') return false;
             const ensName = await (await signer)?.provider.lookupAddress(address)
@@ -117,7 +117,7 @@ export default function ContractHistory() {
     };
 
     const checkOwnableContract = async (contractAddress: string): Promise<boolean> => {
-        const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+        const signer = new ethers.BrowserProvider(window.ethereum).getSigner()
         try {
             const contract = new ethers.Contract(contractAddress, ["function owner() view returns (address)"], (await signer).provider);
             await contract.owner();

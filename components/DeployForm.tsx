@@ -81,12 +81,17 @@ export default function DeployForm() {
         // Validate label and parent name before checking
         if (!label.trim()) {
             setError("Label cannot be empty")
-            setEnsNameTaken(true)
+            setEnsNameTaken(false)
             return
         }
         if (!parentName.trim()) {
             setError("Parent name cannot be empty")
-            setEnsNameTaken(true)
+            setEnsNameTaken(false)
+            return
+        }
+
+        if (label.includes(".")) {
+            setError("Can't include '.' in label name")
             return
         }
 
@@ -104,6 +109,7 @@ export default function DeployForm() {
             }
         } catch (err) {
             console.error("Error checking ENS name:", err)
+            setError("")
             setEnsNameTaken(false)
         }
     }
@@ -111,6 +117,10 @@ export default function DeployForm() {
     const deployContract = async () => {
         if (!label.trim()) {
             setError("Label cannot be empty")
+            return
+        }
+        if (label.includes(".")) {
+            setError("Can't include '.' in label name")
             return
         }
         if (!parentName.trim()) {
