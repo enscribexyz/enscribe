@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface Contract {
     ensName: string;
@@ -160,13 +161,35 @@ export default function ContractHistory() {
                                         <Link href={`https://app.ens.domains/${contract.ensName}`} target="_blank" className="text-blue-600 hover:underline">
                                             {contract.ensName}
                                         </Link>
-                                        {contract.isPrimary && <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2" title="Primary Name" />}
+                                        {contract.isPrimary && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" align="center">
+                                                        <p>Primary Name</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
                                             {contract.contractAddress}
                                         </Link>
-                                        {contract.isOwnable && <InformationCircleIcon className="w-5 h-5 inline text-gray-500 ml-2" title="Extends Ownable" />}
+                                        {contract.isOwnable && (
+                                            <TooltipProvider>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <InformationCircleIcon className="w-5 h-5 inline text-gray-500 ml-2 cursor-pointer" />
+                                                    </TooltipTrigger>
+                                                    <TooltipContent side="top" align="center">
+                                                        <p>Extends Ownable</p>
+                                                    </TooltipContent>
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank" className="text-blue-600 hover:underline">
