@@ -254,7 +254,7 @@ export default function EnscribeLandingPage() {
                     </li>
                     <li className="flex items-center">
                       <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
-                      <span className="text-slate-200">Locked ENS subname record for enhanced security</span>
+                      <span className="text-slate-200">Optional locked ENS subname record for enhanced security</span>
                     </li>
                   </ul>
                 </div>
