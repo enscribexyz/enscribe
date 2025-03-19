@@ -302,7 +302,7 @@ export default function EnscribeLandingPage() {
           </div>
         </section>
 
-        {/* Testimonials Section */}
+        {/* Testimonials Section 
         <section id="testimonials" className="py-12 md:py-24 lg:py-32 bg-slate-800">
           <div className="container mx-auto px-4 md:px-6">
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl text-center bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent mb-12">
@@ -372,9 +372,9 @@ export default function EnscribeLandingPage() {
             </div>
           </div>
         </section>
-
+*/}
         {/* CTA Section */}
-        <section id="get-started" className="py-12 md:py-24 lg:py-32">
+        <section id="get-started" className="py-12 md:py-24 lg:py-32 bg-slate-800">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent mb-4">
@@ -391,7 +391,7 @@ export default function EnscribeLandingPage() {
           </div>
         </section>
         {/* Mailing List Section */}
-        <section className="py-12 md:py-24 bg-slate-800">
+        <section className="py-12 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center max-w-3xl mx-auto">
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl text-white mb-4">
