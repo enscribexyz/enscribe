@@ -27,7 +27,7 @@ export default function ContractHistory() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0xBAa97370ed6f0EF2e1ad20ddfB3CCe64E0Bc5a68";
+    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x77e78294f0b8CB54708393F6d7fa79eF7CFB589C";
     const topic0_setName = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
 
     useEffect(() => {

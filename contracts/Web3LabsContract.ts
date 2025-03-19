@@ -136,16 +136,16 @@ const web3labsContractABI = [
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": false,
-				"internalType": "bytes32",
-				"name": "subnameHash",
-				"type": "bytes32"
+				"indexed": true,
+				"internalType": "address",
+				"name": "contractAddress",
+				"type": "address"
 			},
 			{
 				"indexed": false,
-				"internalType": "bytes",
-				"name": "encodedAddress",
-				"type": "bytes"
+				"internalType": "string",
+				"name": "subname",
+				"type": "string"
 			}
 		],
 		"name": "SetAddrSuccess",
@@ -155,7 +155,7 @@ const web3labsContractABI = [
 		"anonymous": false,
 		"inputs": [
 			{
-				"indexed": false,
+				"indexed": true,
 				"internalType": "address",
 				"name": "deployedAddress",
 				"type": "address"
@@ -296,6 +296,19 @@ const web3labsContractABI = [
 				"internalType": "address",
 				"name": "computedAddress",
 				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "defaultParent",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
 			}
 		],
 		"stateMutability": "view",
@@ -508,6 +521,19 @@ const web3labsContractABI = [
 			}
 		],
 		"name": "transferOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "updatedParent",
+				"type": "string"
+			}
+		],
+		"name": "updateDefaultParent",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"

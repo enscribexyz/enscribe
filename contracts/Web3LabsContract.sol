@@ -22,6 +22,7 @@ contract Web3LabsContract is IERC1155Receiver, Ownable {
         0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85;
 
     uint256 public pricing = 0.0001 ether;
+    string public defaultParent = "testapp.eth";
 
     event ContractStarted(
         string parentName,
@@ -31,8 +32,11 @@ contract Web3LabsContract is IERC1155Receiver, Ownable {
     event IsWrapped(string msg, uint256 tokenId);
     event ContractDeployed(address contractAddress);
     event SubnameCreated(bytes32 parentHash, string label);
-    event SetAddrSuccess(bytes32 subnameHash, bytes encodedAddress);
-    event SetPrimaryNameSuccess(address deployedAddress, string subname);
+    event SetAddrSuccess(address indexed contractAddress, string subname);
+    event SetPrimaryNameSuccess(
+        address indexed deployedAddress,
+        string subname
+    );
     event ContractOwnershipTransferred(address deployedAddress, address owner);
     event NameOwnershipTransferred(uint256 parentTokenId, address owner);
     event EtherReceived(address sender, uint256 amount);
@@ -118,13 +122,21 @@ contract Web3LabsContract is IERC1155Receiver, Ownable {
     ) public payable returns (bool success) {
         bytes32 labelHash = keccak256(bytes(label));
         bytes32 node = keccak256(abi.encodePacked(parentNode, labelHash));
+        string memory subname = string(
+            abi.encodePacked(label, ".", parentName)
+        );
         success = false;
 
         if (checkWrapped(parentNode)) {
-            require(
-                _isSenderOwnerWrapped(parentNode),
-                "Sender is not the owner of parent node, can't create subname"
-            );
+            if (
+                keccak256(abi.encodePacked(parentName)) !=
+                keccak256(abi.encodePacked(defaultParent))
+            ) {
+                require(
+                    _isSenderOwnerWrapped(parentNode),
+                    "Sender is not the owner of parent node, can't create subname"
+                );
+            }
             require(
                 _createSubnameWrapped(
                     parentNode,
@@ -138,10 +150,15 @@ contract Web3LabsContract is IERC1155Receiver, Ownable {
                 "Failed to create subname, check if contract is given isApprovedForAll role"
             );
         } else {
-            require(
-                _isSenderOwnerUnwrapped(parentNode, parentName),
-                "Sender is not the owner of parent node, can't create subname"
-            );
+            if (
+                keccak256(abi.encodePacked(parentName)) !=
+                keccak256(abi.encodePacked(defaultParent))
+            ) {
+                require(
+                    _isSenderOwnerUnwrapped(parentNode, parentName),
+                    "Sender is not the owner of parent node, can't create subname"
+                );
+            }
             require(
                 _createSubnameUnwrapped(
                     parentNode,
@@ -160,7 +177,7 @@ contract Web3LabsContract is IERC1155Receiver, Ownable {
             _setAddr(node, uint256(60), encodedAddress),
             "failed to setAddr"
         );
-        emit SetAddrSuccess(node, encodedAddress);
+        emit SetAddrSuccess(contractAddress, subname);
 
         require(
             msg.value >= pricing,
@@ -377,6 +394,12 @@ contract Web3LabsContract is IERC1155Receiver, Ownable {
     function updatePricing(uint256 updatedPrice) public onlyOwner {
         require(updatedPrice > 0, "Price must be greater than zero");
         pricing = updatedPrice;
+    }
+
+    function updateDefaultParent(
+        string calldata updatedParent
+    ) public onlyOwner {
+        defaultParent = updatedParent;
     }
 
     /**
