@@ -13,7 +13,7 @@ const navigation = [
     { name: 'Contract History', href: '/history', icon: ClockIcon }
 ];
 
-const productLink = process.env.NEXT_PUBLIC_PRODUCT_LINK;
+const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL;
 
 export default function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);

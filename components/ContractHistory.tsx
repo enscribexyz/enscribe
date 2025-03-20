@@ -128,7 +128,7 @@ export default function ContractHistory() {
         }
     };
 
-    const truncateText = (text: string) => text.length <= 20 ? text : `${text.slice(0, 40)}...${text.slice(-3)}`;
+    const truncateText = (text: string) => text.length <= 20 ? text : `${text.slice(0, 20)}...${text.slice(-3)}`;
 
     const totalPages = Math.ceil(contracts.length / itemsPerPage);
     const paginatedContracts = contracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -176,7 +176,7 @@ export default function ContractHistory() {
                                     </TableCell>
                                     <TableCell>
                                         <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
-                                            {contract.contractAddress}
+                                            {truncateText(contract.contractAddress)}
                                         </Link>
                                         {contract.isOwnable && (
                                             <TooltipProvider>
@@ -200,11 +200,6 @@ export default function ContractHistory() {
                                         <Button asChild variant="outline">
                                             <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank">
                                                 Etherscan
-                                            </Link>
-                                        </Button>
-                                        <Button asChild variant="outline">
-                                            <Link href={`https://eth-sepolia.blockscout.com/tx/${contract.txHash}`} target="_blank">
-                                                Blockscout
                                             </Link>
                                         </Button>
                                         <Button asChild variant="outline">
