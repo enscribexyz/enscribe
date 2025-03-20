@@ -425,15 +425,15 @@ export default function EnscribeLandingPage() {
             </div>
             <p className="text-center md:text-left text-sm text-slate-400">© {new Date().getFullYear()} Web3 Labs Ltd. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://x.com/enscribexyz" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaXTwitter className="h-5 w-5" />
                 <span className="sr-only">X (formerly Twitter)</span>
               </Link>
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://github.com/enscribexyz/enscribe" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaGithub className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Link>
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://discord.gg/8QUMMdS5GY" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaDiscord className="h-5 w-5" />
                 <span className="sr-only">Discord</span>
               </Link>
