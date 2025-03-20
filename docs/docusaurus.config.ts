@@ -6,16 +6,14 @@ import 'dotenv/config';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Enscribe",
-  tagline: "ENS for Smart Contracts",
+  tagline: "ENScribe your Smart Contracts",
   favicon: "img/favicon.ico",
 
-  // Set the production url of your site here
   url: "https://enscribe.xyz",
-  // Set the /<baseUrl>/ pathname under which your site is served
   baseUrl: "/",
 
   // GitHub pages deployment config
-  organizationName: "web3labs",
+  organizationName: "enscribe.xyz",
   projectName: "enscribe",
 
   onBrokenLinks: "throw",
@@ -54,7 +52,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
           editUrl:
-            'https://github.com/facebook/enscribe/tree/main/docs',
+            'https://github.com/enscribexyz/enscribe/tree/main/docs',
         },
         blog: {
           showReadingTime: true,
@@ -91,7 +89,7 @@ const config = {
           },
           { to: "/blog", label: "Blog", position: "left" },
           {
-            href: "https://github.com/your-org/enscribe",
+            href: "https://github.com/enscribexyz/enscribe",
             label: "GitHub",
             position: "right",
           },
@@ -114,11 +112,11 @@ const config = {
             items: [
               {
                 label: "Discord",
-                href: "https://discord.gg/your-discord",
+                href: "https://discord.gg/8QUMMdS5GY",
               },
               {
                 label: "X",
-                href: "https://x.com/your-twitter",
+                href: "https://x.com/enscribexyz",
               },
               {
                 label: "Farcaster",
@@ -135,7 +133,7 @@ const config = {
               },
               {
                 label: "GitHub",
-                href: "https://github.com/your-org/enscribe",
+                href: "https://github.com/enscribexyz/enscribe",
               },
             ],
           },
