@@ -443,7 +443,7 @@ export default function EnscribeLandingPage() {
                 <FaDiscord className="h-5 w-5" />
                 <span className="sr-only">Discord</span>
               </Link>
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://warpcast.com/enscribe" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <SiFarcaster className="h-5 w-5" />
                 <span className="sr-only">Farcaster</span>
               </Link>

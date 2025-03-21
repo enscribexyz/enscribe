@@ -120,7 +120,7 @@ const config = {
               },
               {
                 label: "Farcaster",
-                href: "https://farcaster.com/your-facaster",
+                href: "https://warpcast.com/enscribe",
               },
             ],
           },
@@ -138,7 +138,7 @@ const config = {
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} Enscribe. All rights reserved.`,
+        copyright: `Copyright © ${new Date().getFullYear()} Web3 Labs Ltd. All rights reserved.`,
       },
       prism: {
         theme: require("prism-react-renderer").themes.dracula,
