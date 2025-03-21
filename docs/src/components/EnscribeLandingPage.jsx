@@ -397,11 +397,17 @@ export default function EnscribeLandingPage() {
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl text-white mb-4">
                 Join the growing community of developers using Enscribe to name their smart contracts
               </h2>
-              <form className="w-full max-w-md flex flex-col sm:flex-row gap-3">
+              <form className="w-full max-w-md flex flex-col sm:flex-row gap-3"
+                action="https://web3labs.us17.list-manage.com/subscribe/post" method="POST"
+              >
+                <input type="hidden" name="u" value="412696652858d5fc58dd705c9"/>
+                <input type="hidden" name="id" value="6dd1b9fa2d"/>
+
                 <input
                   type="email"
                   placeholder="Enter your email"
                   className="flex-1 px-4 py-3 rounded-md bg-slate-900 border border-slate-700 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  name="MERGE0" id="MERGE0"
                 />
                 <button
                   type="submit"
