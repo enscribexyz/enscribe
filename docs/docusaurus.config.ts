@@ -116,7 +116,7 @@ const config = {
               },
               {
                 label: "X",
-                href: "https://x.com/enscribexyz",
+                href: "https://x.com/enscribe_eth",
               },
               {
                 label: "Farcaster",
