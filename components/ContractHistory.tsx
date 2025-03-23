@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { CONTRACTS, TOPIC0 } from '../utils/constants';
 
 interface Contract {
     ensName: string;
@@ -19,8 +20,9 @@ interface Contract {
 }
 
 export default function ContractHistory() {
-    const { address, isConnected } = useAccount();
+    const { address, isConnected, chain } = useAccount();
     const { data: walletClient } = useWalletClient();
+    const config = chain?.id ? CONTRACTS[chain.id] : undefined;
 
     const [contracts, setContracts] = useState<Contract[]>([]);
     const [loading, setLoading] = useState(false);
@@ -28,8 +30,12 @@ export default function ContractHistory() {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
 
-    const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x77e78294f0b8CB54708393F6d7fa79eF7CFB589C";
-    const topic0_setName = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
+    const contractAddress = config?.ENSCRIBE_CONTRACT!
+    const topic0_setName = TOPIC0!
+    const etherscanUrl = config!.ETHERSCAN_URL
+    const ensAppUrl = config!.ENS_APP_URL
+    const chainlensUrl = config!.CHAINLENS_URL
+    const etherscanApi = config!.ETHERSCAN_API
 
     useEffect(() => {
         if (!isConnected || !address || !walletClient) return;
@@ -41,7 +47,7 @@ export default function ContractHistory() {
         setError(null);
 
         try {
-            const url = process.env.NEXT_PUBLIC_ETHERSCAN_URL + `&address=${address}`;
+            const url = etherscanApi + `&address=${address}`;
             const response = await fetch(url);
             const data = await response.json();
 
@@ -158,7 +164,7 @@ export default function ContractHistory() {
                             {paginatedContracts.map((contract, index) => (
                                 <TableRow key={index}>
                                     <TableCell>
-                                        <Link href={`https://app.ens.domains/${contract.ensName}`} target="_blank" className="text-blue-600 hover:underline">
+                                        <Link href={`${ensAppUrl}${contract.ensName}`} target="_blank" className="text-blue-600 hover:underline">
                                             {contract.ensName}
                                         </Link>
                                         {contract.isPrimary && (
@@ -175,7 +181,7 @@ export default function ContractHistory() {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Link href={`https://sepolia.etherscan.io/address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
+                                        <Link href={`${etherscanUrl}address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
                                             {truncateText(contract.contractAddress)}
                                         </Link>
                                         {contract.isOwnable && (
@@ -192,18 +198,25 @@ export default function ContractHistory() {
                                         )}
                                     </TableCell>
                                     <TableCell>
-                                        <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank" className="text-blue-600 hover:underline">
+                                        <Link href={`${etherscanUrl}tx/${contract.txHash}`} target="_blank" className="text-blue-600 hover:underline">
                                             {truncateText(contract.txHash)}
                                         </Link>
                                     </TableCell>
                                     <TableCell className="flex gap-2 justify-center">
+                                        {chainlensUrl?.trim() !== "" && (
+                                            <Button asChild variant="outline">
+                                                <Link href={`${chainlensUrl}transactions/${contract.txHash}`} target="_blank">
+                                                    Chainlens
+                                                </Link>
+                                            </Button>
+                                        )}
                                         <Button asChild variant="outline">
-                                            <Link href={`https://sepolia.etherscan.io/tx/${contract.txHash}`} target="_blank">
+                                            <Link href={`${etherscanUrl}tx/${contract.txHash}`} target="_blank">
                                                 Etherscan
                                             </Link>
                                         </Button>
                                         <Button asChild variant="outline">
-                                            <Link href={`https://app.ens.domains/${contract.ensName}`} target="_blank">
+                                            <Link href={`${ensAppUrl}${contract.ensName}`} target="_blank">
                                                 ENS App
                                             </Link>
                                         </Button>

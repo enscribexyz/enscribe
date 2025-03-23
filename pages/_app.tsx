@@ -1,6 +1,6 @@
 import type { AppProps } from 'next/app'
 import { WagmiProvider } from 'wagmi'
-import { mainnet, sepolia } from 'wagmi/chains'
+import { mainnet, sepolia, linea, lineaSepolia } from 'wagmi/chains'
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css'
@@ -11,7 +11,8 @@ const wagmiClient = getDefaultConfig({
   projectId: '1106',
   chains: [
     mainnet,
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia] : []),
+    linea,
+    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia, lineaSepolia] : []),
   ],
   ssr: true,
 });

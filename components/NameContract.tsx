@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Web3LabsContract'
 import ensRegistryABI from '../contracts/ENSRegistry'
@@ -11,34 +11,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const contractAddress = process.env.NEXT_PUBLIC_WEB3_LAB_CONTRACT_ADDRESS || "0x77e78294f0b8CB54708393F6d7fa79eF7CFB589C"
-const ensRegistryContractAddress = process.env.NEXT_PUBLIC_ENS_REGISTRY || "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e"
-const ensBaseRegistratContractAddress = process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION || "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85"
-const nameWrapperContractAddress = process.env.NEXT_PUBLIC_NAME_WRAPPER || "0x0635513f179D50A207757E05759CbD106d7dFcE8"
-const reverseRegistrarContractAddress = process.env.NEXT_PUBLIC_REVERSE_REGISTRAR || "0xCF75B92126B02C9811d8c632144288a3eb84afC8"
-const publicResolverContractAddress = process.env.NEXT_PUBLIC_PUBLIC_RESOLVER || "0x8948458626811dd0c23EB25Cc74291247077cC51"
-const topic0 = process.env.NEXT_PUBLIC_TOPIC0_DEPLOYMENT;
-
-// const OWNABLE_FUNCTION_SELECTORS = [
-//     "8da5cb5b",  // owner()
-//     "f2fde38b",  // transferOwnership(address newOwner)
-// ];
-
-// const checkIfOwnable = (bytecode: string): boolean => {
-//     return OWNABLE_FUNCTION_SELECTORS.every(selector => bytecode.includes(selector));
-// };
+import { CONTRACTS, TOPIC0 } from '../utils/constants';
 
 export default function NameContract() {
-    const { address, isConnected } = useAccount()
+    const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
+    const config = chain?.id ? CONTRACTS[chain.id] : undefined;
+    const enscribeDomain = config?.ENSCRIBE_DOMAIN!
+    const etherscanUrl = config?.ETHERSCAN_URL!
+    const ensAppUrl = config?.ENS_APP_URL!
 
     const [existingContractAddress, setExistingContractAddress] = useState('')
     const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
-    const [parentName, setParentName] = useState('testapp.eth')
+    const [parentName, setParentName] = useState(enscribeDomain)
     const [fetchingENS, setFetchingENS] = useState(false)
     const [txHash, setTxHash] = useState('')
     const [deployedAddress, setDeployedAddress] = useState('')
@@ -54,8 +42,14 @@ export default function NameContract() {
         return namehash(name)
     }
 
+    useEffect(() => {
+        if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
+            setParentName(config.ENSCRIBE_DOMAIN)
+        }
+    }, [config, parentType])
+
     const fetchPrimaryENS = async () => {
-        if (!signer || !address) return
+        if (!signer || !address || chain?.id == 59141) return
 
         setFetchingENS(true)
         try {
@@ -75,7 +69,7 @@ export default function NameContract() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer) return
+        if (!signer || chain?.id == 59141) return
 
         // Validate label and parent name before checking
         if (!label.trim()) {
@@ -109,6 +103,7 @@ export default function NameContract() {
             console.error("Error checking ENS name:", err)
             setEnsNameTaken(false)
         }
+
     }
 
     const checkIfOwnable = async () => {
@@ -154,6 +149,14 @@ export default function NameContract() {
             return
         }
 
+        if (!config) {
+            console.error("Unsupported network");
+            setError("Unsupported network")
+        } else {
+            setError("")
+            console.log("Using Enscribe contract:", config.ENSCRIBE_CONTRACT);
+        }
+
         try {
             setLoading(true)
             setError('')
@@ -165,11 +168,11 @@ export default function NameContract() {
                 return
             }
 
-            const namingContract = new ethers.Contract(contractAddress, contractABI, (await signer))
-            const ensRegistryContract = new ethers.Contract(ensRegistryContractAddress, ensRegistryABI, (await signer))
-            const ensBaseRegistrarContract = new ethers.Contract(ensBaseRegistratContractAddress, ensBaseRegistrarImplementationABI, (await signer))
-            const nameWrapperContract = new ethers.Contract(nameWrapperContractAddress, nameWrapperABI, (await signer))
-            const reverseRegistrarContract = new ethers.Contract(reverseRegistrarContractAddress, reverseRegistrarABI, (await signer))
+            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const ensBaseRegistrarContract = new ethers.Contract(config?.BASE_REGISTRAR!, ensBaseRegistrarImplementationABI, (await signer))
+            const nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+            const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer))
             const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, (await signer))
             const parentNode = getParentNode(parentName)
 
@@ -193,9 +196,9 @@ export default function NameContract() {
 
                 if (isWrapped) {
                     // Wrapped Names
-                    const isApprovedForAll = await nameWrapperContract.isApprovedForAll((await signer).address, contractAddress);
+                    const isApprovedForAll = await nameWrapperContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
-                        const txSetApproval = await nameWrapperContract.setApprovalForAll(contractAddress, true);
+                        const txSetApproval = await nameWrapperContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                         await txSetApproval.wait();
 
                         console.log(`Wrapped 2LD and 3LD+ approvalStatus changed: ${txSetApproval.hash}`);
@@ -209,14 +212,14 @@ export default function NameContract() {
                     if (numDots === 1) {
                         const manager = await ensRegistryContract.owner(parentNode);
                         console.log(`Current Manager of ${parentName}: ${manager}`);
-                        if (manager.toLowerCase() !== contractAddress.toLowerCase()) {
+                        if (manager.toLowerCase() !== config?.ENSCRIBE_CONTRACT!.toLowerCase()) {
                             // 2LD (Second-Level Domain) → Call `reclaim()`
                             const labelHash = keccak256(ethers.toUtf8Bytes(parentName.split(".")[0])); // Get label hash
                             const tokenId = BigInt(labelHash).toString();
 
                             console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
 
-                            const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, contractAddress);
+                            const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, config?.ENSCRIBE_CONTRACT!);
                             await txReclaim.wait();
 
                             console.log(`2LD Manager updated: ${txReclaim.hash}`);
@@ -225,9 +228,9 @@ export default function NameContract() {
                     } else {
                         // 3LD+ (Subdomain) → Call `setOwner()`
                         console.log(`3LD+ detected. Changing ownership via ENS Registry`);
-                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, contractAddress);
+                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                         if (!isApprovedForAll) {
-                            const txSetApproval = await ensRegistryContract.setApprovalForAll(contractAddress, true);
+                            const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                             await txSetApproval.wait();
 
                             console.log(`Unwrapped 3LD approvalStatus changed: ${txSetApproval.hash}`);
@@ -243,7 +246,7 @@ export default function NameContract() {
 
                 try {
                     if (setPrimary) {
-                        let tx2 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, publicResolverContractAddress, label + "." + parentName)
+                        let tx2 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, config?.PUBLIC_RESOLVER!, label + "." + parentName)
                         await tx2.wait()
                         setIsPrimaryNameSet(true)
                     }
@@ -304,7 +307,7 @@ export default function NameContract() {
                         const selected = e as 'web3labs' | 'own'
                         setParentType(selected)
                         if (selected === 'web3labs') {
-                            setParentName('testapp.eth')
+                            setParentName(enscribeDomain)
                         } else {
                             setParentName('')
                             fetchPrimaryENS()
@@ -315,7 +318,7 @@ export default function NameContract() {
                         <SelectValue className="text-gray-900" />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
-                        <SelectItem value="web3labs">testapp.eth</SelectItem>
+                        <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
                         <SelectItem value="own">Your ENS Parent</SelectItem>
                     </SelectContent>
                 </Select>
@@ -414,14 +417,14 @@ export default function NameContract() {
 
                         {/* View on Etherscan */}
                         <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                            <a href={`https://sepolia.etherscan.io/tx/${txHash}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`${etherscanUrl}tx/${txHash}`} target="_blank" rel="noopener noreferrer">
                                 View Transaction on Etherscan
                             </a>
                         </Button>
 
                         {/* View on ENS App */}
                         <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
-                            <a href={`https://app.ens.domains/${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
+                            <a href={`${ensAppUrl}${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
                                 View Name in ENS App
                             </a>
                         </Button>
@@ -433,7 +436,7 @@ export default function NameContract() {
                                 setExistingContractAddress('');
                                 setLabel('');
                                 setParentType('web3labs');
-                                setParentName('named.web3labs2.eth');
+                                setParentName(enscribeDomain);
                                 setIsPrimaryNameSet(false);
                             }}
                             className="w-full bg-gray-900 hover:bg-gray-800 text-white"
