@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { ethers, namehash, keccak256 } from 'ethers'
-import contractABI from '../contracts/Web3LabsContract'
+import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import nameWrapperABI from '../contracts/NameWrapper'

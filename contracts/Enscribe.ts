@@ -1,4 +1,4 @@
-const web3labsContractABI = [
+const enscribeContractABI = [
 	{
 		"anonymous": false,
 		"inputs": [
@@ -564,4 +564,4 @@ const web3labsContractABI = [
 	}
 ]
 
-export default web3labsContractABI;
+export default enscribeContractABI;

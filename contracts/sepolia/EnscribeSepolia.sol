@@ -9,7 +9,7 @@ import "./BaseRegistrarImplementation.sol" as BR;
 import "./openzeppelin/token/ERC1155/IERC1155Receiver.sol";
 import "./openzeppelin/access/Ownable.sol";
 
-contract Web3LabsContract is IERC1155Receiver, Ownable {
+contract EnscribeSepolia is IERC1155Receiver, Ownable {
     address public constant REVERSE_REGISTRAR_ADDRESS =
         0xCF75B92126B02C9811d8c632144288a3eb84afC8;
     address public constant ENS_REGISTRY_ADDRESS =
