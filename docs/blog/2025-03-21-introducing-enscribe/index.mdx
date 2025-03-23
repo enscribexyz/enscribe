@@ -1,0 +1,61 @@
+---
+slug: introducing-enscribe
+title: Simplified Smart Contract Naming With Enscribe
+authors: [conor]
+tags: [ens]
+image: enscribe-site.png
+---
+This week marks the emergence of Enscribe from stealth. We've been working hard on it this past few months and are pleased to put it out into the wild.
+
+At Enscribe, we're addressing a fundamental problem faced by nearly every Ethereum user: **confusing and unreadable smart contract addresses**. When initiating transactions, users are typically confronted with cryptic hexadecimal addresses, like this:
+
+![Metamask sign transaction](metamask-tx.png)
+
+If users want to verify the contract they are interacting with (which anyone should), they have to copy the contract address and look at it another service such as Etherscan. 
+
+In Etherscan if it's a well known contract, such as the ENS ETH Registry Controller as in our example, it will have a label.
+
+![Etherscan contract labels](etherscan-verification.png)
+
+This is far from optimal. Users are relying on a centralised service, to verify the authenticity of a contract.
+
+**We believe smart contracts on Ethereum should be not be exposing their hexadecimal addresses to users and instead should be labelled with human readable names via ENS.** 
+
+With ENS names, smart contracts gain identities similar to domain names, clearly indicating their creators. Imagine knowing at a glance that the contract you're interacting with was created by ens.eth. This simple clarity dramatically boosts trust and confidence during transactions:
+
+![Metamask sign transaction](metamask-enscribed-tx.png)
+
+Whilst ENS names and subdomains can be used to address smart contracts, this functionality is underutilised due to cumbersome tooling and the additional steps required to setup a primary name for a smart contract. 
+
+These hurdles are exactly what inspired the creation of Enscribe.
+
+## The Enscribe App
+
+import AppUrl from '@site/src/components/AppUrl';
+import ReactPlayer from 'react-player';
+
+We have deployed the beta version of our Enscribe App at <AppUrl/>  which allows developers to deploy smart contracts to the Ethereum Sepolia testnet.
+
+With the app, a user performs a single transaction which performs the following steps:
+
+With Enscribe, naming contracts at deployment via ENS becomes seamless. When they deploy a contract using the app it:
+
+- Creates a new subname such as `v1.deployments.myname.eth`
+- Deploys the contract to Ethereum 
+- Registers the primary name
+
+All these steps happen in a single transaction, ensuring that from the moment your contract is deployed, it’s immediately discoverable through its ENS name.
+
+You can see it in action in the below video.
+
+<ReactPlayer controls url='https://www.youtube.com/watch?v=APqLhIJm5zs' />
+
+In addition to new contract deployment, you can also easily name your existing contracts using Enscribe.
+
+To learn more about using Enscribe, visit our [documentation](https://www.enscribe.xyz/docs/getting-started/contract-deployment-service).
+
+Our team is currently hard at work expanding support to Ethereum’s Layer-2 networks and preparing for our upcoming mainnet launch.
+
+We'd love to hear your feedback and collaborate — [join our Discord community](https://discord.gg/8QUMMdS5GY) and let’s build a clearer, safer Ethereum together.
+
+

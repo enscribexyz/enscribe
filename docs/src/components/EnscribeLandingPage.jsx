@@ -397,11 +397,17 @@ export default function EnscribeLandingPage() {
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl text-white mb-4">
                 Join the growing community of developers using Enscribe to name their smart contracts
               </h2>
-              <form className="w-full max-w-md flex flex-col sm:flex-row gap-3">
+              <form className="w-full max-w-md flex flex-col sm:flex-row gap-3"
+                action="https://web3labs.us17.list-manage.com/subscribe/post" method="POST"
+              >
+                <input type="hidden" name="u" value="412696652858d5fc58dd705c9"/>
+                <input type="hidden" name="id" value="6dd1b9fa2d"/>
+
                 <input
                   type="email"
                   placeholder="Enter your email"
                   className="flex-1 px-4 py-3 rounded-md bg-slate-900 border border-slate-700 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  name="MERGE0" id="MERGE0"
                 />
                 <button
                   type="submit"
@@ -425,19 +431,19 @@ export default function EnscribeLandingPage() {
             </div>
             <p className="text-center md:text-left text-sm text-slate-400">© {new Date().getFullYear()} Web3 Labs Ltd. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://x.com/enscribe_eth" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaXTwitter className="h-5 w-5" />
                 <span className="sr-only">X (formerly Twitter)</span>
               </Link>
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://github.com/enscribexyz/enscribe" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaGithub className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
               </Link>
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://discord.gg/8QUMMdS5GY" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaDiscord className="h-5 w-5" />
                 <span className="sr-only">Discord</span>
               </Link>
-              <Link to="#" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://warpcast.com/enscribe" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <SiFarcaster className="h-5 w-5" />
                 <span className="sr-only">Farcaster</span>
               </Link>
