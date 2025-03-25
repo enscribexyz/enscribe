@@ -49,7 +49,7 @@ export default function NameContract() {
     }, [config, parentType])
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141) return
+        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532) return
 
         setFetchingENS(true)
         try {
@@ -69,7 +69,7 @@ export default function NameContract() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141) return
+        if (!signer || chain?.id == 59141 || chain?.id == 84532) return
 
         // Validate label and parent name before checking
         if (!label.trim()) {
@@ -171,7 +171,10 @@ export default function NameContract() {
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
             const ensBaseRegistrarContract = new ethers.Contract(config?.BASE_REGISTRAR!, ensBaseRegistrarImplementationABI, (await signer))
-            const nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+            var nameWrapperContract = null
+            if (chain?.id != 84532) {
+                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+            }
             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer))
             const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, (await signer))
             const parentNode = getParentNode(parentName)
@@ -189,16 +192,32 @@ export default function NameContract() {
                 setTxHash(txReceipt.hash)
                 setDeployedAddress(existingContractAddress)
                 setReceipt(txReceipt)
-                setShowPopup(true)
-            } else {
+
+            } else if (chain?.id == 84532) {
+                const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                if (!isApprovedForAll) {
+                    const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                    await txSetApproval.wait();
+
+                    console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
+                }
+
+                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
+                const txReceipt = await tx.wait()
+                setTxHash(txReceipt.hash)
+                setDeployedAddress(existingContractAddress)
+                setReceipt(txReceipt)
+
+            }
+            else {
                 console.log("User's parent deployment type")
-                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
+                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
 
                 if (isWrapped) {
                     // Wrapped Names
-                    const isApprovedForAll = await nameWrapperContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
-                        const txSetApproval = await nameWrapperContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                        const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                         await txSetApproval.wait();
 
                         console.log(`Wrapped 2LD and 3LD+ approvalStatus changed: ${txSetApproval.hash}`);
@@ -243,19 +262,19 @@ export default function NameContract() {
                 setTxHash(txReceipt.hash)
                 setDeployedAddress(existingContractAddress)
                 setReceipt(txReceipt)
-
-                try {
-                    if (setPrimary) {
-                        let tx2 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, config?.PUBLIC_RESOLVER!, label + "." + parentName)
-                        await tx2.wait()
-                        setIsPrimaryNameSet(true)
-                    }
-                } catch (error) {
-                    console.log("Error while setting primary name - ", error)
-                }
-
-                setShowPopup(true)
             }
+
+            try {
+                if (setPrimary) {
+                    let tx2 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, config?.PUBLIC_RESOLVER!, label + "." + parentName)
+                    await tx2.wait()
+                    setIsPrimaryNameSet(true)
+                }
+            } catch (error) {
+                console.log("Error while setting primary name - ", error)
+            }
+
+            setShowPopup(true)
 
         } catch (err: any) {
             console.error(err)
@@ -423,11 +442,11 @@ export default function NameContract() {
                         </Button>
 
                         {/* View on ENS App */}
-                        <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
+                        {ensAppUrl && <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
                             <a href={`${ensAppUrl}${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
                                 View Name in ENS App
                             </a>
-                        </Button>
+                        </Button>}
 
                         {/* Close Button */}
                         <Button

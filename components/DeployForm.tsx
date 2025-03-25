@@ -38,7 +38,6 @@ export default function DeployForm() {
     const [fetchingENS, setFetchingENS] = useState(false)
     const [txHash, setTxHash] = useState('')
     const [deployedAddress, setDeployedAddress] = useState('')
-    const [receipt, setReceipt] = useState<any>(null)
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
@@ -62,7 +61,7 @@ export default function DeployForm() {
     }, [bytecode])
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141) return
+        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532) return
 
         setFetchingENS(true)
         try {
@@ -83,7 +82,7 @@ export default function DeployForm() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141) return
+        if (!signer || chain?.id == 59141 || chain?.id == 84532) return
 
 
         // Validate label and parent name before checking
@@ -167,7 +166,11 @@ export default function DeployForm() {
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
             const ensBaseRegistrarContract = new ethers.Contract(config?.BASE_REGISTRAR!, ensBaseRegistrarImplementationABI, (await signer))
-            const nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+            var nameWrapperContract = null
+            if (chain?.id != 84532) {
+                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+            }
+
             const parentNode = getParentNode(parentName)
 
             console.log("label - ", label)
@@ -185,17 +188,33 @@ export default function DeployForm() {
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                 const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                 setDeployedAddress(deployedContractAddress)
-                setReceipt(txReceipt)
                 setShowPopup(true)
+            } else if (chain?.id == 84532) {
+
+                const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                if (!isApprovedForAll) {
+                    const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                    await txSetApproval.wait();
+
+                    console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
+                }
+                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                const txReceipt = await tx.wait()
+                setTxHash(txReceipt.hash)
+                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                setDeployedAddress(deployedContractAddress)
+                setShowPopup(true)
+
             } else {
                 console.log("User's parent deployment type")
-                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
+                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
 
                 if (isWrapped) {
                     // Wrapped Names
-                    const isApprovedForAll = await nameWrapperContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
-                        const txSetApproval = await nameWrapperContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                        const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                         await txSetApproval.wait();
 
                         console.log(`Wrapped 2LD and 3LD+ approvalStatus changed: ${txSetApproval.hash}`);
@@ -241,7 +260,6 @@ export default function DeployForm() {
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                 const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                 setDeployedAddress(deployedContractAddress)
-                setReceipt(txReceipt)
                 setShowPopup(true)
             }
 
@@ -393,11 +411,12 @@ export default function DeployForm() {
                         </Button>
 
                         {/* View on ENS App */}
-                        <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
+                        {ensAppUrl && <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
                             <a href={`${ensAppUrl}${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
                                 View Name in ENS App
                             </a>
-                        </Button>
+                        </Button>}
+
 
                         {/* Close Button */}
                         <Button

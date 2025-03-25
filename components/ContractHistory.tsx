@@ -203,7 +203,7 @@ export default function ContractHistory() {
                                         </Link>
                                     </TableCell>
                                     <TableCell className="flex gap-2 justify-center">
-                                        {chainlensUrl?.trim() !== "" && (
+                                        {chainlensUrl && (
                                             <Button asChild variant="outline">
                                                 <Link href={`${chainlensUrl}transactions/${contract.txHash}`} target="_blank">
                                                     Chainlens
@@ -215,11 +215,13 @@ export default function ContractHistory() {
                                                 Etherscan
                                             </Link>
                                         </Button>
-                                        <Button asChild variant="outline">
-                                            <Link href={`${ensAppUrl}${contract.ensName}`} target="_blank">
-                                                ENS App
-                                            </Link>
-                                        </Button>
+                                        {ensAppUrl && (
+                                            <Button asChild variant="outline">
+                                                <Link href={`${ensAppUrl}${contract.ensName}`} target="_blank">
+                                                    ENS App
+                                                </Link>
+                                            </Button>
+                                        )}
                                     </TableCell>
 
                                 </TableRow>
