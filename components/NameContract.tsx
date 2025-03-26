@@ -1,21 +1,22 @@
-import React, { useState, useEffect } from 'react'
-import { ethers, namehash, keccak256 } from 'ethers'
+import React, {useState, useEffect} from 'react'
+import {ethers, namehash, keccak256} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import nameWrapperABI from '../contracts/NameWrapper'
 import ownableContractABI from '../contracts/Ownable'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
-import { useAccount, useWalletClient } from 'wagmi'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CONTRACTS, TOPIC0 } from '../utils/constants';
+import {useAccount, useWalletClient} from 'wagmi'
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {CONTRACTS, TOPIC0} from '../utils/constants';
+import Link from "next/link";
 
 export default function NameContract() {
-    const { address, isConnected, chain } = useAccount()
-    const { data: walletClient } = useWalletClient()
+    const {address, isConnected, chain} = useAccount()
+    const {data: walletClient} = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -106,12 +107,21 @@ export default function NameContract() {
 
     }
 
-    const checkIfOwnable = async () => {
+    const isAddressValid = (): boolean => {
+        if (!existingContractAddress.trim()) {
+            setError("contract address cannot be empty")
+            return false
+        }
+
         if (!ethers.isAddress(existingContractAddress)) {
             setError("Invalid contract address");
             setIsOwnable(false);
             return false;
         }
+        return true;
+    }
+
+    const checkIfOwnable = async () => {
         setError("")
 
         try {
@@ -120,11 +130,20 @@ export default function NameContract() {
             const ownerAddress = await contract.owner();
             setIsOwnable(true);
         } catch (err) {
+            console.log("err " + err);
             setIsOwnable(false);
         }
     };
 
     const setPrimaryName = async (setPrimary: boolean) => {
+
+        if (!isAddressValid()) {
+            setIsOwnable(false)
+            return
+        }
+
+        await checkIfOwnable()
+
         if (!label.trim()) {
             setError("Label cannot be empty")
             return
@@ -135,10 +154,6 @@ export default function NameContract() {
             return
         }
 
-        if (!existingContractAddress.trim()) {
-            setError("contract address cannot be empty")
-            return
-        }
 
         if (!parentName.trim()) {
             setError("Parent name cannot be empty")
@@ -183,7 +198,7 @@ export default function NameContract() {
             const txCost = 100000000000000n
 
             if (parentType === 'web3labs') {
-                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, {value: txCost})
 
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
@@ -238,7 +253,7 @@ export default function NameContract() {
                     }
                 }
 
-                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, {value: txCost})
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
                 setDeployedAddress(existingContractAddress)
@@ -267,29 +282,38 @@ export default function NameContract() {
 
     return (
         <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
-            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">Name Exisiting Contract</h2>
+            <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">Name Existing Contract</h2>
             {!isConnected && <p className="text-red-500">Please connect your wallet.</p>}
 
             <div className="space-y-6 mt-6">
                 <label className="block text-gray-700 dark:text-gray-300">Contract Address</label>
                 <Input
+                    required={true}
                     type="text"
                     value={existingContractAddress}
                     onChange={(e) => setExistingContractAddress(e.target.value)}
-                    onBlur={checkIfOwnable}
+                    // onBlur={checkIfOwnable}
                     placeholder="0xa56..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isOwnable ? 'border-red-500' : ''
-                        }`}
+                    }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
                 {!isOwnable && (
-                    <p className="text-red-500">Contract address does not extend Ownable. Can't set Primary Name for this.</p>
+                    <p className="text-yellow-600">Contract address does not extend <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline">Ownable</Link> or <Link
+                        href="https://eips.ethereum.org/EIPS/eip-173"
+                        className="text-blue-600 hover:underline">ERC-173</Link>. You can only <Link
+                        href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
+                        name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why is this?</Link></p>
+
                 )}
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
                 <Input
                     type="text"
+                    required
                     value={label}
                     onChange={(e) => {
                         setLabel(e.target.value)
@@ -314,8 +338,9 @@ export default function NameContract() {
                         }
                     }}
                 >
-                    <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900" />
+                    <SelectTrigger
+                        className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
+                        <SelectValue className="text-gray-900"/>
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
@@ -349,8 +374,10 @@ export default function NameContract() {
                     className="w-1/2"
                 >
                     {loading ? (
-                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
                     ) : 'Set Primary Name'}
@@ -358,12 +385,14 @@ export default function NameContract() {
 
                 <Button
                     onClick={() => setPrimaryName(false)}
-                    disabled={!isConnected || loading}
+                    // disabled={!isConnected || loading}
                     className="w-1/2"
                 >
                     {loading ? (
-                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
+                             xmlns="http://www.w3.org/2000/svg">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
                     ) : 'Set Forward Resolution'}
@@ -378,7 +407,8 @@ export default function NameContract() {
                 <Dialog open={showPopup} onOpenChange={setShowPopup}>
                     <DialogContent className="max-w-lg bg-white dark:bg-gray-900 shadow-lg rounded-lg">
                         <DialogHeader>
-                            <DialogTitle className="text-gray-900 dark:text-white">Naming Contract Successful!</DialogTitle>
+                            <DialogTitle className="text-gray-900 dark:text-white">Naming Contract
+                                Successful!</DialogTitle>
                             <DialogDescription className="text-gray-600 dark:text-gray-300">
                                 Your contract has been named successfully.
                             </DialogDescription>
@@ -387,7 +417,8 @@ export default function NameContract() {
                         {/* Transaction Hash */}
                         <div>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">Transaction Hash:</p>
-                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                            <div
+                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
                                 {txHash}
                             </div>
                         </div>
@@ -395,7 +426,8 @@ export default function NameContract() {
                         {/* Contract Address */}
                         <div>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
-                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                            <div
+                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
                                 {deployedAddress}
                             </div>
                         </div>
@@ -403,7 +435,8 @@ export default function NameContract() {
                         {/* ENS Name */}
                         <div>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">ENS Name:</p>
-                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                            <div
+                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
                                 {`${label}.${parentName}`}
                             </div>
                         </div>
@@ -447,6 +480,6 @@ export default function NameContract() {
                 </Dialog>
             )
             }
-        </div >
+        </div>
     )
 }
