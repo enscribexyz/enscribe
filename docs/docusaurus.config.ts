@@ -9,7 +9,7 @@ const config = {
   tagline: "ENScribe your Smart Contracts",
   favicon: "img/favicon.ico",
 
-  url: "https://enscribe.xyz",
+  url: "https://www.enscribe.xyz",
   baseUrl: "/",
 
   // GitHub pages deployment config
