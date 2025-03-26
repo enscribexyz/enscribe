@@ -8,7 +8,9 @@ import { useAccount, useWalletClient, } from 'wagmi'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import parseJson from 'json-parse-safe'
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 
 
@@ -16,6 +18,27 @@ const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
     "f2fde38b",  // transferOwnership(address newOwner)
 ];
+
+const commonTypes = [
+    "string",
+    "uint8",
+    "uint256",
+    "address",
+    "bool",
+    "bytes",
+    "bytes32",
+    "string[]",
+    "uint256[]",
+    "tuple(address, uint256)"
+]
+
+type ConstructorArg = {
+    type: string
+    value: string
+    isCustom: boolean
+    isTuple?: boolean
+    label?: string
+}
 
 const checkIfOwnable = (bytecode: string): boolean => {
     return OWNABLE_FUNCTION_SELECTORS.every(selector => bytecode.includes(selector));
@@ -43,6 +66,8 @@ export default function DeployForm() {
     const [showPopup, setShowPopup] = useState(false)
     const [isValidBytecode, setIsValidBytecode] = useState(true)
     const [ensNameTaken, setEnsNameTaken] = useState(false)
+    const [args, setArgs] = useState<ConstructorArg[]>([])
+    const [abiJson, setAbiJson] = useState<any[]>([])
 
     const getParentNode = (name: string) => {
         return namehash(name)
@@ -59,6 +84,126 @@ export default function DeployForm() {
             setIsValidBytecode(checkIfOwnable(bytecode))
         }
     }, [bytecode])
+
+    const addArg = () =>
+        setArgs([...args, { type: "string", value: "", isCustom: false }])
+
+    const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
+        const newArgs = [...args]
+        newArgs[index] = { ...newArgs[index], ...updated }
+        setArgs(newArgs)
+    }
+
+    const removeArg = (index: number) => {
+        const newArgs = [...args]
+        newArgs.splice(index, 1)
+        setArgs(newArgs)
+    }
+
+    const handleAbiInput = (text: string) => {
+        if (text.trim().length === 0) {
+            setArgs([])
+            setAbiJson([])
+            setError("")
+            return
+        }
+
+        try {
+            const { value: parsed, error } = parseJson(text)
+
+            if (error || !parsed) {
+                console.log("Invalid ABI")
+                setAbiJson([])
+                setArgs([])
+                setError("Invalid ABI JSON. Please paste a valid ABI array.")
+            } else {
+                setAbiJson(parsed)
+                parseConstructorInputs(parsed)
+                setError("")
+            }
+
+        } catch (err) {
+            console.error("Invalid ABI JSON:", err)
+            setAbiJson([])
+            setArgs([])
+            setError("Invalid ABI JSON. Please paste a valid ABI array.")
+        }
+    }
+
+    const parseConstructorInputs = (abi: any[]) => {
+        try {
+            const constructor = abi.find((item) => item.type === "constructor")
+            if (!constructor || !constructor.inputs) {
+                setArgs([])
+                return
+            }
+
+            const generatedArgs = constructor.inputs.map((input: any) => {
+                let type = input.type
+
+                // Handle tuples (structs)
+                if (type === "tuple" && input.components) {
+                    const componentTypes = input.components.map((c: any) => c.type).join(",")
+                    type = `tuple(${componentTypes})`
+                }
+
+                // Handle arrays (including tuple arrays)
+                if (type.includes("[]")) {
+                    if (input.components) {
+                        const componentTypes = input.components.map((c: any) => c.type).join(",")
+                        type = `tuple(${componentTypes})[]`
+                    }
+                }
+
+                return {
+                    type,
+                    value: "",
+                    isCustom: !commonTypes.includes(type),
+                    isTuple: type.startsWith("tuple"),
+                    label: input.name || ""
+                }
+            })
+
+            setArgs(generatedArgs)
+        } catch (err) {
+
+        }
+
+    }
+
+
+    const encodeConstructorArgs = () => {
+        try {
+            const types = args.map((arg) => arg.type)
+            const values = args.map((arg) => {
+                try {
+                    if (
+                        arg.type.startsWith("tuple") ||
+                        arg.type.endsWith("[]") ||
+                        arg.type === "bool" ||
+                        arg.type.startsWith("uint") ||
+                        arg.type === "int" ||
+                        arg.type.startsWith("int")
+                    ) {
+                        return JSON.parse(arg.value)
+                    }
+
+                    // For address and string types, return as-is
+                    return arg.value
+                } catch (parseErr) {
+                    console.error(`Failed to parse value for type ${arg.type}:`, arg.value)
+                    throw new Error(`Invalid value for argument ${arg.label || arg.type}`)
+                }
+            })
+
+            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(types, values)
+            return ethers.hexlify(ethers.concat([bytecode, encoded]))
+        } catch (err) {
+            console.error("Error encoding constructor args:", err)
+            setError("Error encoding constructor arguments. Please check your inputs.")
+            return bytecode
+        }
+    }
 
     const fetchPrimaryENS = async () => {
         if (!signer || !address || chain?.id == 59141 || chain?.id == 84532) return
@@ -173,6 +318,8 @@ export default function DeployForm() {
 
             const parentNode = getParentNode(parentName)
 
+            const finalBytecode = encodeConstructorArgs()
+
             console.log("label - ", label)
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
@@ -181,7 +328,7 @@ export default function DeployForm() {
             const txCost = 100000000000000n
 
             if (parentType === 'web3labs') {
-                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
 
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
@@ -198,7 +345,7 @@ export default function DeployForm() {
 
                     console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
                 }
-                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -254,7 +401,7 @@ export default function DeployForm() {
                     }
                 }
 
-                let tx = await namingContract.setNameAndDeploy(bytecode, label, parentName, parentNode, { value: txCost })
+                let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
                 const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -296,6 +443,83 @@ export default function DeployForm() {
                 {!isValidBytecode && bytecode.length > 0 && (
                     <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable.</p>
                 )}
+
+                <label className="block text-gray-700 dark:text-gray-300 mt-6">Paste ABI JSON (Optional)</label>
+                <Textarea
+                    rows={3}
+                    className="w-full border rounded-lg p-3 text-sm bg-white dark:bg-gray-700 dark:text-white text-gray-900"
+                    placeholder="Paste ABI JSON here..."
+                    onChange={(e) => handleAbiInput(e.target.value)}
+                />
+
+                {/* Render dynamic constructor args */}
+                <label className="block text-gray-700 dark:text-gray-300 mt-6">Constructor Arguments</label>
+                {args.map((arg, index) => (
+                    <div key={index} className="mb-4">
+                        <label className="block text-gray-700 dark:text-gray-300">{arg.label || `Argument ${index + 1}`}</label>
+                        <div className="flex flex-col md:flex-row gap-4 items-start">
+                            {!arg.isCustom ? (
+                                <Select
+                                    value={arg.type}
+                                    onValueChange={(value) => {
+                                        if (value === "custom") {
+                                            updateArg(index, { isCustom: true, type: "" })
+                                        } else {
+                                            updateArg(index, { type: value, isCustom: false })
+                                        }
+                                    }}
+                                >
+                                    <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
+                                        <SelectValue className="text-gray-900" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
+                                        {commonTypes.map((t) => (
+                                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                                        ))}
+                                        <SelectItem value="custom">Custom...</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input
+                                    type="text"
+                                    value={arg.type}
+                                    onChange={(e) => updateArg(index, { type: e.target.value })}
+                                    placeholder="Enter custom type (e.g. tuple(string,uint256))"
+                                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                />
+                            )}
+
+                            <Input
+                                type="text"
+                                value={arg.value}
+                                onChange={(e) => updateArg(index, { value: e.target.value })}
+                                placeholder={
+                                    arg.type.includes("tuple") && arg.type.includes("[]")
+                                        ? '[["name", 10, "0x..."], ["bob", 20, "0x..."]]'
+                                        : arg.type.includes("tuple")
+                                            ? '["name", 10, "0x..."]'
+                                            : "Enter value"
+                                }
+                                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            />
+                            <Button
+                                type="button"
+                                onClick={() => removeArg(index)}
+                                variant="destructive"
+                                className="mt-2 md:mt-0"
+                            >
+                                Remove
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+                <Button
+                    type="button"
+                    onClick={addArg}
+                    className="bg-gray-900 text-white mt-3"
+                >
+                    + Add Argument
+                </Button>
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
                 <Input
@@ -426,6 +650,8 @@ export default function DeployForm() {
                                 setLabel('');
                                 setParentType('web3labs');
                                 setParentName(enscribeDomain);
+                                setArgs([])
+                                setAbiJson([])
                             }}
                             className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                         >
