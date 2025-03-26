@@ -431,7 +431,7 @@ export default function EnscribeLandingPage() {
             </div>
             <p className="text-center md:text-left text-sm text-slate-400">© {new Date().getFullYear()} Web3 Labs Ltd. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <Link to="https://x.com/enscribe_eth" className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <Link to="https://x.com/enscribe_" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaXTwitter className="h-5 w-5" />
                 <span className="sr-only">X (formerly Twitter)</span>
               </Link>
