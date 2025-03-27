@@ -8,11 +8,11 @@ The Enscribe service is deployed on the following Ethereum layer one and layer t
 
 | Network | Supported | Contract Address |
 | ------- |:---------:| ---------------- |
-| Ethereum Sepolia |✅| [0xA4d0C7f5be15C67dA08C4E7903dFf0dd6b0bb19B](https://sepolia.etherscan.io/address/0xA4d0C7f5be15C67dA08C4E7903dFf0dd6b0bb19B)|
+| Ethereum Sepolia |✅| [0xe480db220661Ae181F122d2544683e405006c2eD](https://sepolia.etherscan.io/address/0xe480db220661Ae181F122d2544683e405006c2eD)|
 | Ethereum Mainnet |Coming soon | |
-| Linea Testnet |✅| [0x3A4226d071710CC98B2944734054f520187FB71f](https://sepolia.lineascan.build/address/0x3A4226d071710CC98B2944734054f520187FB71f)|
+| Linea Testnet |✅| [0x57732B1dE5cB25A6b2A8a2311e1A865ED16a484E](https://sepolia.lineascan.build/address/0x57732B1dE5cB25A6b2A8a2311e1A865ED16a484E)|
 | Linea Mainnet | Coming soon | |
-| Base Testnet |✅| [0xDb9e16DfF12A6AfEd2aaf22709DD77c705812878](https://sepolia.basescan.org/address/0xdb9e16dff12a6afed2aaf22709dd77c705812878) |
+| Base Testnet |✅| [0xb9979a70c5F2Cdf209DC292eA681B0b704a602A6](https://sepolia.basescan.org/address/0xb9979a70c5F2Cdf209DC292eA681B0b704a602A6) |
 | Base Mainnet | Coming soon | |
 
 

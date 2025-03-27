@@ -32,7 +32,7 @@ The Contract Deployment Service utilises a smart contract to manage the deployme
 title: Enscribe High-Level Architecture
 ---
 sequenceDiagram;
-    myapp.eth->>+Enscribe: Grant Operator (wrapped)/Manager (2LD/unwrapped);
+    myapp.eth->>+Enscribe: Grant Operator (wrapped - NameWrapper)/(unwrapped - ENSRegistry);
     Enscribe-->>+myapp.eth: Success;
     myapp.eth->>+Enscribe: Deploy contract;
     Enscribe->>+ENS: Register Subname;

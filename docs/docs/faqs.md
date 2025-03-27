@@ -22,7 +22,7 @@ Enscribe caters for contracts that implement the [Ownable interface](https://doc
 
 ## What are the risks with the service?
 
-Whilst every effort has been made to ensure that our contracts cannot be exploited, we have yet to have them formally audited whilst we're in beta. The Enscribe service does require an ENS 2LD or subname with manager authority, but as long as you retain the Owner privilege, you can always delete subnames issued by the service.
+Whilst every effort has been made to ensure that our contracts cannot be exploited, we have yet to have them formally audited whilst we're in beta. The Enscribe service does require an ENS 2LD or subname with operator access, but as long as you retain the Owner privilege, you can always delete subnames issued by the service and revoke the operator access.
 
 ## What happens if my domain expires?
 

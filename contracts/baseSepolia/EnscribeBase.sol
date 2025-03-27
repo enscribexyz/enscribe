@@ -1,25 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.24;
 
-import "../ens/ReverseRegistrar.sol" as RR;
-import "../ens/NameWrapper.sol" as NW;
-import "../ens/ENSRegistry.sol" as ER;
-import "../ens/PublicResolver.sol" as PR;
-import "../openzeppelin/token/ERC1155/IERC1155Receiver.sol";
+import "./ReverseRegistrar.sol" as RR;
+import "./Registry.sol" as ER;
+import "./L2Resolver.sol" as L2R;
 import "../openzeppelin/access/Ownable.sol";
 
-contract EnscribeSepolia is Ownable, IERC1155Receiver {
+contract EnscribeBase is Ownable {
     address public constant REVERSE_REGISTRAR_ADDRESS =
-        0xCF75B92126B02C9811d8c632144288a3eb84afC8;
+        0xa0A8401ECF248a9375a0a71C4dedc263dA18dCd7;
     address public constant ENS_REGISTRY_ADDRESS =
-        0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e;
-    address public constant PUBLIC_RESOLVER_ADDRESS =
-        0x8948458626811dd0c23EB25Cc74291247077cC51;
-    address public constant NAME_WRAPPER_ADDRESS =
-        0x0635513f179D50A207757E05759CbD106d7dFcE8;
+        0x1493b2567056c2181630115660963E13A8E32735;
+    address public constant L2_RESOLVER_ADDRESS =
+        0x6533C94869D28fAA8dF77cc63f9e2b2D6Cf77eBA;
 
     uint256 public pricing = 0.0001 ether;
-    string public defaultParent = "testapp.eth";
+    string public defaultParent = "test.enscribe.basetest.eth";
 
     event ContractDeployed(address contractAddress);
     event SubnameCreated(bytes32 parentHash, string label);
@@ -29,7 +25,6 @@ contract EnscribeSepolia is Ownable, IERC1155Receiver {
         string subname
     );
     event ContractOwnershipTransferred(address deployedAddress, address owner);
-    event NameOwnershipTransferred(uint256 parentTokenId, address owner);
     event EtherReceived(address sender, uint256 amount);
 
     /**
@@ -86,7 +81,7 @@ contract EnscribeSepolia is Ownable, IERC1155Receiver {
             _setPrimaryNameForContract(
                 deployedAddress,
                 address(this),
-                PUBLIC_RESOLVER_ADDRESS,
+                L2_RESOLVER_ADDRESS,
                 subname
             ),
             "failed to set primary name"
@@ -116,57 +111,28 @@ contract EnscribeSepolia is Ownable, IERC1155Receiver {
             abi.encodePacked(label, ".", parentName)
         );
         success = false;
-
-        if (checkWrapped(parentNode)) {
-            if (
-                keccak256(abi.encodePacked(parentName)) !=
-                keccak256(abi.encodePacked(defaultParent))
-            ) {
-                require(
-                    _isSenderOwnerWrapped(parentNode),
-                    "Sender is not the owner of Wrapped parent node, can't create subname"
-                );
-            }
+        if (
+            keccak256(abi.encodePacked(parentName)) !=
+            keccak256(abi.encodePacked(defaultParent))
+        ) {
             require(
-                _createSubnameWrapped(
-                    parentNode,
-                    label,
-                    address(this),
-                    PUBLIC_RESOLVER_ADDRESS,
-                    uint64(0),
-                    uint32(0),
-                    uint64(0)
-                ),
-                "Failed to create subname, check if contract is given isApprovedForAll role for Wrapped Name"
-            );
-        } else {
-            if (
-                keccak256(abi.encodePacked(parentName)) !=
-                keccak256(abi.encodePacked(defaultParent))
-            ) {
-                require(
-                    _isSenderOwnerUnwrapped(parentNode),
-                    "Sender is not the owner of Unwrapped parent node, can't create subname"
-                );
-            }
-            require(
-                _createSubnameUnwrapped(
-                    parentNode,
-                    labelHash,
-                    address(this),
-                    PUBLIC_RESOLVER_ADDRESS,
-                    uint64(0)
-                ),
-                "Failed to create subname, check if contract is given isApprovedForAll role for Unwrapped Name"
+                _isSenderOwnerUnwrapped(parentNode),
+                "Sender is not the owner of Unwrapped parent node, can't create subname"
             );
         }
+        require(
+            _createSubnameUnwrapped(
+                parentNode,
+                labelHash,
+                address(this),
+                L2_RESOLVER_ADDRESS,
+                uint64(0)
+            ),
+            "Failed to create subname, check if contract is given isApprovedForAll role for Unwrapped Name"
+        );
         emit SubnameCreated(parentNode, label);
 
-        bytes memory encodedAddress = abi.encodePacked(contractAddress);
-        require(
-            _setAddr(node, uint256(60), encodedAddress),
-            "failed to setAddr"
-        );
+        require(_setAddr(node, contractAddress), "failed to setAddr");
         emit SetAddrSuccess(contractAddress, subname);
 
         require(
@@ -237,7 +203,7 @@ contract EnscribeSepolia is Ownable, IERC1155Receiver {
         address resolver,
         uint64 ttl
     ) private returns (bool success) {
-        ER.ENSRegistry ensRegistry = ER.ENSRegistry(ENS_REGISTRY_ADDRESS);
+        ER.Registry ensRegistry = ER.Registry(ENS_REGISTRY_ADDRESS);
         try
             ensRegistry.setSubnodeRecord(
                 parentNode,
@@ -253,71 +219,20 @@ contract EnscribeSepolia is Ownable, IERC1155Receiver {
         }
     }
 
-    function _createSubnameWrapped(
-        bytes32 parentNode,
-        string calldata label,
-        address owner,
-        address resolver,
-        uint64 ttl,
-        uint32 fuses,
-        uint64 expiry
-    ) private returns (bool success) {
-        NW.NameWrapper nameWrapper = NW.NameWrapper(NAME_WRAPPER_ADDRESS);
-        try
-            nameWrapper.setSubnodeRecord(
-                parentNode,
-                label,
-                owner,
-                resolver,
-                ttl,
-                fuses,
-                expiry
-            )
-        {
+    function _setAddr(bytes32 node, address a) private returns (bool success) {
+        L2R.L2Resolver l2ResolverContract = L2R.L2Resolver(L2_RESOLVER_ADDRESS);
+        try l2ResolverContract.setAddr(node, a) {
             success = true;
         } catch {
             success = false;
         }
-    }
-
-    function _setAddr(
-        bytes32 node,
-        uint256 coinType,
-        bytes memory a
-    ) private returns (bool success) {
-        PR.PublicResolver publicResolverContract = PR.PublicResolver(
-            PUBLIC_RESOLVER_ADDRESS
-        );
-        try publicResolverContract.setAddr(node, coinType, a) {
-            success = true;
-        } catch {
-            success = false;
-        }
-    }
-
-    function checkWrapped(bytes32 parentNode) public view returns (bool) {
-        NW.NameWrapper nameWrapper = NW.NameWrapper(NAME_WRAPPER_ADDRESS);
-        try nameWrapper.isWrapped(parentNode) returns (bool wrapped) {
-            return wrapped;
-        } catch {
-            return false;
-        }
-    }
-
-    function _isSenderOwnerWrapped(
-        bytes32 parentNode
-    ) private view returns (bool) {
-        return
-            NW.NameWrapper(NAME_WRAPPER_ADDRESS).ownerOf(uint256(parentNode)) ==
-            msg.sender;
     }
 
     function _isSenderOwnerUnwrapped(
         bytes32 parentNode
     ) private view returns (bool) {
         return
-            ER.ENSRegistry(ENS_REGISTRY_ADDRESS).owner(parentNode) ==
-            msg.sender;
+            ER.Registry(ENS_REGISTRY_ADDRESS).owner(parentNode) == msg.sender;
     }
 
     function updatePricing(uint256 updatedPrice) public onlyOwner {
@@ -350,48 +265,5 @@ contract EnscribeSepolia is Ownable, IERC1155Receiver {
      */
     fallback() external payable {
         emit EtherReceived(msg.sender, msg.value);
-    }
-
-    /**
-     * @dev Handles the receipt of a single ERC1155 token type.
-     * This function is called at the end of a `safeTransferFrom` after the balance has been updated.
-     * @return bytes4 Returns `IERC1155Receiver.onERC1155Received.selector` if the transfer is allowed.
-     */
-    function onERC1155Received(
-        address operator,
-        address from,
-        uint256 id,
-        uint256 value,
-        bytes calldata data
-    ) external pure override returns (bytes4) {
-        // Accept the transfer
-        return IERC1155Receiver.onERC1155Received.selector;
-    }
-
-    /**
-     * @dev Handles the receipt of multiple ERC1155 token types.
-     * This function is called at the end of a `safeBatchTransferFrom` after the balances have been updated.
-     * @return bytes4 Returns `IERC1155Receiver.onERC1155BatchReceived.selector` if the transfer is allowed.
-     */
-    function onERC1155BatchReceived(
-        address operator,
-        address from,
-        uint256[] calldata ids,
-        uint256[] calldata values,
-        bytes calldata data
-    ) external pure override returns (bytes4) {
-        // Accept the transfer
-        return IERC1155Receiver.onERC1155BatchReceived.selector;
-    }
-
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
-    function supportsInterface(
-        bytes4 interfaceId
-    ) external pure override returns (bool) {
-        return
-            interfaceId == type(IERC1155Receiver).interfaceId ||
-            interfaceId == type(IERC165).interfaceId;
     }
 }
