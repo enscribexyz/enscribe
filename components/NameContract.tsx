@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
-import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import nameWrapperABI from '../contracts/NameWrapper'
 import ownableContractABI from '../contracts/Ownable'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
@@ -170,7 +169,6 @@ export default function NameContract() {
 
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const ensBaseRegistrarContract = new ethers.Contract(config?.BASE_REGISTRAR!, ensBaseRegistrarImplementationABI, (await signer))
             var nameWrapperContract = null
             if (chain?.id != 84532) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
@@ -215,45 +213,24 @@ export default function NameContract() {
 
                 if (isWrapped) {
                     // Wrapped Names
+                    console.log(`Wrapped detected`);
                     const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
                         const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                         await txSetApproval.wait();
 
-                        console.log(`Wrapped 2LD and 3LD+ approvalStatus changed: ${txSetApproval.hash}`);
+                        console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
                     }
 
                 } else {
                     //Unwrapped Names
+                    console.log(`Unwrapped detected`);
+                    const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    if (!isApprovedForAll) {
+                        const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                        await txSetApproval.wait();
 
-                    const numDots = (parentName.match(/\./g) || []).length;
-
-                    if (numDots === 1) {
-                        const manager = await ensRegistryContract.owner(parentNode);
-                        console.log(`Current Manager of ${parentName}: ${manager}`);
-                        if (manager.toLowerCase() !== config?.ENSCRIBE_CONTRACT!.toLowerCase()) {
-                            // 2LD (Second-Level Domain) → Call `reclaim()`
-                            const labelHash = keccak256(ethers.toUtf8Bytes(parentName.split(".")[0])); // Get label hash
-                            const tokenId = BigInt(labelHash).toString();
-
-                            console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
-
-                            const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, config?.ENSCRIBE_CONTRACT!);
-                            await txReclaim.wait();
-
-                            console.log(`2LD Manager updated: ${txReclaim.hash}`);
-                        }
-
-                    } else {
-                        // 3LD+ (Subdomain) → Call `setOwner()`
-                        console.log(`3LD+ detected. Changing ownership via ENS Registry`);
-                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                        if (!isApprovedForAll) {
-                            const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                            await txSetApproval.wait();
-
-                            console.log(`Unwrapped 3LD approvalStatus changed: ${txSetApproval.hash}`);
-                        }
+                        console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
                     }
                 }
 

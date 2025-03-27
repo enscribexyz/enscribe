@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
-import ensBaseRegistrarImplementationABI from '../contracts/ENSBaseRegistrarImplementation'
 import nameWrapperABI from '../contracts/NameWrapper'
 import { useAccount, useWalletClient, } from 'wagmi'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -67,7 +66,7 @@ export default function DeployForm() {
     const [isValidBytecode, setIsValidBytecode] = useState(true)
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [args, setArgs] = useState<ConstructorArg[]>([])
-    const [abiJson, setAbiJson] = useState<any[]>([])
+    const [abiText, setAbiText] = useState("")
 
     const getParentNode = (name: string) => {
         return namehash(name)
@@ -103,7 +102,6 @@ export default function DeployForm() {
     const handleAbiInput = (text: string) => {
         if (text.trim().length === 0) {
             setArgs([])
-            setAbiJson([])
             setError("")
             return
         }
@@ -113,18 +111,15 @@ export default function DeployForm() {
 
             if (error || !parsed) {
                 console.log("Invalid ABI")
-                setAbiJson([])
                 setArgs([])
                 setError("Invalid ABI JSON. Please paste a valid ABI array.")
             } else {
-                setAbiJson(parsed)
                 parseConstructorInputs(parsed)
                 setError("")
             }
 
         } catch (err) {
             console.error("Invalid ABI JSON:", err)
-            setAbiJson([])
             setArgs([])
             setError("Invalid ABI JSON. Please paste a valid ABI array.")
         }
@@ -310,7 +305,6 @@ export default function DeployForm() {
 
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const ensBaseRegistrarContract = new ethers.Contract(config?.BASE_REGISTRAR!, ensBaseRegistrarImplementationABI, (await signer))
             var nameWrapperContract = null
             if (chain?.id != 84532) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
@@ -359,45 +353,24 @@ export default function DeployForm() {
 
                 if (isWrapped) {
                     // Wrapped Names
+                    console.log(`Wrapped detected.`);
                     const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
                         const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                         await txSetApproval.wait();
 
-                        console.log(`Wrapped 2LD and 3LD+ approvalStatus changed: ${txSetApproval.hash}`);
+                        console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
                     }
 
                 } else {
                     //Unwrapped Names
+                    console.log(`Unwrapped detected.`);
+                    const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    if (!isApprovedForAll) {
+                        const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                        await txSetApproval.wait();
 
-                    const numDots = (parentName.match(/\./g) || []).length;
-
-                    if (numDots === 1) {
-                        const manager = await ensRegistryContract.owner(parentNode);
-                        console.log(`Current Manager of ${parentName}: ${manager}`);
-                        if (manager.toLowerCase() !== config?.ENSCRIBE_CONTRACT!.toLowerCase()) {
-                            // 2LD (Second-Level Domain) → Call `reclaim()`
-                            const labelHash = keccak256(ethers.toUtf8Bytes(parentName.split(".")[0])); // Get label hash
-                            const tokenId = BigInt(labelHash).toString();
-
-                            console.log(`2LD detected. Reclaiming manager role on BaseRegistrar for tokenId: ${tokenId}`);
-
-                            const txReclaim = await ensBaseRegistrarContract.reclaim(tokenId, config?.ENSCRIBE_CONTRACT!);
-                            await txReclaim.wait();
-
-                            console.log(`2LD Manager updated: ${txReclaim.hash}`);
-                        }
-
-                    } else {
-                        // 3LD+ (Subdomain) → Call `setOwner()`
-                        console.log(`3LD+ detected. Changing ownership via ENS Registry`);
-                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                        if (!isApprovedForAll) {
-                            const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                            await txSetApproval.wait();
-
-                            console.log(`Unwrapped 3LD approvalStatus changed: ${txSetApproval.hash}`);
-                        }
+                        console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
                     }
                 }
 
@@ -448,8 +421,13 @@ export default function DeployForm() {
                 <Textarea
                     rows={3}
                     className="w-full border rounded-lg p-3 text-sm bg-white dark:bg-gray-700 dark:text-white text-gray-900"
-                    placeholder="Paste ABI JSON here..."
-                    onChange={(e) => handleAbiInput(e.target.value)}
+                    placeholder="[{'inputs':[{'internalType':'string','name':'greet','type':'string'}],'type':'constructor'}]"
+                    value={abiText}
+                    onChange={(e) => {
+                        const value = e.target.value
+                        setAbiText(value)
+                        handleAbiInput(value)
+                    }}
                 />
 
                 {/* Render dynamic constructor args */}
@@ -651,7 +629,7 @@ export default function DeployForm() {
                                 setParentType('web3labs');
                                 setParentName(enscribeDomain);
                                 setArgs([])
-                                setAbiJson([])
+                                setAbiText('')
                             }}
                             className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                         >
