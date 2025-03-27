@@ -1,5 +1,14 @@
-facebook:
+ens:
   label: ens
   permalink: /ens
   description: Ethereum Name Service
 
+layer2:
+  label: l2
+  permalink: l2
+  description: Layer 2 Networks
+
+linea:
+  label: linea
+  permalink: linea
+  description: Linea Layer 2 Network

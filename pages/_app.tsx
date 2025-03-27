@@ -1,18 +1,18 @@
 import type { AppProps } from 'next/app'
 import { WagmiProvider } from 'wagmi'
-import { mainnet, sepolia, linea, lineaSepolia } from 'wagmi/chains'
+import { sepolia, lineaSepolia, baseSepolia } from 'wagmi/chains'
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
 const wagmiClient = getDefaultConfig({
-  appName: 'Named',
+  appName: 'Enscribe',
   projectId: '1106',
   chains: [
-    mainnet,
-    linea,
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === 'true' ? [sepolia, lineaSepolia] : []),
+    sepolia,
+    lineaSepolia,
+    baseSepolia
   ],
   ssr: true,
 });
