@@ -25,6 +25,7 @@ export default function NameContract() {
     const ensAppUrl = config?.ENS_APP_URL!
 
     const [existingContractAddress, setExistingContractAddress] = useState('')
+
     const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
     const [parentName, setParentName] = useState(enscribeDomain)
@@ -35,6 +36,8 @@ export default function NameContract() {
     const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
+    const [isAddressEmpty, setIsAddressEmpty] = useState(true);
+    const [isAddressInvalid, setIsAddressInvalid] = useState(true);
     const [isOwnable, setIsOwnable] = useState<boolean | null>(true);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
@@ -107,7 +110,13 @@ export default function NameContract() {
 
     }
 
-    const isAddressValid = (): boolean => {
+    const checkIfAddressEmpty = (existingContractAddress: string): boolean => {
+        console.log("checkIfAddressEmpty: " + existingContractAddress)
+        setIsAddressEmpty(existingContractAddress.trim().length == 0)
+        return existingContractAddress.trim().length == 0
+    }
+
+    const isAddressValid = (existingContractAddress: string): boolean => {
         if (!existingContractAddress.trim()) {
             setError("contract address cannot be empty")
             return false
@@ -116,33 +125,40 @@ export default function NameContract() {
         if (!ethers.isAddress(existingContractAddress)) {
             setError("Invalid contract address");
             setIsOwnable(false);
+            setIsAddressInvalid(true);
             return false;
         }
         return true;
     }
 
-    const checkIfOwnable = async () => {
-        setError("")
+    const checkIfOwnable = async (address: string) => {
+        if(checkIfAddressEmpty(address) || !isAddressValid(address)) {
+            setIsOwnable(false);
+            return
+        }
 
         try {
-            const contract = new ethers.Contract(existingContractAddress, ["function owner() view returns (address)"], (await signer));
+            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer));
 
             const ownerAddress = await contract.owner();
             setIsOwnable(true);
+            setIsAddressInvalid(false)
+            setError("");
         } catch (err) {
             console.log("err " + err);
+            setIsAddressEmpty(false)
+            setIsAddressInvalid(false)
             setIsOwnable(false);
         }
     };
 
     const setPrimaryName = async (setPrimary: boolean) => {
-
-        if (!isAddressValid()) {
+        if (!isAddressValid(existingContractAddress)) {
             setIsOwnable(false)
             return
         }
 
-        await checkIfOwnable()
+        await checkIfOwnable(existingContractAddress)
 
         if (!label.trim()) {
             setError("Label cannot be empty")
@@ -291,15 +307,18 @@ export default function NameContract() {
                     required={true}
                     type="text"
                     value={existingContractAddress}
-                    onChange={(e) => setExistingContractAddress(e.target.value)}
-                    // onBlur={checkIfOwnable}
+                    onChange={ async (e) => {
+                        setExistingContractAddress(e.target.value)
+                        await checkIfOwnable(e.target.value)
+                    }}
+                    // onBlur={ checkIfOwnable}
                     placeholder="0xa56..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isOwnable ? 'border-red-500' : ''
                     }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
-                {!isOwnable && (
+                {!isAddressEmpty && !isAddressInvalid && !isOwnable && (
                     <p className="text-yellow-600">Contract address does not extend <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline">Ownable</Link> or <Link
@@ -370,7 +389,7 @@ export default function NameContract() {
             <div className="flex gap-4 mt-6">
                 <Button
                     onClick={() => setPrimaryName(true)}
-                    disabled={!isConnected || loading || !isOwnable}
+                    disabled={!isConnected || loading || isAddressEmpty || !isOwnable}
                     className="w-1/2"
                 >
                     {loading ? (
@@ -385,7 +404,7 @@ export default function NameContract() {
 
                 <Button
                     onClick={() => setPrimaryName(false)}
-                    // disabled={!isConnected || loading}
+                    disabled={!isConnected || loading || isAddressEmpty || isAddressInvalid}
                     className="w-1/2"
                 >
                     {loading ? (
