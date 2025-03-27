@@ -48,12 +48,12 @@ Contracts deployed using this service, must implement the [Ownable interface](ht
 
 From the users perspective there is at most two transactions associated with using the service.
 
-The ENS name (2LD or subname) that is owned by the user must grant privileges to the Enscribe Service to create a subname on its behalf. Depending on the type of name being used (wrapped or unwrapped subname or 2LD) the privelege the service uses differs. This is summarised in the below table:
+The ENS name (2LD or subname) that is owned by the user must grant operator privileges to the Enscribe Service to create a subname on its behalf. Depending on the type of name being used (wrapped or unwrapped) the privelege the service uses differs. This is summarised in the below table:
 
-| Name      | 2LD                                | 3LD+ or subname                  |
-| --------- | ---------------------------------- | -------------------------------- |
-| wrapped   | Operator granted by NameWrapper    | Operator granted by NameWrapper  |
-| unwrapped | Manager granted via Base Registrar | Operator granted by ENS Registry |
+| Name      | 2LD/subnames                       |
+| --------- | ---------------------------------- |
+| wrapped   | Operator granted by NameWrapper    |
+| unwrapped | Operator granted by ENS Registry   |
 
 Once the Enscribe Service has this privilege, it can then perform deployments on behalf of the user.
 
