@@ -1,21 +1,22 @@
-import React, {useState, useEffect} from 'react'
-import {ethers, namehash, keccak256} from 'ethers'
+import React, { useState, useEffect } from 'react'
+import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
+import publicResolverABI from '../contracts/PublicResolver'
 import ownableContractABI from '../contracts/Ownable'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
-import {useAccount, useWalletClient} from 'wagmi'
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {CONTRACTS, TOPIC0} from '../utils/constants';
+import { useAccount, useWalletClient } from 'wagmi'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import Link from "next/link";
 
 export default function NameContract() {
-    const {address, isConnected, chain} = useAccount()
-    const {data: walletClient} = useWalletClient()
+    const { address, isConnected, chain } = useAccount()
+    const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -131,7 +132,7 @@ export default function NameContract() {
     }
 
     const checkIfOwnable = async (address: string) => {
-        if(checkIfAddressEmpty(address) || !isAddressValid(address)) {
+        if (checkIfAddressEmpty(address) || !isAddressValid(address)) {
             setIsOwnable(false);
             return
         }
@@ -152,6 +153,8 @@ export default function NameContract() {
     };
 
     const setPrimaryName = async (setPrimary: boolean) => {
+        setError("")
+
         if (!isAddressValid(existingContractAddress)) {
             setIsOwnable(false)
             return
@@ -174,17 +177,11 @@ export default function NameContract() {
             setError("Parent name cannot be empty")
             return
         }
-        if (ensNameTaken) {
-            setError("ENS name already used, please change label")
-            return
-        }
 
         if (!config) {
             console.error("Unsupported network");
             setError("Unsupported network")
-        } else {
-            setError("")
-            console.log("Using Enscribe contract:", config.ENSCRIBE_CONTRACT);
+            return
         }
 
         try {
@@ -198,24 +195,33 @@ export default function NameContract() {
                 return
             }
 
-            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const sender = (await signer)
+            const signerAddress = sender.address;
+
+            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, sender)
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, sender)
             var nameWrapperContract = null
             if (chain?.id != 84532) {
-                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, sender)
             }
-            const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer))
-            const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, (await signer))
+            const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, sender)
+            const publicResolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, sender)
+            const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, sender)
             const parentNode = getParentNode(parentName)
+            const node = namehash(label + "." + parentName)
+            const labelHash = keccak256(ethers.toUtf8Bytes(label))
+            const nameExist = await ensRegistryContract.recordExists(node)
 
             console.log("label - ", label)
+            console.log("label hash - ", labelHash)
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
+            console.log("name node - ", node)
 
             const txCost = 100000000000000n
 
             if (parentType === 'web3labs') {
-                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, {value: txCost})
+                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
 
                 const txReceipt = await tx.wait()
                 setTxHash(txReceipt.hash)
@@ -223,20 +229,10 @@ export default function NameContract() {
                 setReceipt(txReceipt)
 
             } else if (chain?.id == 84532) {
-                const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                if (!isApprovedForAll) {
-                    const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                    await txSetApproval.wait();
-
-                    console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
+                if (!nameExist) {
+                    let tx1 = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, signerAddress, config?.PUBLIC_RESOLVER, 0)
+                    await tx1.wait()
                 }
-
-                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, {value: txCost})
-                const txReceipt = await tx.wait()
-                setTxHash(txReceipt.hash)
-                setDeployedAddress(existingContractAddress)
-                setReceipt(txReceipt)
-
             }
             else {
                 console.log("User's parent deployment type")
@@ -245,37 +241,47 @@ export default function NameContract() {
                 if (isWrapped) {
                     // Wrapped Names
                     console.log(`Wrapped detected`);
-                    const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                    if (!isApprovedForAll) {
-                        const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                        await txSetApproval.wait();
-
-                        console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                    if (!nameExist) {
+                        let tx1 = await nameWrapperContract?.setSubnodeRecord(parentNode, label, signerAddress, config?.PUBLIC_RESOLVER, 0, 0, 0)
+                        await tx1.wait()
                     }
 
                 } else {
                     //Unwrapped Names
                     console.log(`Unwrapped detected`);
-                    const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                    if (!isApprovedForAll) {
-                        const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                        await txSetApproval.wait();
-
-                        console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                    if (!nameExist) {
+                        let tx1 = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, signerAddress, config?.PUBLIC_RESOLVER, 0)
+                        await tx1.wait()
                     }
                 }
+            }
 
-                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
-                const txReceipt = await tx.wait()
+            let tx2 = null;
+            const forwardResolution: string = await publicResolverContract.addr(node);
+            if (forwardResolution.toLowerCase() !== existingContractAddress.toLowerCase()) {
+                console.log("setting addr forward");
+                tx2 = await publicResolverContract.setAddr(node, existingContractAddress);
+                await tx2.wait()
+            }
+
+            console.log("tx2 - ", tx2)
+            if (tx2 != null) {
+                const txReceipt = await tx2.wait()
                 setTxHash(txReceipt.hash)
                 setDeployedAddress(existingContractAddress)
                 setReceipt(txReceipt)
+            } else if (!setPrimary) {
+                console.log("Forward Resolution is already set")
+                setError("Forward Resoltion already set")
+                return
+            } else {
+                console.log("Forward Resolution is already set")
             }
 
             try {
                 if (setPrimary) {
-                    let tx2 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, config?.PUBLIC_RESOLVER!, label + "." + parentName)
-                    await tx2.wait()
+                    let tx3 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, config?.PUBLIC_RESOLVER!, label + "." + parentName)
+                    await tx3.wait()
                     setIsPrimaryNameSet(true)
                 }
             } catch (error) {
@@ -303,14 +309,14 @@ export default function NameContract() {
                     required={true}
                     type="text"
                     value={existingContractAddress}
-                    onChange={ async (e) => {
+                    onChange={async (e) => {
                         setExistingContractAddress(e.target.value)
                         await checkIfOwnable(e.target.value)
                     }}
                     // onBlur={ checkIfOwnable}
                     placeholder="0xa56..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isOwnable ? 'border-red-500' : ''
-                    }`}
+                        }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
@@ -318,9 +324,9 @@ export default function NameContract() {
                     <p className="text-yellow-600">Contract address does not extend <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline">Ownable</Link> or <Link
-                        href="https://eips.ethereum.org/EIPS/eip-173"
-                        className="text-blue-600 hover:underline">ERC-173</Link>. You can only <Link
-                        href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
+                            href="https://eips.ethereum.org/EIPS/eip-173"
+                            className="text-blue-600 hover:underline">ERC-173</Link>. You can only <Link
+                                href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
                         name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why is this?</Link></p>
 
                 )}
@@ -355,7 +361,7 @@ export default function NameContract() {
                 >
                     <SelectTrigger
                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900"/>
+                        <SelectValue className="text-gray-900" />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
@@ -390,9 +396,9 @@ export default function NameContract() {
                 >
                     {loading ? (
                         <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
-                             xmlns="http://www.w3.org/2000/svg">
+                            xmlns="http://www.w3.org/2000/svg">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    strokeWidth="4"></circle>
+                                strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
                     ) : 'Set Primary Name'}
@@ -405,9 +411,9 @@ export default function NameContract() {
                 >
                     {loading ? (
                         <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
-                             xmlns="http://www.w3.org/2000/svg">
+                            xmlns="http://www.w3.org/2000/svg">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                    strokeWidth="4"></circle>
+                                strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                         </svg>
                     ) : 'Set Forward Resolution'}
