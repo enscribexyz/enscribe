@@ -438,7 +438,7 @@ export default function NameContract() {
 
                     if (result && result !== "INCOMPLETE") {
                         setTxHash(result)
-                        setExistingContractAddress(existingContractAddress)
+                        setDeployedAddress(existingContractAddress)
                         setShowPopup(true)
                     } else if (result === "INCOMPLETE") {
                         setError("Steps not completed. Please complete all steps before closing.")
