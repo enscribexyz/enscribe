@@ -15,7 +15,7 @@ import { CONTRACTS, TOPIC0 } from '../utils/constants';
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
-    "f2fde38b",  // transferOwnership(address newOwner)
+    "f2fde38b",  // transferOwnership(address)
 ];
 
 const commonTypes = [

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import Link from "next/link";
+import SetNameStepsModal, { Step } from './SetNameStepsModal';
 
 export default function NameContract() {
     const { address, isConnected, chain } = useAccount()
@@ -41,6 +42,11 @@ export default function NameContract() {
     const [isOwnable, setIsOwnable] = useState<boolean | null>(true);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
+
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalSteps, setModalSteps] = useState<Step[]>([]);
+    const [modalTitle, setModalTitle] = useState('');
+    const [modalSubtitle, setModalSubtitle] = useState('');
 
     const getParentNode = (name: string) => {
         return namehash(name)
@@ -200,7 +206,7 @@ export default function NameContract() {
 
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, sender)
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, sender)
-            var nameWrapperContract = null
+            let nameWrapperContract: ethers.Contract | null = null;
             if (chain?.id != 84532) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, sender)
             }
@@ -211,6 +217,7 @@ export default function NameContract() {
             const node = namehash(label + "." + parentName)
             const labelHash = keccak256(ethers.toUtf8Bytes(label))
             const nameExist = await ensRegistryContract.recordExists(node)
+            const steps: Step[] = []
 
             console.log("label - ", label)
             console.log("label hash - ", labelHash)
@@ -220,75 +227,71 @@ export default function NameContract() {
 
             const txCost = 100000000000000n
 
-            if (parentType === 'web3labs') {
-                let tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
+            const titleFirst = parentType === 'web3labs' ? "Set forward resolution" : "Create subname"
 
-                const txReceipt = await tx.wait()
-                setTxHash(txReceipt.hash)
-                setDeployedAddress(existingContractAddress)
-                setReceipt(txReceipt)
-
-            } else if (chain?.id == 84532) {
-                if (!nameExist) {
-                    let tx1 = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, signerAddress, config?.PUBLIC_RESOLVER, 0)
-                    await tx1.wait()
-                }
-            }
-            else {
-                console.log("User's parent deployment type")
-                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-
-                if (isWrapped) {
-                    // Wrapped Names
-                    console.log(`Wrapped detected`);
-                    if (!nameExist) {
-                        let tx1 = await nameWrapperContract?.setSubnodeRecord(parentNode, label, signerAddress, config?.PUBLIC_RESOLVER, 0, 0, 0)
-                        await tx1.wait()
-                    }
-
-                } else {
-                    //Unwrapped Names
-                    console.log(`Unwrapped detected`);
-                    if (!nameExist) {
-                        let tx1 = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, signerAddress, config?.PUBLIC_RESOLVER, 0)
-                        await tx1.wait()
+            // Step 1: Create Subname
+            steps.push({
+                title: titleFirst,
+                action: async () => {
+                    if (parentType === 'web3labs') {
+                        const tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: 100000000000000n })
+                        return tx
+                    } else if (chain?.id === 84532) {
+                        if (!nameExist) {
+                            const tx = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
+                            return tx
+                        }
+                    } else {
+                        const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                        if (!nameExist) {
+                            if (isWrapped) {
+                                const tx = await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config.PUBLIC_RESOLVER, 0, 0, 0)
+                                return tx
+                            } else {
+                                const tx = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
+                                return tx
+                            }
+                        }
                     }
                 }
+            })
+
+            // Step 2: Set Forward Resolution (if not web3labs)
+            if (parentType != 'web3labs') {
+                steps.push({
+                    title: "Set forward resolution",
+                    action: async () => {
+                        const currentAddr = await publicResolverContract.addr(node)
+                        if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
+                            const tx = await publicResolverContract.setAddr(node, existingContractAddress)
+                            return tx
+                        } else {
+                            setError("Forward resolution already set")
+                            console.log("Forward resolution already set")
+                        }
+                    }
+                })
             }
 
-            let tx2 = null;
-            const forwardResolution: string = await publicResolverContract.addr(node);
-            if (forwardResolution.toLowerCase() !== existingContractAddress.toLowerCase()) {
-                console.log("setting addr forward");
-                tx2 = await publicResolverContract.setAddr(node, existingContractAddress);
-                await tx2.wait()
-            }
 
-            console.log("tx2 - ", tx2)
-            if (tx2 != null) {
-                const txReceipt = await tx2.wait()
-                setTxHash(txReceipt.hash)
-                setDeployedAddress(existingContractAddress)
-                setReceipt(txReceipt)
-            } else if (!setPrimary) {
-                console.log("Forward Resolution is already set")
-                setError("Forward Resoltion already set")
-                return
+            // Step 3: Set Reverse Resolution (if Primary)
+            if (setPrimary) {
+                setIsPrimaryNameSet(true)
+                steps.push({
+                    title: "Set reverse resolution",
+                    action: async () => {
+                        const tx = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
+                        return tx
+                    }
+                })
             } else {
-                console.log("Forward Resolution is already set")
+                setIsPrimaryNameSet(false)
             }
 
-            try {
-                if (setPrimary) {
-                    let tx3 = await reverseRegistrarContract.setNameForAddr(existingContractAddress, (await signer).address, config?.PUBLIC_RESOLVER!, label + "." + parentName)
-                    await tx3.wait()
-                    setIsPrimaryNameSet(true)
-                }
-            } catch (error) {
-                console.log("Error while setting primary name - ", error)
-            }
-
-            setShowPopup(true)
+            setModalTitle(setPrimary ? "Set Primary Name" : "Set Forward Resolution")
+            setModalSubtitle("Complete each step to finish naming this contract")
+            setModalSteps(steps)
+            setModalOpen(true)
 
         } catch (err: any) {
             console.error(err)
@@ -424,6 +427,29 @@ export default function NameContract() {
                 <p className="mt-4 text-red-500 text-lg">Error: {error}</p>
             )}
 
+            <SetNameStepsModal
+                open={modalOpen}
+                onClose={(result) => {
+                    setModalOpen(false)
+                    if (result?.startsWith("ERROR")) {
+                        setError(result)
+                        return
+                    }
+
+                    if (result && result !== "INCOMPLETE") {
+                        setTxHash(result)
+                        setExistingContractAddress(existingContractAddress)
+                        setShowPopup(true)
+                    } else if (result === "INCOMPLETE") {
+                        setError("Steps not completed. Please complete all steps before closing.")
+                    }
+                }}
+                title={modalTitle}
+                subtitle={modalSubtitle}
+                steps={modalSteps}
+            />
+
+
             {showPopup && (
                 <Dialog open={showPopup} onOpenChange={setShowPopup}>
                     <DialogContent className="max-w-lg bg-white dark:bg-gray-900 shadow-lg rounded-lg">
@@ -489,6 +515,7 @@ export default function NameContract() {
                                 setShowPopup(false);
                                 setExistingContractAddress('');
                                 setLabel('');
+                                setError('')
                                 setParentType('web3labs');
                                 setParentName(enscribeDomain);
                                 setIsPrimaryNameSet(false);
@@ -501,6 +528,6 @@ export default function NameContract() {
                 </Dialog>
             )
             }
-        </div>
+        </div >
     )
 }
