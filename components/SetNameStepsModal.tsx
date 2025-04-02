@@ -37,6 +37,7 @@ export default function SetNameStepsModal({
     const [executing, setExecuting] = useState(false)
     const [lastTxHash, setLastTxHash] = useState<string | null>(null)
     const [allStepsCompleted, setAllStepsCompleted] = useState(false)
+    const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [stepStatuses, setStepStatuses] = useState<("pending" | "completed" | "error")[]>(
         Array(steps?.length || 0).fill("pending")
     )
@@ -57,43 +58,50 @@ export default function SetNameStepsModal({
         setStepTxHashes(Array(steps.length).fill(null))
         setLastTxHash(null)
         setAllStepsCompleted(false)
+        setErrorMessage("")
     }, [open, steps])
 
     const runStep = async (index: number) => {
+        let tx;
         try {
-            setExecuting(true)
-            const tx = await steps[index].action()
+            setExecuting(true);
+            tx = await steps[index].action().catch((error) => {
+                console.log("error", error)
+                updateStepStatus(index, "error");
+                setErrorMessage(error?.message || error.toString() || "Unknown error occurred.");
+            });
             if (tx) {
-                const receipt = await tx.wait()
-                const txHash = receipt?.hash ?? null
+                const receipt = await tx.wait();
+                const txHash = receipt?.hash ?? null;
 
                 setStepTxHashes((prev) => {
-                    const updated = [...prev]
-                    updated[index] = txHash
-                    return updated
-                })
+                    const updated = [...prev];
+                    updated[index] = txHash;
+                    return updated;
+                });
 
-                setLastTxHash(txHash) // store latest tx
+                setLastTxHash(txHash);
+                updateStepStatus(index, "completed");
             }
-            updateStepStatus(index, "completed")
+
             if (index + 1 < steps.length) {
-                setCurrentStep(index + 1)
+                setCurrentStep(index + 1);
             } else {
-                setCurrentStep(steps.length)
-                setAllStepsCompleted(true)
+                setCurrentStep(steps.length);
+                setAllStepsCompleted(true);
             }
-        } catch (err: any) {
-            if (err?.code === "ACTION_REJECTED" || err?.code === 4001) {
-                updateStepStatus(index, "pending")
+        } catch (error: any) {
+            console.error("Step failed:", error);
+            if (error?.code === "ACTION_REJECTED" || error?.code === 4001) {
+                updateStepStatus(index, "pending");
             } else {
-                console.error("Step failed:", err)
-                updateStepStatus(index, "error")
-                onClose(`ERROR: ${err?.message || "Unknown error in step: " + steps[index]?.title}`)
+                updateStepStatus(index, "error");
+                setErrorMessage(error?.message || error.toString() || "Unknown error occurred.");
             }
         } finally {
-            setExecuting(false)
+            setExecuting(false);
         }
-    }
+    };
 
     const updateStepStatus = (index: number, status: "pending" | "completed" | "error") => {
         setStepStatuses(prev => {
@@ -169,8 +177,19 @@ export default function SetNameStepsModal({
                     )}
                 </div>
 
-                <div className="mt-6">
-                    {currentStep < steps.length ? (
+                <div className="mt-6 space-y-2">
+                    {errorMessage ? (
+                        <>
+                            <Button
+                                onClick={() => onClose(`ERROR: ${errorMessage}`)}
+                                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                            >
+                                Close
+                            </Button>
+
+
+                        </>
+                    ) : currentStep < steps.length ? (
                         <Button
                             onClick={() => runStep(currentStep)}
                             disabled={executing}

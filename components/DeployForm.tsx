@@ -568,7 +568,9 @@ export default function DeployForm() {
             </Button>
 
             {error && (
-                <p className="mt-4 text-red-500 text-lg">Error: {error}</p>
+                <div className="mt-4 bg-red-50 dark:bg-red-900 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-sm rounded-md p-3 break-words max-w-full overflow-hidden">
+                    <strong>Error:</strong> {error}
+                </div>
             )}
 
             {showPopup && (
