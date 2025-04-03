@@ -62,14 +62,19 @@ export default function SetNameStepsModal({
     }, [open, steps])
 
     const runStep = async (index: number) => {
-        let tx;
+        let tx = null;
+        let errorMain = null;
+        setExecuting(true);
+        tx = await steps[index].action().catch((error) => {
+            console.log("error", error)
+            updateStepStatus(index, "error");
+            setErrorMessage(error?.message || error.toString() || "Unknown error occurred.");
+            errorMain = error
+            return
+        })
+
+
         try {
-            setExecuting(true);
-            tx = await steps[index].action().catch((error) => {
-                console.log("error", error)
-                updateStepStatus(index, "error");
-                setErrorMessage(error?.message || error.toString() || "Unknown error occurred.");
-            });
             if (tx) {
                 const receipt = await tx.wait();
                 const txHash = receipt?.hash ?? null;
@@ -81,6 +86,10 @@ export default function SetNameStepsModal({
                 });
 
                 setLastTxHash(txHash);
+                updateStepStatus(index, "completed");
+            }
+
+            if (!errorMain) {
                 updateStepStatus(index, "completed");
             }
 

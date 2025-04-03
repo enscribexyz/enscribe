@@ -234,8 +234,14 @@ export default function NameContract() {
                 title: titleFirst,
                 action: async () => {
                     if (parentType === 'web3labs') {
-                        const tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: 100000000000000n })
-                        return tx
+                        const currentAddr = await publicResolverContract.addr(node)
+                        if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
+                            const tx = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: 100000000000000n })
+                            return tx
+                        } else {
+                            setError("Forward resolution already set")
+                            console.log("Forward resolution already set")
+                        }
                     } else if (chain?.id === 84532) {
                         if (!nameExist) {
                             const tx = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
