@@ -175,7 +175,7 @@ export default function SetNameStepsModal({
                                             target="_blank"
                                             rel="noopener noreferrer"
                                         >
-                                            View
+                                            View Tx
                                         </a>
                                     </Button>
                                 )}
