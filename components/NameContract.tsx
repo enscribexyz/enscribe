@@ -14,7 +14,6 @@ import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import {Hex, labelhash} from "viem";
 
 export default function NameContract() {
     const { address, isConnected, chain } = useAccount()
@@ -174,15 +173,14 @@ export default function NameContract() {
                 return
             }
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const labelHash = labelhash(address.slice(2).toLowerCase())
-            const nameHash = namehash( "addr.reverse")
-            const reversedNode = keccak256((nameHash + labelHash.split('0x')[1]) as Hex)
+            const addrLabel = address.slice(2).toLowerCase()
+            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
             const resolvedAddr = await ensRegistryContract.owner(reversedNode)
             console.log("resolvedaddr is " + resolvedAddr)
 
             const sender = (await signer)
             const signerAddress = sender.address;
-            if(resolvedAddr == signerAddress) {
+            if (resolvedAddr === signerAddress) {
                 console.log("contract implements reverseclaimable")
                 setIsReverseClaimable(true);
             } else {
@@ -325,14 +323,28 @@ export default function NameContract() {
 
             // Step 3: Set Reverse Resolution (if Primary)
             if (setPrimary) {
-                setIsPrimaryNameSet(true)
-                steps.push({
-                    title: "Set reverse resolution",
-                    action: async () => {
-                        const tx = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
-                        return tx
-                    }
-                })
+                if (isReverseClaimable) {
+                    setIsPrimaryNameSet(true)
+                    const addrLabel = existingContractAddress.slice(2).toLowerCase()
+                    const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+                    steps.push({
+                        title: "Set reverse resolution",
+                        action: async () => {
+                            const tx = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
+                            return tx
+                        }
+                    })
+                } else {
+                    setIsPrimaryNameSet(true)
+                    steps.push({
+                        title: "Set reverse resolution",
+                        action: async () => {
+                            const tx = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
+                            return tx
+                        }
+                    })
+                }
+
             } else {
                 setIsPrimaryNameSet(false)
             }
@@ -379,9 +391,9 @@ export default function NameContract() {
                         className="text-blue-600 hover:underline">Ownable</Link> or <Link
                             href="https://eips.ethereum.org/EIPS/eip-173"
                             className="text-blue-600 hover:underline">ERC-173</Link> or <Link
-                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                        className="text-blue-600 hover:underline">ReverseClaimable</Link>. You can only <Link
-                                href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
+                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link>. You can only <Link
+                                    href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
                         name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why is this?</Link></p>
 
                 )}
