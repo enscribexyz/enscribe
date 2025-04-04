@@ -32,16 +32,35 @@ The Contract Deployment Service utilises a smart contract to manage the deployme
 title: Enscribe High-Level Architecture
 ---
 sequenceDiagram;
-    myapp.eth->>+Enscribe: Grant Operator (wrapped - NameWrapper)/(unwrapped - ENSRegistry);
-    Enscribe-->>+myapp.eth: Success;
-    myapp.eth->>+Enscribe: Deploy contract;
-    Enscribe->>+ENS: Register Subname;
-    ENS-->>Enscribe: Success;
-    Enscribe->>+Ethereum: Deploy contract;
-    Ethereum-->>Enscribe: Success;
-    Enscribe->>+ENS: Set primary name;
-    ENS-->>Enscribe: Success;
-    Enscribe->>-myapp.eth: Cotract deployed at v1.myapp.eth;
+    participant User (myapp.eth)
+    participant Enscribe
+    participant ENS
+    participant Ethereum
+
+    User (myapp.eth)->>+Enscribe: Grant Operator (wrapped - NameWrapper) / (unwrapped - ENSRegistry)
+    Enscribe-->>User (myapp.eth): Operator Granted Successfully
+
+    User (myapp.eth)->>+Enscribe: setNameAndDeploy(bytecode, label, parentName, parentNode)
+    Note right of Enscribe: Compute node + salt (CREATE2)
+    Enscribe->>+Ethereum: Deploy contract via CREATE2
+    Ethereum-->>Enscribe: Contract deployed
+
+    Enscribe->>Enscribe: Check if parent is wrapped/unwrapped and sender is ENS parent owner
+
+    alt Parent is Wrapped
+        Enscribe->>ENS: Create Subname via NameWrapper
+    else Parent is Unwrapped
+        Enscribe->>ENS: Create Subname via ENSRegistry
+    end
+
+    ENS-->>Enscribe: Subname "v1" Created
+    Enscribe->>ENS: Set forward resolution (setAddr)
+    Enscribe->>ENS: Set reverse record (setNameForAddr)
+
+    Enscribe->>Ethereum: transferOwnership to User
+    Ethereum-->>Enscribe: Ownership Transferred
+
+    Enscribe-->>User (myapp.eth): Contract deployed at v1.myapp.eth
 ```
 
 Contracts deployed using this service, must implement the [Ownable interface](https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable), or [ERC-173: Contract Ownership Standard](https://eips.ethereum.org/EIPS/eip-173). This is because only the contract owner can set the reverse node for the contract address.
