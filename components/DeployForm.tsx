@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { ethers, namehash, keccak256 } from 'ethers'
+import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
@@ -11,12 +11,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import parseJson from 'json-parse-safe'
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
-
+import publicResolverABI from "@/contracts/PublicResolver";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
     "f2fde38b",  // transferOwnership(address)
 ];
+
+const ADDR_REVERSE_NODE = "91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2"
 
 const commonTypes = [
     "string",
@@ -43,6 +45,11 @@ const checkIfOwnable = (bytecode: string): boolean => {
     return OWNABLE_FUNCTION_SELECTORS.every(selector => bytecode.includes(selector));
 };
 
+const checkIfReverseClaimable = (bytecode: string): boolean => {
+    console.log("bytecode is rc? " + bytecode.includes(ADDR_REVERSE_NODE));
+    return bytecode.includes(ADDR_REVERSE_NODE)
+};
+
 export default function DeployForm() {
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
@@ -64,6 +71,8 @@ export default function DeployForm() {
     const [loading, setLoading] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
     const [isValidBytecode, setIsValidBytecode] = useState(true)
+    const [isOwnable, setIsOwnable] = useState(true)
+    const [isReverseClaimable, setIsReverseClaimable] = useState(true)
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [args, setArgs] = useState<ConstructorArg[]>([])
     const [abiText, setAbiText] = useState("")
@@ -80,7 +89,9 @@ export default function DeployForm() {
 
     useEffect(() => {
         if (bytecode.length > 0) {
-            setIsValidBytecode(checkIfOwnable(bytecode))
+            setIsOwnable(checkIfOwnable(bytecode))
+            setIsReverseClaimable(checkIfReverseClaimable(bytecode))
+            setIsValidBytecode(checkIfOwnable(bytecode) || checkIfReverseClaimable(bytecode))
         }
     }, [bytecode])
 
@@ -280,7 +291,7 @@ export default function DeployForm() {
             return
         }
         if (!isValidBytecode) {
-            setError('Invalid contract bytecode. It does not extend Ownable.')
+            setError('Invalid contract bytecode. It does not extend Ownable/ReverseClaimable.')
             return
         }
 
@@ -303,86 +314,130 @@ export default function DeployForm() {
                 return
             }
 
-            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            var nameWrapperContract = null
+            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
+            const parentNode = getParentNode(parentName)
+            var nameWrapperContract: ethers.Contract | null = null;
             if (chain?.id != 84532) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
-            const parentNode = getParentNode(parentName)
-
             const finalBytecode = encodeConstructorArgs()
 
-            console.log("label - ", label)
-            console.log("parentName - ", parentName)
-            console.log("parentNode - ", parentNode)
+            if (isOwnable) {
+                console.log("label - ", label)
+                console.log("parentName - ", parentName)
+                console.log("parentNode - ", parentNode)
 
+                const txCost = 100000000000000n
 
-            const txCost = 100000000000000n
+                if (parentType === 'web3labs') {
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
 
-            if (parentType === 'web3labs') {
-                let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                    const txReceipt = await tx.wait()
+                    setTxHash(txReceipt.hash)
+                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                    setDeployedAddress(deployedContractAddress)
+                    setShowPopup(true)
+                } else if (chain?.id == 84532) {
 
-                const txReceipt = await tx.wait()
-                setTxHash(txReceipt.hash)
-                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                setDeployedAddress(deployedContractAddress)
-                setShowPopup(true)
-            } else if (chain?.id == 84532) {
-
-                const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                if (!isApprovedForAll) {
-                    const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                    await txSetApproval.wait();
-
-                    console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
-                }
-                let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
-                const txReceipt = await tx.wait()
-                setTxHash(txReceipt.hash)
-                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                setDeployedAddress(deployedContractAddress)
-                setShowPopup(true)
-
-            } else {
-                console.log("User's parent deployment type")
-                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-
-                if (isWrapped) {
-                    // Wrapped Names
-                    console.log(`Wrapped detected.`);
-                    const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                    if (!isApprovedForAll) {
-                        const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                        await txSetApproval.wait();
-
-                        console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
-                    }
-
-                } else {
-                    //Unwrapped Names
-                    console.log(`Unwrapped detected.`);
                     const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
                         const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                         await txSetApproval.wait();
 
-                        console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                        console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
+                    }
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                    const txReceipt = await tx.wait()
+                    setTxHash(txReceipt.hash)
+                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                    setDeployedAddress(deployedContractAddress)
+                    setShowPopup(true)
+
+                } else {
+                    console.log("User's parent deployment type")
+                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+
+                    if (isWrapped) {
+                        // Wrapped Names
+                        console.log(`Wrapped detected.`);
+                        const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        if (!isApprovedForAll) {
+                            const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                            await txSetApproval.wait();
+
+                            console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                        }
+
+                    } else {
+                        //Unwrapped Names
+                        console.log(`Unwrapped detected.`);
+                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        if (!isApprovedForAll) {
+                            const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                            await txSetApproval.wait();
+
+                            console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                        }
+                    }
+
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                    const txReceipt = await tx.wait()
+                    setTxHash(txReceipt.hash)
+                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                    setDeployedAddress(deployedContractAddress)
+                    setShowPopup(true)
+                }
+            } else if (isReverseClaimable) {
+                const sender = (await signer)
+                const senderAddr = sender.address
+                const nonce = await ethers.getDefaultProvider().getTransactionCount(senderAddr)
+                const preDeploymentAddr = getCreateAddress({from: senderAddr, nonce: nonce})
+                const labelHash = keccak256(ethers.toUtf8Bytes(label))
+                const node = namehash(label + "." + parentName)
+                const nameExist = await ensRegistryContract.recordExists(node)
+                const publicResolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, sender)
+
+                // step 1: create subname
+                if (parentType === 'web3labs') {
+                    await namingContract.setName(preDeploymentAddr, label, parentName, parentNode, { value: 100000000000000n })
+                } else if (chain?.id === 84532) {
+                    if (!nameExist) {
+                        await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                    }
+                } else {
+                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                    if (!nameExist) {
+                        if (isWrapped) {
+                            await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config?.PUBLIC_RESOLVER, 0, 0, 0)
+                        } else {
+                            await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                        }
                     }
                 }
 
-                let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
-                const txReceipt = await tx.wait()
-                setTxHash(txReceipt.hash)
-                const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                setDeployedAddress(deployedContractAddress)
+                // Step 2: Set Forward Resolution (if not web3labs)
+                if (parentType != 'web3labs') {
+                    await publicResolverContract.setAddr(node, preDeploymentAddr)
+                }
+
+                // step 3: deploy contract
+                const cf = new ContractFactory([], finalBytecode, (await signer));
+                const contract = await cf.deploy()
+                await contract.waitForDeployment()
+
+                // step 4: Set Reverse Resolution
+                const addrLabel = preDeploymentAddr.slice(2).toLowerCase()
+                const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+                const tx = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
+                setTxHash(contract.deploymentTransaction() != null? contract.deploymentTransaction()!.hash : tx.hash)
+                setDeployedAddress(preDeploymentAddr)
                 setShowPopup(true)
             }
-
         } catch (err: any) {
             console.error(err)
             setError(err?.code || 'Error deploying contract')

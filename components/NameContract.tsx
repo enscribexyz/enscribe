@@ -40,6 +40,7 @@ export default function NameContract() {
     const [isAddressEmpty, setIsAddressEmpty] = useState(true);
     const [isAddressInvalid, setIsAddressInvalid] = useState(true);
     const [isOwnable, setIsOwnable] = useState<boolean | null>(true);
+    const [isReverseClaimable, setIsReverseClaimable] = useState<boolean | null>(false);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
 
@@ -147,6 +148,7 @@ export default function NameContract() {
             const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer));
 
             const ownerAddress = await contract.owner();
+            console.log("contract ownable")
             setIsOwnable(true);
             setIsAddressInvalid(false)
             setError("");
@@ -155,6 +157,44 @@ export default function NameContract() {
             setIsAddressEmpty(false)
             setIsAddressInvalid(false)
             setIsOwnable(false);
+        }
+    };
+
+    const checkIfReverseClaimable = async (address: string) => {
+        if (checkIfAddressEmpty(address) || !isAddressValid(address)) {
+            setIsOwnable(false);
+            return
+        }
+
+        try {
+            if (!signer) {
+                alert('Please connect your wallet first.')
+                setLoading(false)
+                return
+            }
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const addrLabel = address.slice(2).toLowerCase()
+            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
+            console.log("resolvedaddr is " + resolvedAddr)
+
+            const sender = (await signer)
+            const signerAddress = sender.address;
+            if (resolvedAddr === signerAddress) {
+                console.log("contract implements reverseclaimable")
+                setIsReverseClaimable(true);
+            } else {
+                console.log("contract DOES NOT implement reverseclaimable")
+                setIsReverseClaimable(false);
+            }
+
+            setIsAddressInvalid(false)
+            setError("");
+        } catch (err) {
+            console.log("err " + err);
+            setIsAddressEmpty(false)
+            setIsAddressInvalid(false)
+            setIsReverseClaimable(false);
         }
     };
 
@@ -167,6 +207,7 @@ export default function NameContract() {
         }
 
         await checkIfOwnable(existingContractAddress)
+        await checkIfReverseClaimable(existingContractAddress)
 
         if (!label.trim()) {
             setError("Label cannot be empty")
@@ -282,14 +323,28 @@ export default function NameContract() {
 
             // Step 3: Set Reverse Resolution (if Primary)
             if (setPrimary) {
-                setIsPrimaryNameSet(true)
-                steps.push({
-                    title: "Set reverse resolution",
-                    action: async () => {
-                        const tx = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
-                        return tx
-                    }
-                })
+                if (isReverseClaimable) {
+                    setIsPrimaryNameSet(true)
+                    const addrLabel = existingContractAddress.slice(2).toLowerCase()
+                    const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+                    steps.push({
+                        title: "Set reverse resolution",
+                        action: async () => {
+                            const tx = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
+                            return tx
+                        }
+                    })
+                } else {
+                    setIsPrimaryNameSet(true)
+                    steps.push({
+                        title: "Set reverse resolution",
+                        action: async () => {
+                            const tx = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
+                            return tx
+                        }
+                    })
+                }
+
             } else {
                 setIsPrimaryNameSet(false)
             }
@@ -321,6 +376,7 @@ export default function NameContract() {
                     onChange={async (e) => {
                         setExistingContractAddress(e.target.value)
                         await checkIfOwnable(e.target.value)
+                        await checkIfReverseClaimable(e.target.value)
                     }}
                     // onBlur={ checkIfOwnable}
                     placeholder="0xa56..."
@@ -328,14 +384,16 @@ export default function NameContract() {
                         }`}
                 />
 
-                {/* Error message for invalid Ownable bytecode */}
-                {!isAddressEmpty && !isAddressInvalid && !isOwnable && (
+                {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
+                {!isAddressEmpty && !isAddressInvalid && !isOwnable && !isReverseClaimable && (
                     <p className="text-yellow-600">Contract address does not extend <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline">Ownable</Link> or <Link
                             href="https://eips.ethereum.org/EIPS/eip-173"
-                            className="text-blue-600 hover:underline">ERC-173</Link>. You can only <Link
-                                href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
+                            className="text-blue-600 hover:underline">ERC-173</Link> or <Link
+                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link>. You can only <Link
+                                    href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
                         name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why is this?</Link></p>
 
                 )}
@@ -400,7 +458,7 @@ export default function NameContract() {
             <div className="flex gap-4 mt-6">
                 <Button
                     onClick={() => setPrimaryName(true)}
-                    disabled={!isConnected || loading || isAddressEmpty || !isOwnable}
+                    disabled={!isConnected || loading || isAddressEmpty || !(isOwnable || isReverseClaimable)}
                     className="w-1/2"
                 >
                     {loading ? (
