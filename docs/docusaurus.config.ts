@@ -67,7 +67,7 @@ const config = {
           ignorePatterns: ['/tags/**'],
           filename: 'sitemap.xml',
           createSitemapItems: async (params) => {
-            const {defaultCreateSitemapItems, ...rest} = params;
+            const { defaultCreateSitemapItems, ...rest } = params;
             const items = await defaultCreateSitemapItems(rest);
             return items.filter((item) => !item.url.includes('/page/'));
           },
@@ -82,7 +82,7 @@ const config = {
 
   customFields: {
     // Put your custom environment here
-    appUrl : process.env.APP_URL,
+    appUrl: process.env.APP_URL,
   },
 
   themeConfig:
@@ -158,6 +158,7 @@ const config = {
       },
       prism: {
         theme: require("prism-react-renderer").themes.dracula,
+        additionalLanguages: ['solidity'],
       },
       colorMode: {
         defaultMode: "dark",
