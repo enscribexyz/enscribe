@@ -1,6 +1,6 @@
 ---
 slug: enscribe-constructor-args
-title: Constructor Arguments Support in Enscribe UI - No More Bytecode Hacks
+title: Easily encode Solidity constructor arguments with Enscribe
 authors: [nischal]
 tags: [ens]
 ---
@@ -23,8 +23,7 @@ This streamlined experience allows you to focus on your contract logic, while En
 
 ## Manual Mode: Add Any Type, In Any Order
 
-You can add any number and type of arguments manually. Enscribe provides a dropdown list for all common Solidity types: string,uint8, uint256, address, bool, bytes, bytes32, string[], uint256[]
-
+You can add any number and type of arguments manually. Enscribe provides a dropdown list for all common Solidity types: `string`, `uint8`, `uint256`, `address`, `bool`, `bytes`, `bytes32`, `string[]`, and `uint256[]`.
 Just add the argument, choose its type, and input its value.
 
 For more advanced use cases, select Custom Type from the dropdown. This is where Enscribe really shines — giving you full control for struct-based inputs, tuples, arrays, and combinations of them.
@@ -33,7 +32,7 @@ Example: Arrays of Structs (Using Custom Type)
 
 Let's say your constructor looks like this:
 
-```
+```solidity
 struct Person {
   string name;
   uint256 age;
@@ -44,8 +43,8 @@ constructor(Person[] memory people)
 ```
 
 Here's how you'd fill it out in Enscribe:
-Custom Type: `tuple(string,uint256,address)[]`
-Value: `[["Nick", 30, "0x1bA43Becc3Ea96c37343b7CB18de7386bA29445B"], ["Jane", 25, "0x7cF7816d45398A1b37bBE517ca24d8CdFb8D042D"]]`
+- Custom Type: `tuple(string,uint256,address)[]`
+- Value: `[["Nick", 30, "0x1bA43Becc3Ea96c37343b7CB18de7386bA29445B"], ["Jane", 25, "0x7cF7816d45398A1b37bBE517ca24d8CdFb8D042D"]]`
 
 
 ![Enscribe Form without ABI](args-without-abi.png)
@@ -61,7 +60,6 @@ If you paste or upload your contract's ABI, Enscribe will:
 - Generate the input form fields automatically, where you just need to input parameter values
 
 This is the recommended path for most users, as it:
-
 - Reduces manual effort
 - Prevents input format mistakes
 - Makes the argument fields easier to understand 
@@ -75,7 +73,6 @@ Then Enscribe will automatically show two input fields: greet(string) and initia
 
 
 ## Under the Hood: ABI Encoding and Bytecode Generation
-
 
 When you click Deploy, Enscribe automatically takes care of everything behind the scenes. It ABI-encodes your constructor arguments, appends them to the compiled contract bytecode, and sends the final result to the blockchain as a single atomic transaction. You don't need to worry about encoding formats, data padding, or bytecode structure — Enscribe ensures that everything is correctly formatted and deployment-ready.
 
