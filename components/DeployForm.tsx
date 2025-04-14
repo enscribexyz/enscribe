@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from 'react'
-import { ethers, namehash, keccak256, getCreateAddress, ContractFactory } from 'ethers'
+import React, {useState, useEffect} from 'react'
+import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
-import { useAccount, useWalletClient, } from 'wagmi'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {useAccount, useWalletClient,} from 'wagmi'
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea"
+import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
 import parseJson from 'json-parse-safe'
-import { CONTRACTS, TOPIC0 } from '../utils/constants';
+import {CONTRACTS, TOPIC0} from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
-import SetNameStepsModal, { Step } from './SetNameStepsModal';
+import SetNameStepsModal, {Step} from './SetNameStepsModal';
 import {CheckCircleIcon} from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -53,8 +54,8 @@ const checkIfReverseClaimable = (bytecode: string): boolean => {
 };
 
 export default function DeployForm() {
-    const { address, isConnected, chain } = useAccount()
-    const { data: walletClient } = useWalletClient()
+    const {address, isConnected, chain} = useAccount()
+    const {data: walletClient} = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -73,8 +74,8 @@ export default function DeployForm() {
     const [loading, setLoading] = useState(false)
     const [showPopup, setShowPopup] = useState(false)
     const [isValidBytecode, setIsValidBytecode] = useState(true)
-    const [isOwnable, setIsOwnable] = useState(true)
-    const [isReverseClaimable, setIsReverseClaimable] = useState(true)
+    const [isOwnable, setIsOwnable] = useState(false)
+    const [isReverseClaimable, setIsReverseClaimable] = useState(false)
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [args, setArgs] = useState<ConstructorArg[]>([])
     const [abiText, setAbiText] = useState("")
@@ -103,11 +104,11 @@ export default function DeployForm() {
     }, [bytecode])
 
     const addArg = () =>
-        setArgs([...args, { type: "string", value: "", isCustom: false }])
+        setArgs([...args, {type: "string", value: "", isCustom: false}])
 
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
         const newArgs = [...args]
-        newArgs[index] = { ...newArgs[index], ...updated }
+        newArgs[index] = {...newArgs[index], ...updated}
         setArgs(newArgs)
     }
 
@@ -125,7 +126,7 @@ export default function DeployForm() {
         }
 
         try {
-            const { value: parsed, error } = parseJson(text)
+            const {value: parsed, error} = parseJson(text)
 
             if (error || !parsed) {
                 console.log("Invalid ABI")
@@ -351,7 +352,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set Primary Name",
                         action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
 
                         }
                     })
@@ -371,7 +372,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
                         }
                     })
 
@@ -409,7 +410,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Give operator access",
                         action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
                         }
                     })
                 }
@@ -442,7 +443,7 @@ export default function DeployForm() {
 
                 // step 1: create subname
                 if (parentType === 'web3labs') {
-                    await namingContract.setName(deployedAddr, label, parentName, parentNode, { value: 100000000000000n }) // nonce = 51
+                    await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
                 } else if (chain?.id === 84532) {
                     if (!nameExist) {
                         await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
@@ -505,12 +506,13 @@ export default function DeployForm() {
                     }}
                     placeholder="0x60037..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
-                        }`}
+                    }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
                 {!isValidBytecode && bytecode.length > 0 && (
-                    <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable/ReverseClaimable.</p>
+                    <p className="text-red-500">Invalid contract bytecode. It does not extend
+                        Ownable/ReverseClaimable.</p>
                 )}
 
                 {
@@ -518,10 +520,14 @@ export default function DeployForm() {
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements Ownable</p></>)}
+                                className="text-gray-700 inline">Contract implements <Link
+                                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements ReverseClaimable</p></>)}
+                                className="text-gray-700 inline">Contract implements <Link
+                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
                     </>
                 }
@@ -543,21 +549,23 @@ export default function DeployForm() {
                 <label className="block text-gray-700 dark:text-gray-300 mt-6">Constructor Arguments</label>
                 {args.map((arg, index) => (
                     <div key={index} className="mb-4">
-                        <label className="block text-gray-700 dark:text-gray-300">{arg.label || `Argument ${index + 1}`}</label>
+                        <label
+                            className="block text-gray-700 dark:text-gray-300">{arg.label || `Argument ${index + 1}`}</label>
                         <div className="flex flex-col md:flex-row gap-4 items-start">
                             {!arg.isCustom ? (
                                 <Select
                                     value={arg.type}
                                     onValueChange={(value) => {
                                         if (value === "custom") {
-                                            updateArg(index, { isCustom: true, type: "" })
+                                            updateArg(index, {isCustom: true, type: ""})
                                         } else {
-                                            updateArg(index, { type: value, isCustom: false })
+                                            updateArg(index, {type: value, isCustom: false})
                                         }
                                     }}
                                 >
-                                    <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                                        <SelectValue className="text-gray-900" />
+                                    <SelectTrigger
+                                        className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
+                                        <SelectValue className="text-gray-900"/>
                                     </SelectTrigger>
                                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                                         {commonTypes.map((t) => (
@@ -570,7 +578,7 @@ export default function DeployForm() {
                                 <Input
                                     type="text"
                                     value={arg.type}
-                                    onChange={(e) => updateArg(index, { type: e.target.value })}
+                                    onChange={(e) => updateArg(index, {type: e.target.value})}
                                     placeholder="Enter custom type (e.g. tuple(string,uint256))"
                                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
@@ -579,7 +587,7 @@ export default function DeployForm() {
                             <Input
                                 type="text"
                                 value={arg.value}
-                                onChange={(e) => updateArg(index, { value: e.target.value })}
+                                onChange={(e) => updateArg(index, {value: e.target.value})}
                                 placeholder={
                                     arg.type.includes("tuple") && arg.type.includes("[]")
                                         ? '[["name", 10, "0x..."], ["bob", 20, "0x..."]]'
@@ -635,8 +643,9 @@ export default function DeployForm() {
                         }
                     }}
                 >
-                    <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900" />
+                    <SelectTrigger
+                        className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
+                        <SelectValue className="text-gray-900"/>
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
@@ -669,15 +678,18 @@ export default function DeployForm() {
                 className="w-full mt-6"
             >
                 {loading ? (
-                    <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
+                         xmlns="http://www.w3.org/2000/svg">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                 ) : 'Deploy'}
             </Button>
 
             {error && (
-                <div className="mt-4 bg-red-50 dark:bg-red-900 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-sm rounded-md p-3 break-words max-w-full overflow-hidden">
+                <div
+                    className="mt-4 bg-red-50 dark:bg-red-900 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 text-sm rounded-md p-3 break-words max-w-full overflow-hidden">
                     <strong>Error:</strong> {error}
                 </div>
             )}
@@ -717,7 +729,8 @@ export default function DeployForm() {
                         {/* Transaction Hash */}
                         <div>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">Transaction Hash:</p>
-                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                            <div
+                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
                                 {txHash}
                             </div>
                         </div>
@@ -725,7 +738,8 @@ export default function DeployForm() {
                         {/* Contract Address */}
                         <div>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
-                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                            <div
+                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
                                 {deployedAddress}
                             </div>
                         </div>
@@ -733,7 +747,8 @@ export default function DeployForm() {
                         {/* ENS Name */}
                         <div>
                             <p className="text-sm font-semibold text-gray-900 dark:text-white">ENS Name:</p>
-                            <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                            <div
+                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
                                 {`${label}.${parentName}`}
                             </div>
                         </div>
@@ -772,6 +787,6 @@ export default function DeployForm() {
                 </Dialog>
             )
             }
-        </div >
+        </div>
     )
 }

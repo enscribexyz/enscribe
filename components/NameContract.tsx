@@ -40,7 +40,7 @@ export default function NameContract() {
     const [showPopup, setShowPopup] = useState(false)
     const [isAddressEmpty, setIsAddressEmpty] = useState(true);
     const [isAddressInvalid, setIsAddressInvalid] = useState(true);
-    const [isOwnable, setIsOwnable] = useState<boolean | null>(true);
+    const [isOwnable, setIsOwnable] = useState<boolean | null>(false);
     const [isReverseClaimable, setIsReverseClaimable] = useState<boolean | null>(false);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
@@ -407,10 +407,14 @@ export default function NameContract() {
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements Ownable</p></>)}
+                                className="text-gray-700 inline">Contract implements <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements ReverseClaimable</p></>)}
+                                className="text-gray-700 inline">Contract implements <Link
+                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
                     </>
                 }
