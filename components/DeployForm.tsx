@@ -13,6 +13,7 @@ import parseJson from 'json-parse-safe'
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
+import {CheckCircleIcon} from "@heroicons/react/24/outline";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -490,11 +491,17 @@ export default function DeployForm() {
                 <Input
                     type="text"
                     value={bytecode}
-                    onChange={(e) => setBytecode(e.target.value)}
+                    onChange={(e) => {
+                        setBytecode(e.target.value)
+                        setIsOwnable(checkIfOwnable(e.target.value))
+                        setIsReverseClaimable(checkIfReverseClaimable(e.target.value))
+                    }}
                     onBlur={() => {
                         if (bytecode && !bytecode.startsWith("0x")) {
                             setBytecode("0x" + bytecode);
                         }
+                        setIsOwnable(checkIfOwnable(bytecode))
+                        setIsReverseClaimable(checkIfReverseClaimable(bytecode))
                     }}
                     placeholder="0x60037..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
@@ -503,8 +510,21 @@ export default function DeployForm() {
 
                 {/* Error message for invalid Ownable bytecode */}
                 {!isValidBytecode && bytecode.length > 0 && (
-                    <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable.</p>
+                    <p className="text-red-500">Invalid contract bytecode. It does not extend Ownable/ReverseClaimable.</p>
                 )}
+
+                {
+                    <>
+                        <div className="justify-between">
+                            {isOwnable && (<><CheckCircleIcon
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="text-gray-700 inline">Contract implements Ownable</p></>)}
+                            {isReverseClaimable && (<><CheckCircleIcon
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="text-gray-700 inline">Contract implements ReverseClaimable</p></>)}
+                        </div>
+                    </>
+                }
 
                 <label className="block text-gray-700 dark:text-gray-300 mt-6">Paste ABI JSON (Optional)</label>
                 <Textarea

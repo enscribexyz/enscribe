@@ -14,6 +14,7 @@ import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
+import {CheckCircleIcon} from "@heroicons/react/24/outline";
 
 export default function NameContract() {
     const { address, isConnected, chain } = useAccount()
@@ -80,14 +81,14 @@ export default function NameContract() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141 || chain?.id == 84532) return
+        if (isEmpty(label) || !signer || chain?.id == 59141 || chain?.id == 84532) return
 
         // Validate label and parent name before checking
-        if (!label.trim()) {
-            setError("Label cannot be empty")
-            setEnsNameTaken(true)
-            return
-        }
+        // if (!label.trim()) {
+        //     setError("Label cannot be empty")
+        //     setEnsNameTaken(true)
+        //     return
+        // }
         if (!parentName.trim()) {
             setError("Parent name cannot be empty")
             setEnsNameTaken(true)
@@ -117,14 +118,18 @@ export default function NameContract() {
 
     }
 
+    function isEmpty(value: string) {
+        return (value == null ||  value.trim().length === 0);
+    }
+
     const checkIfAddressEmpty = (existingContractAddress: string): boolean => {
-        console.log("checkIfAddressEmpty: " + existingContractAddress)
-        setIsAddressEmpty(existingContractAddress.trim().length == 0)
-        return existingContractAddress.trim().length == 0
+        const addrEmpty = isEmpty(existingContractAddress)
+        setIsAddressEmpty(addrEmpty)
+        return addrEmpty
     }
 
     const isAddressValid = (existingContractAddress: string): boolean => {
-        if (!existingContractAddress.trim()) {
+        if (isEmpty(existingContractAddress)) {
             setError("contract address cannot be empty")
             return false
         }
@@ -397,6 +402,18 @@ export default function NameContract() {
                         name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why is this?</Link></p>
 
                 )}
+                {
+                    <>
+                        <div className="justify-between">
+                            {isOwnable && (<><CheckCircleIcon
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="text-gray-700 inline">Contract implements Ownable</p></>)}
+                            {isReverseClaimable && (<><CheckCircleIcon
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="text-gray-700 inline">Contract implements ReverseClaimable</p></>)}
+                        </div>
+                    </>
+                }
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
                 <Input
@@ -458,7 +475,7 @@ export default function NameContract() {
             <div className="flex gap-4 mt-6">
                 <Button
                     onClick={() => setPrimaryName(true)}
-                    disabled={!isConnected || loading || isAddressEmpty || !(isOwnable || isReverseClaimable)}
+                    disabled={!isConnected || loading || isAddressEmpty || !(isOwnable || isReverseClaimable) || isEmpty(label)}
                     className="w-1/2"
                 >
                     {loading ? (
@@ -473,7 +490,7 @@ export default function NameContract() {
 
                 <Button
                     onClick={() => setPrimaryName(false)}
-                    disabled={!isConnected || loading || isAddressEmpty || isAddressInvalid}
+                    disabled={!isConnected || loading || isAddressEmpty || isAddressInvalid || isEmpty(label)}
                     className="w-1/2"
                 >
                     {loading ? (
