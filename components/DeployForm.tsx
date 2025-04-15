@@ -1,20 +1,22 @@
-import React, {useState, useEffect} from 'react'
-import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
+import React, {useEffect, useState} from 'react'
+import {ContractFactory, ethers, keccak256, namehash} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
 import {useAccount, useWalletClient,} from 'wagmi'
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea"
-import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import parseJson from 'json-parse-safe'
 import {CONTRACTS, TOPIC0} from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
 import SetNameStepsModal, {Step} from './SetNameStepsModal';
 import {CheckCircleIcon} from "@heroicons/react/24/outline";
 import Link from "next/link";
+import {CheckboxItem} from "@radix-ui/react-menu";
+import {CheckBox} from "@/components/ui/checkbox";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -75,7 +77,9 @@ export default function DeployForm() {
     const [showPopup, setShowPopup] = useState(false)
     const [isValidBytecode, setIsValidBytecode] = useState(true)
     const [isOwnable, setIsOwnable] = useState(false)
-    const [isReverseClaimable, setIsReverseClaimable] = useState(false)
+    const [isReverseClaimable, setIsReverseClaimable] = useState(true)
+    const [isReverseSetter, setIsReverseSetter] = useState(false)
+
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [args, setArgs] = useState<ConstructorArg[]>([])
     const [abiText, setAbiText] = useState("")
@@ -84,6 +88,7 @@ export default function DeployForm() {
     const [modalSteps, setModalSteps] = useState<Step[]>([]);
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
+
 
     const getParentNode = (name: string) => {
         return namehash(name)
@@ -116,6 +121,10 @@ export default function DeployForm() {
         const newArgs = [...args]
         newArgs.splice(index, 1)
         setArgs(newArgs)
+    }
+
+    function isEmpty(value: string) {
+        return (value == null ||  value.trim().length === 0);
     }
 
     const handleAbiInput = (text: string) => {
@@ -182,7 +191,6 @@ export default function DeployForm() {
         } catch (err) {
 
         }
-
     }
 
 
@@ -284,9 +292,11 @@ export default function DeployForm() {
     const processResult = async (txHash: string) => {
         const txReceipt = await (await signer)!.provider.getTransactionReceipt(txHash)
         setTxHash(txReceipt!.hash)
-        const matchingLog = txReceipt!.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-        const deployedContractAddress = ethers.getAddress("0x" + matchingLog!.topics[1].slice(-40));
-        setDeployedAddress(deployedContractAddress)
+        if (!isReverseClaimable) {
+            const matchingLog = txReceipt!.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+            const deployedContractAddress = ethers.getAddress("0x" + matchingLog!.topics[1].slice(-40))
+            setDeployedAddress(deployedContractAddress)
+        }
     }
 
     const deployContract = async () => {
@@ -302,6 +312,15 @@ export default function DeployForm() {
             setError("Parent name cannot be empty")
             return
         }
+
+        if (isReverseSetter) {
+            const argsContainContractNameMatchingLabel = args.length > 0 && args.find((arg) => arg.value == label + "." + parentName) != undefined
+            if (!argsContainContractNameMatchingLabel) {
+                setError("Contract name argument passed to a ReverseSetter contract should match label combined with parent name.")
+                return
+            }
+        }
+
         if (ensNameTaken) {
             setError("ENS name already used, please change label")
             return
@@ -318,6 +337,8 @@ export default function DeployForm() {
             setError("")
             console.log("Using Enscribe contract:", config.ENSCRIBE_CONTRACT);
         }
+
+        let deployedAddr ='';
 
         try {
             setLoading(true)
@@ -344,6 +365,7 @@ export default function DeployForm() {
             console.log("label - ", label)
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
+
 
             if (isOwnable) {
                 const txCost = 100000000000000n
@@ -423,58 +445,146 @@ export default function DeployForm() {
                 const sender = (await signer)
                 const senderAddr = sender.address
 
-                // create 2 - addr (bytecode + label + parent) -> unique
-                // const preDeploymentAddr = getCreateAddress({ from: senderAddr, nonce: nonce }) // 0xD817F6daF4F5088716Ac942181a8Dc7B89FB6Edc
+
                 const labelHash = keccak256(ethers.toUtf8Bytes(label))
 
                 const node = namehash(label + "." + parentName)
                 const nameExist = await ensRegistryContract.recordExists(node)
                 const publicResolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, sender)
 
-                // step 1: deploy contract
-                // if error -> send error with notice, else deploy new
-                const cf = new ContractFactory([], finalBytecode, (await signer)); // nonce = 51
-                const contract = await cf.deploy() // ce4....
-                const txDeployreceipt = await contract.waitForDeployment() // get contract address
-                const deployedAddr = await txDeployreceipt.getAddress() // actual contract 
-
-                // rpc call -> get last contract deployed by user
-                // check reverse claimable
-
-                // step 1: create subname
-                if (parentType === 'web3labs') {
-                    await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
-                } else if (chain?.id === 84532) {
-                    if (!nameExist) {
-                        await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
-                    }
-                } else {
-                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-                    if (!nameExist) {
-                        if (isWrapped) {
-                            await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config?.PUBLIC_RESOLVER, 0, 0, 0)
-                        } else {
-                            await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                if (isReverseSetter) {
+                    // step 1: create subname
+                    steps.push({
+                        title: "Create subname",
+                        action: async () => {
+                            if (parentType === 'web3labs') {
+                                return await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
+                            } else if (chain?.id === 84532) {
+                                if (!nameExist) {
+                                    return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                                }
+                            } else {
+                                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                                if (!nameExist) {
+                                    if (isWrapped) {
+                                        return await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config?.PUBLIC_RESOLVER, 0, 0, 0)
+                                    } else {
+                                        return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                                    }
+                                }
+                            }
                         }
-                    }
+                    })
+
+                    // step 2: deploy contract
+                    steps.push({
+                        title: "Deploy contract",
+                        action: async () => {
+                            const cf = new ContractFactory([], finalBytecode, (await signer));
+                            const contract = await cf.deploy()
+                            const txDeployReceipt = await contract.waitForDeployment() // get contract address
+                            deployedAddr = await txDeployReceipt.getAddress() // actual contract
+                            setDeployedAddress(deployedAddr)
+                            const txn = await txDeployReceipt.deploymentTransaction()?.getTransaction();
+                            if (txn != undefined) {
+                                return txn
+                            }
+                        }
+                    })
+
+                    // step 3: forward resolve
+                    steps.push({
+                        title: "Set forward resolution",
+                        action: async () => {
+                            if (parentType != 'web3labs') {
+                                const currentAddr = await publicResolverContract.addr(node)
+                                if (currentAddr.toLowerCase() !== deployedAddr.toLowerCase()) {
+                                    await publicResolverContract.setAddr(node, deployedAddr)
+                                } else {
+                                    console.log("Forward resolution already set")
+                                }
+                            }
+                        }
+                    })
+                } else { // default ReverseClaimable flow
+                    // step 1: deploy contract
+                    // if error -> send error with notice, else deploy new
+                    steps.push({
+                        title: "Deploy contract",
+                        action: async () => {
+                            const cf = new ContractFactory([], finalBytecode, (await signer));
+                            const contract = await cf.deploy()
+                            const txDeployReceipt = await contract.waitForDeployment() // get contract address
+                            deployedAddr = await txDeployReceipt.getAddress() // actual contract
+                            setDeployedAddress(deployedAddr)
+                            const txn = await txDeployReceipt.deploymentTransaction()?.getTransaction();
+                            if (txn != undefined) {
+                                return txn
+                            }
+                        }
+                    })
+
+                    // step 2: create subname
+                    steps.push({
+                        title: "Create subname",
+                        action: async () => {
+                            if (parentType === 'web3labs') {
+                                return await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
+                            } else if (chain?.id === 84532) {
+                                if (!nameExist) {
+                                    return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                                }
+                            } else {
+                                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                                if (!nameExist) {
+                                    if (isWrapped) {
+                                        return await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config?.PUBLIC_RESOLVER, 0, 0, 0)
+                                    } else {
+                                        return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
+                                    }
+                                }
+                            }
+                        }
+                    })
+
+                    // Step 3: Set Forward Resolution (if not web3labs)
+                    steps.push({
+                        title: "Set forward resolution",
+                        action: async () => {
+                            if (parentType != 'web3labs') {
+                                const currentAddr = await publicResolverContract.addr(node)
+                                if (currentAddr.toLowerCase() !== deployedAddr.toLowerCase()) {
+                                    await publicResolverContract.setAddr(node, deployedAddr)
+                                } else {
+                                    console.log("Forward resolution already set")
+                                }
+                            }
+                        }
+                    })
+
+                    // step 4: Set Reverse Resolution
+                    steps.push({
+                        title: "Set Reverse Resolution",
+                        action: async () => {
+                            const addrLabel = deployedAddr.slice(2).toLowerCase()
+                            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+                            return await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
+                        }
+                    })
                 }
 
-                // if (forawrd resolve check)
-                // Step 2: Set Forward Resolution (if not web3labs)
-                if (parentType != 'web3labs') {
-                    await publicResolverContract.setAddr(node, deployedAddr)
-                }
-
-                // step 4: Set Reverse Resolution
-
-                const addrLabel = deployedAddr.slice(2).toLowerCase()
-                const reversedNode = namehash(addrLabel + "." + "addr.reverse")
-                const tx = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
-                setTxHash(contract.deploymentTransaction() != null ? contract.deploymentTransaction()!.hash : tx.hash)
-                setDeployedAddress(deployedAddr) //0xD817F6daF4F5088716Ac942181a8Dc7B89FB6Edc
-                setShowPopup(true)
+                // setTxHash(contract.deploymentTransaction() != null ? contract.deploymentTransaction()!.hash : tx.hash)
+                // setDeployedAddress(deployedAddr) //0xD817F6daF4F5088716Ac942181a8Dc7B89FB6Edc
+                // setShowPopup(true)
+                setModalTitle("Deploy Contract and set Primary Name")
+                setModalSubtitle("Complete each step to finish naming this contract")
+                setModalSteps(steps)
+                setModalOpen(true)
             }
         } catch (err: any) {
+            if (!isEmpty(deployedAddr)) {
+                setError("Your contract was deployed but the name wasn\'t set properly. Please use the 'Name Existing Contract' page to set the name of the contract. If you attempt to retry on this page, your contract will get deployed again with a different address.")
+            }
             console.error(err)
             setError(err?.code || 'Error deploying contract')
         } finally {
@@ -530,6 +640,18 @@ export default function DeployForm() {
                                 className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
                     </>
+                }
+
+                {isReverseClaimable && (
+                    <>
+                        <div className={"flex"}>
+                            <Input type={"checkbox"} className={"w-4 h-4 mt-1"} checked={isReverseSetter} onChange={(e) => {
+                                setIsReverseSetter(!isReverseSetter)
+                            }}/>
+                            <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract implements ReverseSetter</label>
+                        </div>
+                    </>
+                )
                 }
 
                 <label className="block text-gray-700 dark:text-gray-300 mt-6">Paste ABI JSON (Optional)</label>
