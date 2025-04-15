@@ -1,0 +1,81 @@
+---
+sidebar_position: 3
+---
+
+# Learn about Naming Contracts
+
+Naming a smart contract using the Ethereum Name Service (ENS) can be a complex process. Unlike traditional Ethereum accounts, assigning ENS names to smart contracts—especially setting their primary (reverse) names—requires multiple steps and a deep understanding of the ENS system. This documentation breaks down how naming works for new and existing contracts and explains how Enscribe simplifies this process for developers.  
+This is useful for making contract addresses human-readable and improving UX in blockchain applications, wallets, explorers, and dashboards.
+
+## Why is Naming Smart Contracts Hard?
+
+While most users associate ENS names with their regular wallet addresses, smart contracts can also be assigned ENS names and even set a primary name for reverse resolution—just like externally owned accounts. However, very few smart contracts actually make use of this feature. The main reason is a general lack of awareness and user-friendly tooling to support contract-level naming. As a result, smart contracts often remain identified by unreadable hexadecimal addresses, despite ENS offering full support for naming them just like user accounts.
+
+In order for you to manage the primary name of your smart contract, you need to own the reverse node for the contract address.  
+Assigning names to contracts includes several manual steps:  
+- **Creating a subname** for the contract (e.g., vault.alice.eth)  
+- **Forward resolution**: mapping the ENS name to the contract address  
+- **Reverse resolution**: setting the ENS name as the primary name of the contract (used in UIs like Etherscan or block explorers)  
+
+This process is not only fragmented across different ENS contracts but also not easily accessible to non-technical users.
+
+## How Primary Naming Works for Smart Contracts
+
+In order to set a primary name (reverse resolution) for a contract, you must own the reverse node associated with the contract address. There are two main scenarios where you might want to set this:
+
+### New Contracts
+
+If you’re deploying a new contract, you have multiple options for managing naming:
+
+#### Option 1: Set Name at Deployment - ReverseSetter (Immutable)
+
+You can claim the reverse node and assign the reverse name directly in the contract’s constructor using the ReverseSetter module during deployment. This works best if you don’t intend to update the name later. Useful for contracts with no admin access.  
+
+However, one important detail is that forward resolution must already be set for the ENS name you’re assigning. Reverse resolution depends on a valid ENS name that points to the contract address.
+
+#### Option 2: ReverseClaimer.sol
+
+If you want more flexibility, you can use the ReverseClaimer module. This module automatically transfers ownership of the contract’s reverse node to a specified address — usually the deployer — at the time of deployment. Once that’s done, you (as the owner) can set or update the primary name anytime by calling setName(node, newName) on the resolver.  
+Example: contract.gtest.eth  
+
+After the contract is deployed, this also requires setting forward resolution to the contract and then calling a reverse resolution transaction.
+
+#### Option 3: Make the Contract Ownable (Recommended)
+
+- Use OpenZeppelin’s Ownable or ERC173 interface.  
+- The deployer (msg.sender) is automatically given ownership of the reverse node.  
+- The owner can later set or update the ENS name via the Reverse Registrar.  
+
+Example contract: ownable.contract.gtest.eth  
+
+The ENS Reverse Registrar provides the setNameForAddr(address, address, address, string) method. This allows you to set the name for a contract in a flexible and upgrade-friendly way.
+
+### Existing Contracts
+
+If your contract is already deployed, you can still assign it an ENS name if it supports Ownable or ERC173. ENS’s Reverse Registrar supports ERC173, enabling the owner of the contract to set the primary name.
+
+However, there is no ENS-native UI or tooling to make this easy—you would have to interact with the contracts manually or write scripts.
+
+## How Enscribe Makes This Easy
+
+Enscribe is built to eliminate the complexity around naming smart contracts with ENS.
+
+### Naming at Deploy Time
+
+With Enscribe, you can deploy and name your contract in a single Ethereum transaction. The Enscribe contract handles:  
+- Deploying contract using CREATE2  
+- Subname creation under your ENS domain (e.g., contractname.alice.eth)  
+- Forward resolution to map the name to the deployed contract address  
+- Reverse resolution to set the ENS name as the primary name of the contract  
+
+This makes naming a seamless part of the deployment process.
+
+### Naming Existing Contracts
+
+ENS doesn’t offer a native way to name contracts that are already deployed—even if they support Ownable or ERC173. Enscribe fills this gap with:  
+
+- A user-friendly UI for naming all contracts  
+- Supports primary names for all Ownable/ERC173 and ReverseClaimer compatible contracts  
+- Supports Forward resolution for all contracts  
+
+Naming contracts on ENS is powerful but can be daunting without the right tools. Enscribe streamlines the entire experience—whether you’re deploying a new smart contract or managing names for already deployed contracts. With Enscribe, you can ensure your contracts are accessible, discoverable, and beautifully named on Ethereum.
