@@ -77,7 +77,7 @@ export default function DeployForm() {
     const [showPopup, setShowPopup] = useState(false)
     const [isValidBytecode, setIsValidBytecode] = useState(true)
     const [isOwnable, setIsOwnable] = useState(false)
-    const [isReverseClaimable, setIsReverseClaimable] = useState(true)
+    const [isReverseClaimable, setIsReverseClaimable] = useState(false)
     const [isReverseSetter, setIsReverseSetter] = useState(false)
 
     const [ensNameTaken, setEnsNameTaken] = useState(false)
@@ -458,7 +458,7 @@ export default function DeployForm() {
                         title: "Create subname",
                         action: async () => {
                             if (parentType === 'web3labs') {
-                                return await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
+                                return await namingContract.setName(sender.address, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
                             } else if (chain?.id === 84532) {
                                 if (!nameExist) {
                                     return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
@@ -496,10 +496,12 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set forward resolution",
                         action: async () => {
-                            if (parentType != 'web3labs') {
+                            if(parentType == 'web3labs') {
+                                return await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
+                            } else {
                                 const currentAddr = await publicResolverContract.addr(node)
                                 if (currentAddr.toLowerCase() !== deployedAddr.toLowerCase()) {
-                                    await publicResolverContract.setAddr(node, deployedAddr)
+                                    return await publicResolverContract.setAddr(node, deployedAddr)
                                 } else {
                                     console.log("Forward resolution already set")
                                 }
@@ -630,12 +632,12 @@ export default function DeployForm() {
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements <Link
+                                className="ml-1 text-gray-700 inline">Contract implements <Link
                                 href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                                 className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements <Link
+                                className="ml-1 text-gray-700 inline">Contract seems to implement <Link
                                 href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
                                 className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
@@ -648,7 +650,7 @@ export default function DeployForm() {
                             <Input type={"checkbox"} className={"w-4 h-4 mt-1"} checked={isReverseSetter} onChange={(e) => {
                                 setIsReverseSetter(!isReverseSetter)
                             }}/>
-                            <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract implements ReverseSetter</label>
+                            <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract implements <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link> (This will set the name of the contract using different steps than ReverseClaimable)</label>
                         </div>
                     </>
                 )
@@ -832,6 +834,10 @@ export default function DeployForm() {
                     } else if (result === "INCOMPLETE") {
                         setError("Steps not completed. Please complete all steps before closing.")
                     }
+
+                    setIsReverseClaimable(false)
+                    setIsReverseSetter(false)
+                    setIsOwnable(false)
                 }}
                 title={modalTitle}
                 subtitle={modalSubtitle}

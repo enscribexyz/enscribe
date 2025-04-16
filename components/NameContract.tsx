@@ -412,7 +412,7 @@ export default function NameContract() {
                         className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements <Link
+                                className="text-gray-700 inline">Contract seems to implement <Link
                                 href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
                                 className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
