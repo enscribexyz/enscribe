@@ -610,8 +610,8 @@ export default function NameContract() {
                         {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
                             <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
                                 {operatorAccess
-                                    ? "Note: You can revoke Operator role from Enscribe through here."
-                                    : "Note: You can grant Operator role to Enscribe through here, or else during deployment Enscribe will ask you to give operator access again. Operator access is needed to create subnames and forward resolution."}
+                                    ? "Note: You can revoke Operator role from Enscribe here."
+                                    : "Note: You can grant Operator role to Enscribe through here, otherwise Enscribe will ask you to grant operator access during deployment. Operator access is required to create subnames and forward resolution records."}
                             </p>
                         )}
                     </>
