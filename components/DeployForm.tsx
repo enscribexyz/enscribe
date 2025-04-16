@@ -341,7 +341,6 @@ export default function DeployForm() {
         if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
 
         setAccessLoading(true)
-        // setAccessError("")
 
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
@@ -365,7 +364,6 @@ export default function DeployForm() {
             toast({ title: "Access Revoked", description: `Operator role of ${parentName} revoked from Enscribe Contract` })
             setOperatorAccessl(false)
         } catch (err: any) {
-            // setAccessError(err?.message || "Revoke access failed")
             toast({ variant: "destructive", title: "Error", description: err?.message || "Revoke access failed" })
         } finally {
             setAccessLoading(false)
@@ -376,7 +374,6 @@ export default function DeployForm() {
         if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
 
         setAccessLoading(true)
-        // setAccessError("")
 
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
@@ -400,7 +397,6 @@ export default function DeployForm() {
             toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
             setOperatorAccessl(true)
         } catch (err: any) {
-            // setAccessError(err?.message || "Grant access failed")
             toast({ variant: "destructive", title: "Error", description: err?.message || "Grant access failed" })
         } finally {
             setAccessLoading(false)
