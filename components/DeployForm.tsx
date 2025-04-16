@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
+import { ethers, namehash, keccak256, getCreateAddress, ContractFactory } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
@@ -60,6 +61,8 @@ export default function DeployForm() {
     const etherscanUrl = config?.ETHERSCAN_URL!
     const ensAppUrl = config?.ENS_APP_URL!
 
+    const { toast } = useToast()
+
     const [bytecode, setBytecode] = useState('')
     const [label, setLabel] = useState('')
     const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
@@ -73,12 +76,19 @@ export default function DeployForm() {
     const [isValidBytecode, setIsValidBytecode] = useState(true)
     const [isOwnable, setIsOwnable] = useState(true)
     const [isReverseClaimable, setIsReverseClaimable] = useState(true)
+    const [operatorAccess, setOperatorAccess] = useState(false)
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [args, setArgs] = useState<ConstructorArg[]>([])
     const [abiText, setAbiText] = useState("")
+    const [recordExists, setRecordExists] = useState(true);
+    const [accessLoading, setAccessLoading] = useState(false)
 
     const getParentNode = (name: string) => {
-        return namehash(name)
+        try {
+            return namehash(name)
+        } catch (error) {
+            return ""
+        }
     }
 
     useEffect(() => {
@@ -229,6 +239,8 @@ export default function DeployForm() {
             setParentName("")
         }
         setFetchingENS(false)
+        const approved = await checkOperatorAccess()
+        setOperatorAccess(approved)
 
     }
 
@@ -271,6 +283,123 @@ export default function DeployForm() {
             setEnsNameTaken(false)
         }
 
+    }
+
+    const recordExist = async (): Promise<boolean> => {
+        if (!signer || !getParentNode(parentName)) return false
+        try {
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const parentNode = getParentNode(parentName)
+
+            if (!(await ensRegistryContract.recordExists(parentNode))) return false
+
+            return true
+        } catch (err) {
+            return false
+        }
+    }
+
+    const checkOperatorAccess = async (): Promise<boolean> => {
+        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return false;
+
+        try {
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const parentNode = getParentNode(parentName)
+
+            if (!recordExist) return false
+
+            var nameWrapperContract: ethers.Contract | null = null;
+            if (chain?.id != 84532) {
+                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+            }
+
+            if (chain?.id == 84532) {
+                return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+            } else {
+                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                let approved = false
+
+                if (isWrapped) {
+                    // Wrapped Names
+                    console.log(`Wrapped detected.`);
+                    approved = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                } else {
+                    //Unwrapped Names
+                    console.log(`Unwrapped detected.`);
+                    approved = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                }
+                return approved
+            }
+        } catch (err) {
+            console.error("Approval check failed:", err)
+            return false
+        }
+    }
+
+    const revokeOperatorAccess = async () => {
+        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
+
+        setAccessLoading(true)
+
+        try {
+            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
+            const parentNode = getParentNode(parentName)
+            if (!(await recordExist())) return;
+
+            let tx;
+
+            if (chain?.id === 84532) {
+                tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
+            } else {
+                const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
+                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
+
+                tx = isWrapped
+                    ? await nameWrapperContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false)
+                    : await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
+            }
+
+            await tx.wait()
+            toast({ title: "Access Revoked", description: `Operator role of ${parentName} revoked from Enscribe Contract` })
+            setOperatorAccess(false)
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Error", description: err?.message || "Revoke access failed" })
+        } finally {
+            setAccessLoading(false)
+        }
+    }
+
+    const grantOperatorAccess = async () => {
+        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
+
+        setAccessLoading(true)
+
+        try {
+            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
+            const parentNode = getParentNode(parentName)
+            if (!(await recordExist())) return;
+
+            let tx;
+
+            if (chain?.id === 84532) {
+                tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
+            } else {
+                const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
+                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
+
+                tx = isWrapped
+                    ? await nameWrapperContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true)
+                    : await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
+            }
+
+            await tx.wait()
+            toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
+            setOperatorAccess(true)
+        } catch (err: any) {
+            toast({ variant: "destructive", title: "Error", description: err?.message || "Grant access failed" })
+        } finally {
+            setAccessLoading(false)
+        }
     }
 
     const deployContract = async () => {
@@ -332,7 +461,7 @@ export default function DeployForm() {
                 const txCost = 100000000000000n
 
                 if (parentType === 'web3labs') {
-                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
 
                     const txReceipt = await tx.wait()
                     setTxHash(txReceipt.hash)
@@ -349,7 +478,7 @@ export default function DeployForm() {
 
                         console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
                     }
-                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                     const txReceipt = await tx.wait()
                     setTxHash(txReceipt.hash)
                     const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -384,7 +513,7 @@ export default function DeployForm() {
                         }
                     }
 
-                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                     const txReceipt = await tx.wait()
                     setTxHash(txReceipt.hash)
                     const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -396,7 +525,7 @@ export default function DeployForm() {
                 const sender = (await signer)
                 const senderAddr = sender.address
                 const nonce = await ethers.getDefaultProvider().getTransactionCount(senderAddr)
-                const preDeploymentAddr = getCreateAddress({from: senderAddr, nonce: nonce})
+                const preDeploymentAddr = getCreateAddress({ from: senderAddr, nonce: nonce })
                 const labelHash = keccak256(ethers.toUtf8Bytes(label))
                 const node = namehash(label + "." + parentName)
                 const nameExist = await ensRegistryContract.recordExists(node)
@@ -434,7 +563,7 @@ export default function DeployForm() {
                 const addrLabel = preDeploymentAddr.slice(2).toLowerCase()
                 const reversedNode = namehash(addrLabel + "." + "addr.reverse")
                 const tx = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
-                setTxHash(contract.deploymentTransaction() != null? contract.deploymentTransaction()!.hash : tx.hash)
+                setTxHash(contract.deploymentTransaction() != null ? contract.deploymentTransaction()!.hash : tx.hash)
                 setDeployedAddress(preDeploymentAddr)
                 setShowPopup(true)
             }
@@ -595,15 +724,50 @@ export default function DeployForm() {
                         {fetchingENS ? (
                             <p className="text-gray-500 dark:text-gray-400">Fetching primary ENS name...</p>
                         ) : (
-                            <Input
-                                type="text"
-                                value={parentName}
-                                onChange={(e) => {
-                                    setParentName(e.target.value)
-                                }}
-                                placeholder="mydomain.eth"
-                                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                            />
+                            <div className="flex items-center gap-2">
+                                <Input
+                                    type="text"
+                                    value={parentName}
+                                    onChange={(e) => {
+                                        setParentName(e.target.value)
+                                        setOperatorAccess(false)
+                                        setRecordExists(false)
+                                    }}
+                                    onBlur={async () => {
+                                        const exist = await recordExist()
+                                        setRecordExists(exist)
+
+                                        const approved = await checkOperatorAccess()
+                                        console.log("Operator check for ", parentName, " is ", approved)
+                                        setOperatorAccess(approved)
+
+
+                                    }}
+                                    placeholder="mydomain.eth"
+                                    className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                                />
+
+                                {operatorAccess && recordExists && (
+                                    <Button variant="destructive" disabled={accessLoading} onClick={revokeOperatorAccess}>
+                                        {accessLoading ? "Revoking..." : "Revoke Access"}
+                                    </Button>
+                                )}
+
+                                {!operatorAccess && recordExists && (
+                                    <Button disabled={accessLoading} onClick={grantOperatorAccess}>
+                                        {accessLoading ? "Granting..." : "Grant Access"}
+                                    </Button>
+                                )}
+
+                            </div>
+                        )}
+                        {/* Access Info Message */}
+                        {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
+                            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
+                                {operatorAccess
+                                    ? "Note: You can revoke Operator role from Enscribe here."
+                                    : "Note: You can grant Operator role to Enscribe through here, otherwise Enscribe will ask you to grant operator access during deployment. Operator access is required to create subnames and forward resolution records."}
+                            </p>
                         )}
                     </>
                 )}
