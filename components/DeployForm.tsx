@@ -76,11 +76,11 @@ export default function DeployForm() {
     const [isValidBytecode, setIsValidBytecode] = useState(true)
     const [isOwnable, setIsOwnable] = useState(true)
     const [isReverseClaimable, setIsReverseClaimable] = useState(true)
-    const [operatorAccess, setOperatorAccessl] = useState(false)
+    const [operatorAccess, setOperatorAccess] = useState(false)
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [args, setArgs] = useState<ConstructorArg[]>([])
     const [abiText, setAbiText] = useState("")
-    const [recordExists, setRecordExists] = useState(false);
+    const [recordExists, setRecordExists] = useState(true);
     const [accessLoading, setAccessLoading] = useState(false)
 
     const getParentNode = (name: string) => {
@@ -89,7 +89,6 @@ export default function DeployForm() {
         } catch (error) {
             return ""
         }
-
     }
 
     useEffect(() => {
@@ -241,7 +240,7 @@ export default function DeployForm() {
         }
         setFetchingENS(false)
         const approved = await checkOperatorAccess()
-        setOperatorAccessl(approved)
+        setOperatorAccess(approved)
 
     }
 
@@ -362,7 +361,7 @@ export default function DeployForm() {
 
             await tx.wait()
             toast({ title: "Access Revoked", description: `Operator role of ${parentName} revoked from Enscribe Contract` })
-            setOperatorAccessl(false)
+            setOperatorAccess(false)
         } catch (err: any) {
             toast({ variant: "destructive", title: "Error", description: err?.message || "Revoke access failed" })
         } finally {
@@ -395,7 +394,7 @@ export default function DeployForm() {
 
             await tx.wait()
             toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
-            setOperatorAccessl(true)
+            setOperatorAccess(true)
         } catch (err: any) {
             toast({ variant: "destructive", title: "Error", description: err?.message || "Grant access failed" })
         } finally {
@@ -731,7 +730,7 @@ export default function DeployForm() {
                                     value={parentName}
                                     onChange={(e) => {
                                         setParentName(e.target.value)
-                                        setOperatorAccessl(false)
+                                        setOperatorAccess(false)
                                         setRecordExists(false)
                                     }}
                                     onBlur={async () => {
@@ -740,7 +739,7 @@ export default function DeployForm() {
 
                                         const approved = await checkOperatorAccess()
                                         console.log("Operator check for ", parentName, " is ", approved)
-                                        setOperatorAccessl(approved)
+                                        setOperatorAccess(approved)
 
 
                                     }}
@@ -748,7 +747,7 @@ export default function DeployForm() {
                                     className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
 
-                                {operatorAccess && (
+                                {operatorAccess && recordExists && (
                                     <Button variant="destructive" disabled={accessLoading} onClick={revokeOperatorAccess}>
                                         {accessLoading ? "Revoking..." : "Revoke Access"}
                                     </Button>
@@ -763,7 +762,7 @@ export default function DeployForm() {
                             </div>
                         )}
                         {/* Access Info Message */}
-                        {(operatorAccess || (!operatorAccess && recordExists)) && (
+                        {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
                             <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
                                 {operatorAccess
                                     ? "Note: You can revoke Operator role from Enscribe through here."
