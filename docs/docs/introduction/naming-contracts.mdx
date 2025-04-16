@@ -11,7 +11,7 @@ This is useful for making contract addresses human-readable and improving UX in 
 
 While most users associate ENS names with their regular wallet addresses, smart contracts can also be assigned ENS names and even set a primary name for reverse resolution—just like externally owned accounts. However, very few smart contracts actually make use of this feature. The main reason is a general lack of awareness and user-friendly tooling to support contract-level naming. As a result, smart contracts often remain identified by unreadable hexadecimal addresses, despite ENS offering full support for naming them just like user accounts.
 
-In order for you to manage the primary name of your smart contract, you need to own the reverse node for the contract address.  
+In order for you to manage the primary name of your smart contract, you need to own the [reverse node](https://docs.ens.domains/terminology#reverse-node) for the contract address.  
 Assigning names to contracts includes several manual steps:  
 - **Creating a subname** for the contract (e.g., vault.alice.eth)  
 - **Forward resolution**: mapping the ENS name to the contract address  
@@ -29,14 +29,14 @@ If you’re deploying a new contract, you have multiple options for managing nam
 
 #### Option 1: Set Name at Deployment - ReverseSetter (Immutable)
 
-You can claim the reverse node and assign the reverse name directly in the contract’s constructor using the ReverseSetter module during deployment. This works best if you don’t intend to update the name later. Useful for contracts with no admin access.  
+You can claim the reverse node and assign the reverse name directly in the contract’s constructor using the [ReverseSetter](https://docs.ens.domains/web/naming-contracts#set-a-name-in-the-constructor) module during deployment. This works best if you don’t intend to update the name later. Useful for contracts with no admin access.  
 
 However, one important detail is that forward resolution must already be set for the ENS name you’re assigning. Reverse resolution depends on a valid ENS name that points to the contract address.
 
 #### Option 2: ReverseClaimer.sol
 
-If you want more flexibility, you can use the ReverseClaimer module. This module automatically transfers ownership of the contract’s reverse node to a specified address — usually the deployer — at the time of deployment. Once that’s done, you (as the owner) can set or update the primary name anytime by calling setName(node, newName) on the resolver.  
-Example: contract.gtest.eth  
+If you want more flexibility, you can use the [ReverseClaimer](https://docs.ens.domains/web/naming-contracts#reverseclaimersol) module. This module automatically transfers ownership of the contract’s reverse node to a specified address — usually the deployer — at the time of deployment. Once that’s done, you (as the owner) can set or update the primary name anytime by calling setName(node, newName) on the resolver.  
+Example: [contract.gtest.eth](https://etherscan.io/address/contract.gtest.eth#code)
 
 After the contract is deployed, this also requires setting forward resolution to the contract and then calling a reverse resolution transaction.
 
@@ -46,7 +46,7 @@ After the contract is deployed, this also requires setting forward resolution to
 - The deployer (msg.sender) is automatically given ownership of the reverse node.  
 - The owner can later set or update the ENS name via the Reverse Registrar.  
 
-Example contract: ownable.contract.gtest.eth  
+Example contract: [ownable.contract.gtest.eth](https://etherscan.io/address/ownable.contract.gtest.eth#code) 
 
 The ENS Reverse Registrar provides the setNameForAddr(address, address, address, string) method. This allows you to set the name for a contract in a flexible and upgrade-friendly way.
 
