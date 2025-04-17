@@ -1,16 +1,21 @@
 ---
 slug: enscribe-reverseclaimable-reversesetter
-title: Deploying & naming ReverseClaimable & ReverseSetter contracts
+title: ReverseClaimable and ReverseSetter Support for Naming Contracts with Enscribe
 authors: [abhi]
 tags: [ens]
 ---
-Enscribe now supports ReverseClaimable & ReverseSetter contracts.
 
-## What is a ReverseClaimable contract?
+Ethereum contracts are powerful — but to most users, they’re still just anonymous strings of hex. With Enscribe, we’re changing that. Today, we’re adding support for ReverseClaimable and ReverseSetter contracts, making it easier than ever to give your smart contracts a name that users and apps can actually recognise.
+
+Whether you’re building a dapp, deploying infrastructure, or simply want your contracts to show up in wallets and explorers with real names instead of 0x addresses, Enscribe now supports flows that integrate reverse name claiming directly into your deployments.
+
+This post walks you through both approaches — what they are, how they work, and how to use them in Enscribe today.
+
+## ReverseClaimable Contract
 
 When this contract is deployed, the account that is deploying this contract will be given the ownership of the reverse node for that contract address. For e.g., if the address is 0x123, then a reverse node is the name-hash of 0x123.addr.reverse. This will give you the authorization to set the name of the reverse node via a call to `setName(reverseNode, name)` method on the public resolver contract.
 
-## How to deploy a contract that implements ReverseClaimer through Enscribe?
+## How to deploy a contract that implements ReverseClaimer
 
 Let's create a sample contract that implements [ReverseClaimable](https://docs.ens.domains/web/naming-contracts#reverseclaimersol):
 
@@ -37,9 +42,9 @@ Should everything go right, we see a successful deployment & naming of our contr
 
 ![ReverseClaimable success](reverseclaimable-success.png)
 
-## What is a ReverseSetter contract?
+## ReverseSetter Contract
 
-A ReverseSetter contract allows the name to be set only once - during its deployment. This is done by passing the name to the constructor of the contract:
+A [ReverseSetter](https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor) contract allows the name to be set only once - during its deployment. This is done by passing the name to the constructor of the contract:
 
 ```Solidity
 contract ReverseSetter {
@@ -60,9 +65,11 @@ contract ReverseSetter {
 }
 ```
 
-## How to deploy a ReverseSetter contract through Enscribe?
+## How to deploy a ReverseSetter Contract
 
-As before, let's compile the above contract, copy & paste the bytecode, ABI values in the respective fields. We’ll also tick the box to tell Enscribe that our contract is a ReverseSetter. The reason why we need to tick this box when deploying & naming a ReverseSetter contract is because there’s no way to differentiate the bytecode of a ReverseClaimable contract from that of a Reversetter contract. So, the onus lies on the deployer of the contract to tell Enscribe what kind of a contract they are deploying. Ticking this box will tell Enscribe to  perform a different set of steps than the ReverseClaimable flow above to deploy & set the primary name.
+As before, let's compile the above contract, copy & paste the bytecode, ABI values in the respective fields. We’ll also tick the box to tell Enscribe that our contract is a ReverseSetter.
+
+The reason why we need to tick this box when deploying & naming a ReverseSetter contract is because there’s no way to differentiate the bytecode of a ReverseClaimable contract from that of a Reversetter contract. So, the onus lies on the deployer of the contract to tell Enscribe what kind of a contract they are deploying. Ticking this box will tell Enscribe to  perform a different set of steps than the ReverseClaimable flow above to deploy & set the primary name.
 
 Now, enter the full name of the contract in the constructor argument field. Let's also put the same label value in the label field & select the appropriate parent. Remember, the ‘name’ arg value should match the label & parent values.
 
