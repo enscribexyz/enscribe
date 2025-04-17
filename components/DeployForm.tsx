@@ -675,19 +675,19 @@ export default function DeployForm() {
                     })
 
                     // Step 3: Set Forward Resolution (if not web3labs)
-                    steps.push({
-                        title: "Set forward resolution",
-                        action: async () => {
-                            if (parentType != 'web3labs') {
+                    if (parentType != 'web3labs') {
+                        steps.push({
+                            title: "Set forward resolution",
+                            action: async () => {
                                 const currentAddr = await publicResolverContract.addr(node)
                                 if (currentAddr.toLowerCase() !== deployedAddr.toLowerCase()) {
-                                    await publicResolverContract.setAddr(node, deployedAddr)
+                                    return await publicResolverContract.setAddr(node, deployedAddr)
                                 } else {
                                     console.log("Forward resolution already set")
                                 }
                             }
-                        }
-                    })
+                        })
+                    }
 
                     // step 4: Set Reverse Resolution
                     steps.push({
@@ -762,9 +762,9 @@ export default function DeployForm() {
                                 className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="ml-1 text-gray-700 inline">Contract seems to implement <Link
+                                className="ml-1 text-gray-700 inline">Contract is either <Link
                                 href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
                         </div>
                     </>
                 }
