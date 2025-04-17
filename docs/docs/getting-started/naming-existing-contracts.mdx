@@ -14,16 +14,18 @@ Enscribe is the only DApp that  supports assigning ENS names to existing smart c
 This involves several steps, custom scripts, and detailed knowledge of ENS internals.
 
 Naming an existing contract typically involves three key actions:
-- Creating a subname: under a parent ENS name (e.g., contract.myapp.eth)
+- Creating a subname: under a parent ENS name, e.g., `contract.myapp.eth`
 - Forward resolution: pointing the ENS name to the contract address
 - Reverse resolution (primary name): making the contract resolve back to the ENS name
 
 Enscribe abstracts this entire process into a streamlined interface, calling the appropriate ENS contracts for you, step by step, ensuring a straightforward experience.
 
 ## Types of Contracts and Supported Resolution
+
 The libraries used in a smart contract impact the type of ENS naming that is possible. If certain interfaces or mixins aren’t used, it may not be possible for a contract to claim the reverse node (used for reverse resolution) for an ENS name. 
 
-Enscribe classifies contracts into two categories based on their ability to claim reverse nodes: 
+Enscribe classifies contracts into two categories based on their ability to claim reverse nodes:
+
 - Contracts that implement Ownable, ERC173, or ReverseClaimer
 - All other Contracts
 
@@ -44,7 +46,8 @@ This maps a contract address back to an ENS name. This is more sensitive and can
 - The address owns its reverse node: `<address>.addr.reverse`
 - Ownership of the reverse node is proven
 
-Example:
+**Example**
+
 For the contract address: `0x8948458626811dd0c23EB25Cc74291247077cC51`, 
 the reverse node is: `8948458626811dd0c23eb25cc74291247077cc51.addr.reverse`
 
@@ -60,14 +63,14 @@ Contracts that do not expose ownership (i.e., are not Ownable, ERC173, or don’
 ![Name Existing Contract Form](/img/name-existing.png)
 
 The Name Existing Contract form requires the following inputs:
-1. Contract Address: The address of the deployed contract to be named.
-2. Label Name: The subname to register under the chosen ENS parent. For example, if Label is vault and ENS Parent is myapp.eth, the full ENS name will be vault.myapp.eth.
-3. ENS Parent: The parent domain under which the subname will be created. Two options:
+
+1. **Contract Address**: The address of the deployed contract to be named.
+2. **Label Name**: The subname to register under the chosen ENS parent. For example, if Label is vault and ENS Parent is myapp.eth, the full ENS name will be vault.myapp.eth.
+3. **ENS Parent**: The parent domain under which the subname will be created. There are two options:
     - Enscribe-provided ENS parent: No permissions needed; transaction called on Enscribe contract
     - User’s own ENS parent: All transactions are called on ENS contracts
 4. Option to set Primary name or just forward resolution: 
     - Primary Name: Only enabled if the contract implements Ownable, ERC173, or ReverseClaimer. Enscribe automatically detects the type of your contract 
-
 
 The number of required transactions depends on the type of ENS parent and whether you’re setting a primary name or just forward resolution:
 1. Enscribe provider with primary name 
@@ -83,12 +86,15 @@ The number of required transactions depends on the type of ENS parent and whethe
     - Creating subname
     - Set forward resolution
 
+The Enscribe provides feedback to the user on progress with this action.
 
 ![Name Existing Contract Progress](/img/name-existing-progress.png)
 
+Once completed it provides a summary modal with the contract address and ENS name.
+
 ![Name Existing Contract Success](/img/name-existing-success.png)
 
-## What happens if transactions fail? 
+## What Happens if Transactions Fail?
 
 If any step in the naming flow fails (e.g., due to a rejected transaction, insufficient permissions, or gas issues), the Enscribe App will:
 - Automatically detect which steps have already succeeded

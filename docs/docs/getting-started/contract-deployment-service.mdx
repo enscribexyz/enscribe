@@ -65,8 +65,8 @@ Constructor arguments are the values passed to your contract’s constructor at 
 
 Key features:
 - You can manually add any number and type of arguments.
-- Common types (string, uint256, address, bool, etc.) are available in a dropdown.
-- For more complex types (e.g., arrays, tuples, structs), select Custom Type and provide both the type definition and value.
+- Common types (`string`, `uint256`, `address`, `bool`, etc.) are available in a dropdown.
+- For more complex types (e.g., arrays, tuples, structs), select *Custom Type* and provide both the type definition and value.
 
 Example: If the constructor accepts an array of Person structs:
 
@@ -79,9 +79,9 @@ struct Person {
 ```
 
 Then:
-Custom Type:  `tuple(string,uint256,address)[]`
+Custom Type: `tuple(string,uint256,address)[]`
 
-value: 
+Value:
 
 ```
 [
@@ -100,7 +100,7 @@ For example:
 - Label: `myapp`
 - Resulting ENS Name: `myapp.uniswap.eth`
 
-Note:
+**Note:**
 - The label must be unique under the selected ENS parent.
 - The subname should not already exist
 
@@ -122,8 +122,9 @@ You can choose between:
 
 **Important:** This operator role does not give Enscribe ownership or control over your ENS name. It’s similar to permissions granted to NFT marketplaces and can be revoked at any time.
 
-Depending on the type of name being used (wrapped or unwrapped) the privilege the service uses differs. This is summarised in the below table:
+### Wrapped Versus Unwrapped Names
 
+Depending on the type of name being used (wrapped or unwrapped) the privilege the service uses differs. This is summarised in the below table:
 
 | Name      | 2LD/subnames                       |
 | --------- | ---------------------------------- |
@@ -132,30 +133,30 @@ Depending on the type of name being used (wrapped or unwrapped) the privilege th
 
 Operator role can be given directly by User, f you haven’t already granted permission:
 
-1. First transaction: Calls setApprovalForAll on the relevant ENS contract
+1. First transaction: Calls `setApprovalForAll` on the relevant ENS contract
 2. Second transaction: Deploys the contract and sets ENS records in a single atomic operation
 
-Which type of contracts can be deployed?
+### Which type of contracts can be deployed?
 
-As detailed in the Naming Smart Contracts section, ENS only allows primary name (reverse resolution) to be set if the contract implements one of the following:
+As detailed in [Naming Smart Contracts](../introduction/naming-contracts#how-primary-naming-works-for-smart-contracts), ENS only allows primary name (reverse resolution) to be set if the contract implements one of the following:
 
-- Ownable (OpenZeppelin)
+- Ownable Interface (OpenZeppelin)
 - ERC173
 - ReverseClaimer
 - ReverseSetter
 
-Why These Interfaces?
+#### Why These Interfaces?
 
 These interfaces expose a method to determine or verify the contract’s owner and to claim the reverse node. ENS uses this to ensure that only the owner or contract deployers can assign the reverse node, preventing spoofing or misuse.
 Enscribe supports deploying and naming contracts that implement any of the above.
 
 ![Deployed contract successfully](/img/deploy-success.png)
 
-What If My Contract Doesn’t Support These Interfaces?
+#### What If My Contract Doesn’t Support These Interfaces?
 
-If your contract doesn’t support any of the above interfaces and has already been deployed, you can still name it using Enscribe’s [**Naming Existing Contracts feature**](https://app.enscribe.xyz/nameContract).
+If your contract doesn’t support any of the above interfaces and has already been deployed, you can still name it using Enscribe’s [**Naming Existing Contracts**](https://app.enscribe.xyz/nameContract).
 
-Refer to the Naming Existing Contracts section for more details on how to.
+Refer to [Naming Existing Contracts](naming-existing-contracts) for more details on how to.
 
 ## How It Works
 
