@@ -10,7 +10,7 @@ Ethereum has a thriving DApp ecosystem, but developers and users still rely on s
 
 ## What networks do you support?
 
-We intend to support all networks that ENS is deployed to including Ethereum, Base and Linea. You can view current deployments on the [Supported Networks](./introduction/supported-networks.md) page.
+We intend to support all networks that ENS is deployed to including Ethereum, Base and Linea. You can view current deployments on the [Supported Networks](./introduction/supported-networks.mdx) page.
 
 ## How does Enscribe work?
 
