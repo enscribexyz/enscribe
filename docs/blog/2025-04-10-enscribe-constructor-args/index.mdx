@@ -1,0 +1,85 @@
+---
+slug: enscribe-constructor-args
+title: Easily encode Solidity constructor arguments with Enscribe
+authors: [nischal]
+tags: [ens]
+---
+
+Deploying smart contracts with constructor arguments just got a whole lot easier with Enscribe.
+
+Previously, if your contract required constructor arguments, Enscribe expected you to manually encode those arguments, append them to your compiled bytecode using external tools like Remix or Hardhat, and then paste that full bytecode into the UI. This approach was complex, error-prone, and completely unintuitive — especially for contracts with more than a simple string or uint.
+
+We're excited to announce that Enscribe now supports native constructor arguments input in the UI. Now no manual bytecode editing is required.
+
+![Enscribe Form](enscribe-args.png)
+
+## What's New?
+
+With the latest update, users can now provide constructor arguments directly within the Enscribe UI.
+
+There are two ways to do this. You can manually enter the argument types and values using a set of dropdowns and input fields, giving you full control over the structure and content. Alternatively, you can provide your contract's ABI. When you do, Enscribe automatically detects the number of constructor arguments, their names, and their types, and then generates the appropriate input fields for you to input the parameter values.
+
+This streamlined experience allows you to focus on your contract logic, while Enscribe handles all the underlying ABI encoding and bytecode composition for deployment.
+
+## Manual Mode: Add Any Type, In Any Order
+
+You can add any number and type of arguments manually. Enscribe provides a dropdown list for all common Solidity types: `string`, `uint8`, `uint256`, `address`, `bool`, `bytes`, `bytes32`, `string[]`, and `uint256[]`.
+Just add the argument, choose its type, and input its value.
+
+For more advanced use cases, select Custom Type from the dropdown. This is where Enscribe really shines — giving you full control for struct-based inputs, tuples, arrays, and combinations of them.
+
+Example: Arrays of Structs (Using Custom Type)
+
+Let's say your constructor looks like this:
+
+```solidity
+struct Person {
+  string name;
+  uint256 age;
+  address wallet;
+}
+
+constructor(Person[] memory people)
+```
+
+Here's how you'd fill it out in Enscribe:
+- Custom Type: `tuple(string,uint256,address)[]`
+- Value: `[["Nick", 30, "0x1bA43Becc3Ea96c37343b7CB18de7386bA29445B"], ["Jane", 25, "0x7cF7816d45398A1b37bBE517ca24d8CdFb8D042D"]]`
+
+
+![Enscribe Form without ABI](args-without-abi.png)
+
+Enscribe will automatically ABI-encode this value and append it to the deployment bytecode.
+
+
+## ABI Mode: Let Enscribe Do the Work
+
+If you paste or upload your contract's ABI, Enscribe will:
+- Detect the constructor function
+- Extract the parameter types and names
+- Generate the input form fields automatically, where you just need to input parameter values
+
+This is the recommended path for most users, as it:
+- Reduces manual effort
+- Prevents input format mistakes
+- Makes the argument fields easier to understand 
+
+If your contract constructor is:
+`constructor(string memory greet, uint256 initialCount)`
+
+Then Enscribe will automatically show two input fields: greet(string) and initialCount (uint256), and you just need to input parameter values.
+
+![Enscribe Form with ABI](args-abi.png)
+
+
+## Under the Hood: ABI Encoding and Bytecode Generation
+
+When you click Deploy, Enscribe automatically takes care of everything behind the scenes. It ABI-encodes your constructor arguments, appends them to the compiled contract bytecode, and sends the final result to the blockchain as a single atomic transaction. You don't need to worry about encoding formats, data padding, or bytecode structure — Enscribe ensures that everything is correctly formatted and deployment-ready.
+
+## Learn More & Get Involved
+
+Ready to deploy your contract with constructor arguments and assign it a primary ENS name? Try it now in the Enscribe UI and experience seamless contract deployment with human-readable identity.
+
+For more details, visit our [documentation](https://www.enscribe.xyz/docs), and don't hesitate to join our [Discord community](https://discord.gg/8QUMMdS5GY) to share your feedback and experiences.
+
+Happy deploying! 🚀

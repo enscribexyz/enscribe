@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import { Toaster } from "@/components/ui/toaster"
 import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon, InformationCircleIcon, DocumentIcon } from '@heroicons/react/24/outline';
 
 interface LayoutProps {
@@ -164,6 +165,7 @@ export default function Layout({ children }: LayoutProps) {
                 <main className="flex-1 p-6 bg-white dark:bg-gray-800">
                     {children}
                 </main>
+                <Toaster />
             </div>
         </div>
     );
