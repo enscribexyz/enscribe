@@ -1,0 +1,115 @@
+---
+sidebar_position: 4
+---
+
+# Bytecodes and ABIs
+
+Smart contracts written in Solidity are compiled into bytecode and ABI before being deployed to the Ethereum blockchain. Understanding these two artifacts is essential when working with deployment tools like Enscribe, or when interacting with contracts programmatically.
+
+This docs page explains what bytecode and ABI are, how to obtain them, and how constructor arguments are handled during deployment.
+
+## What is Contract Bytecode?
+
+Bytecode is the low-level, machine-readable representation of a compiled smart contract. It is a sequence of hexadecimal instructions that the Ethereum Virtual Machine (EVM) understands and executes.
+When you deploy a contract to the blockchain, you are submitting this bytecode to the network.
+
+Characteristics:
+- Expressed as a hexadecimal string
+- Contains the runtime code and metadata
+- May include constructor arguments appended at the end (during deployment)
+
+
+## What is the Contract ABI?
+ABI stands for Application Binary Interface. It defines the methods, events, and types of a smart contract in a JSON format. The ABI is used by frontend applications, libraries (like web3.js, ethers.js, or web3j), and deployment tools to encode/decode function calls and data.
+
+Key Features of ABI:
+- Describes functions, inputs, outputs, and their types
+- Includes information about constructor and events
+- Enables contract interaction via JSON-RPC
+
+
+## How Do You Get Bytecode and ABI?
+
+1. Using Remix
+- Open your Solidity file in Remix
+- Compile the contract
+- Go to the Compilation Details
+- Copy the:
+    - Bytecode: Found under “Bytecode” or “Object”
+    - ABI: Found under “ABI” in JSON format
+
+2. Using solc (Solidity Compiler CLI)
+```
+solc --bin --abi MyContract.sol -o build/
+```
+Outputs:
+- MyContract.bin → bytecode
+- MyContract.abi → ABI file
+
+3. Using Hardhat
+```
+npx hardhat compile
+```
+Outputs ABI and bytecode in `artifacts/contracts/MyContract.sol/MyContract.json`
+
+4. Using Foundry
+```
+forge build
+```
+ABI and bytecode will be available in the out/ directory in the corresponding JSON file
+
+
+## Structure of an ABI in Solidity
+
+A typical ABI is a JSON array of objects, where each object represents a function, constructor, event, or fallback.
+
+```json
+[
+  {
+    "inputs": [
+      { "internalType": "string", "name": "_name", "type": "string" }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  {
+    "inputs": [],
+    "name": "getName",
+    "outputs": [
+      { "internalType": "string", "name": "", "type": "string" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  }
+]
+```
+
+Each object in the ABI can have the following properties:
+- type: "function", "constructor", "event", etc.
+- name: Name of the function or event (not present for constructors)
+- inputs: Array of parameter objects (name, type, internalType)
+- outputs: Array of return types (for functions)
+- stateMutability: "view", "pure", "nonpayable", "payable"
+
+
+## Constructor Arguments and Bytecode
+
+Constructor arguments are passed during deployment and appended to the end of the bytecode.
+
+How It Works:
+1. Bytecode contains the compiled contract logic.
+2. Constructor arguments are ABI-encoded using the types defined in the constructor.
+3. The final deployment payload is: [BYTECODE][ENCODED_CONSTRUCTOR_ARGUMENTS]
+
+## How Enscribe Uses Bytecode and ABI
+When deploying a contract through Enscribe:
+
+1. Bytecode is required to create the contract on-chain.
+2. ABI (optional) allows Enscribe to:
+    - Automatically detect and generate constructor arguments
+    - Help users enter correct input values
+    - Ensure proper encoding of constructor parameters
+
+If the ABI is not provided, users must manually define constructor arguments and types.
+
+Understanding how bytecode and ABI work is critical for smart contract deployment and interaction. Enscribe simplifies this process through its intuitive UI that allows you to deploy contracts with or without an ABI, while automatically managing constructor argument encoding under the hood.
