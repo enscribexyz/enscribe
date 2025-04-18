@@ -1,0 +1,32 @@
+---
+sidebar_position: 1
+---
+
+# ENS Terminologies
+
+## What is Forward Resolution?
+
+Forward resolution is the process of going from name to address. An address can have many ENS names forward resolving to it. The goal is to take a name, such as nick.eth, and convert it to an address, such as `0x225f137127d9067788314bc7fcc1f36746a3c3B5`
+
+## What is Reverse Resolution?
+
+Reverse resolution is the process of going from address to name. This is a crucial part of the ENS system, as it allows for any address to be resolved into a human readable name. Unlike forward resolution, in reverse resolution an address always reverse resolves to a single ENS name known as Primary Name.
+
+Address` 0x225f137127d9067788314bc7fcc1f36746a3c3B5` reverse resolves to `nick.eth`
+
+## What is a Primary Name?
+
+The ENS name that you want a particular ETH account to be associated with. When set, it will be displayed instead of your `0x123abc...` address on integrating websites/apps. This is also often referred to as the "reverse record".
+
+## What are TLD, 2LD and subnames (3LD+) ?
+
+**TLD:** Top-level domain. This refers to names like eth, com, xyz which lie at the "top" of the naming hierarchy.
+
+
+**2LD:** Second-level domain. This refers to a subname/subdomain of a top-level domain. For example, name.eth and name.com are both second-level names. A subname of a 2LD is a third-level domain or 3LD.
+
+
+**Subname/Subdomain:** A child name like sub.name.eth, whose parent is name.eth. Also referred to as a "subdomain". Every name (except for the root node) has a parent. For example, name.eth is a subname of eth.
+
+## What are Wrapped ENS names?
+
