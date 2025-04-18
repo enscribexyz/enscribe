@@ -37,6 +37,7 @@ const config = {
         },
       }
     },
+  'docusaurus-plugin-image-zoom',
   ],
 
   markdown: {
@@ -59,18 +60,6 @@ const config = {
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
-        },
-        sitemap: {
-          lastmod: 'date',
-          changefreq: 'weekly',
-          priority: 0.5,
-          ignorePatterns: ['/tags/**'],
-          filename: 'sitemap.xml',
-          createSitemapItems: async (params) => {
-            const { defaultCreateSitemapItems, ...rest } = params;
-            const items = await defaultCreateSitemapItems(rest);
-            return items.filter((item) => !item.url.includes('/page/'));
-          },
         },
         gtag: {
           trackingID: 'G-190T6LGDNH',
@@ -165,6 +154,14 @@ const config = {
         disableSwitch: false,
         respectPrefersColorScheme: false,
       },
+      zoom: {
+        selector: '.markdown img:not(em img)', // avoids zooming on emoji or inline images
+        background: {
+          light: 'rgba(255, 255, 255, 0.95)',
+          dark: 'rgba(50, 50, 50, 0.95)'
+        },
+        config: {} // optional medium-zoom config
+      }
     }),
 }
 
