@@ -4,23 +4,23 @@ sidebar_position: 1
 
 # ENS Terminologies
 
-## What is Forward Resolution?
+### What is Forward Resolution?
 
 Forward resolution is the process of going from name to address. An address can have many ENS names forward resolving to it. The goal is to take a name, such as nick.eth, and convert it to an address, such as `0x225f137127d9067788314bc7fcc1f36746a3c3B5`
 
-## What is Reverse Resolution?
+### What is Reverse Resolution?
 
 Reverse resolution is the process of going from address to name. This is a crucial part of the ENS system, as it allows for any address to be resolved into a human readable name. Unlike forward resolution, in reverse resolution an address always reverse resolves to a single ENS name known as Primary Name.
 
 Address` 0x225f137127d9067788314bc7fcc1f36746a3c3B5` reverse resolves to `nick.eth`
 
-## What is a Primary Name?
+### What is a Primary Name?
 
 The ENS name that you want a particular ETH account to be associated with. When set, it will be displayed instead of your `0x123abc...` address on integrating websites/apps. This is also often referred to as the "reverse record".
 
-## What are TLD, 2LD and subnames (3LD+) ?
+### What are TLD, 2LD and subnames (3LD+) ?
 
-**TLD:** Top-level domain. This refers to names like eth, com, xyz which lie at the "top" of the naming hierarchy.
+**TLD:** Top-level domain. This refers to names like `eth`, `com`, `xyz` which lie at the "top" of the naming hierarchy.
 
 
 **2LD:** Second-level domain. This refers to a subname/subdomain of a top-level domain. For example, name.eth and name.com are both second-level names. A subname of a 2LD is a third-level domain or 3LD.
@@ -28,5 +28,66 @@ The ENS name that you want a particular ETH account to be associated with. When 
 
 **Subname/Subdomain:** A child name like sub.name.eth, whose parent is name.eth. Also referred to as a "subdomain". Every name (except for the root node) has a parent. For example, name.eth is a subname of eth.
 
-## What are Wrapped ENS names?
+### What are Wrapped ENS names?
 
+The ENS [Name Wrapper](https://docs.ens.domains/wrapper/overview) is a contract for ENS that allows you to "wrap" any ENS name into a ERC-1155 NFT. This includes not only .eth 2LDs like name.eth, but also DNS names like name.xyz, or subnames like sub.name.eth.
+
+### What are Unwrapped ENS names?
+
+Before the Name Wrapper, only `.eth` 2LDs (second-level domains, like ens.eth) had ERC-721 NFTs associated with them, unless the owner created a separate custom contract.
+Unwrapped .eth 2LDs have the concept of a separate Owner (Registrant) and Manager (Controller).
+
+This changes after you wrap the name, because there is only a single account that serves as both the Owner and Manager for the wrapped name.
+
+### What is a Name Wrapper Contract ?
+
+The Name Wrapper is a new contract for ENS that allows you to "wrap" any ENS name into a ERC-1155 NFT.
+It gives extra permission functionality to the names:
+- Parent-Controlled Fuses
+- Owner-Controlled Fuses
+- Subname Fuses
+
+For more information check out the following resources
+- [NameWrapper articles](https://support.ens.domains/en/collections/4027722-name-wrapper)
+- [NameWrapper docs](https://docs.ens.domains/wrapper/overview)
+
+### What are the operator, manager and owner roles?
+
+Depending on whether the name is wrapped or unwrapped, the role are managed differently.
+
+#### Unwrapped Names
+Unwrapped `.eth` 2LDs have the concept of a separate Owner (Registrant) and Manager (Controller).
+
+**Owner:** Account that owns the name in the registry and/or `.eth` registrar. The owner of the ENS name - the wallet that hold the ENS name NFT.
+
+**Manager:** The manager of records - the wallet allowed to make changes to its records (but not transfer the name) (for unwrapped 2LD names only).
+
+Unwrapped subnames or 3LD+ have only the owner role which is set in the ENS registry. 
+
+**Operator Role** - Your unwrapped name is an ERC-721 NFT that supports the setApprovalForAll method. When you approve an address using this method, it will have full control over all unwrapped ENS names (2LD and subnames, 3LD+) that you own. This method is typically used by NFT marketplace contracts.
+
+#### Wrapped Names
+Wrapped names have only the Owner role. This owner is set in the NameWrapper Contract and the Owner has all the permissions to update name records.
+
+The Name Wrapper contract has ownership of the name (in the registry/registrar). You are issued an ERC-1155 NFT in return, which proves that you are the actual owner.
+You can unwrap the name at any time, which burns the ERC-1155 NFT, and returns ownership in the registry/registrar back to you.
+
+**Operator Role:** Your wrapped name is an ERC-1155 NFT that supports the setApprovalForAll method. When you approve an address using this method, it will have full control over all wrapped ENS names that you own.
+This method is typically used by NFT marketplace contracts.
+
+Enscribe Contract needs Operator access set using setApprovalForAll for Wrapped (through NameWrapper Contract) and Unwrapped (through ENSRegistry Contract) ENS names.
+
+### What is locked ENS Wrapped name?
+
+Locked ENS name is Wrapped State set using NameWrapper Contract.
+The name can no longer be unwrapped. The owner can now burn owner-controlled fuses on the name. Fuses for subnames of this name can now be burned as well.
+
+Check out [wrapped states ENS blog post](https://support.ens.domains/en/articles/7902556-wrapped-states) for more info.
+
+### What are fuses or permissions on subnames?
+
+A "fuse" is a permission or perk that can be granted/revoked on a name. As the name implies, once the fuse is "burned", it cannot be unburned.
+Fuses will only reset when the wrapped expiry is reached. In the ENS Manager UI, this is available in the "Permissions" section of the name.
+There are parent-controlled and owner-controlled fuses. 
+
+Check out [fuses ENS blog post](https://support.ens.domains/en/articles/7902567-fuses) for more info.

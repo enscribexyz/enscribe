@@ -2,4 +2,80 @@
 sidebar_position: 2
 ---
 
-# L1 and L2 Chains
+# ENS on L1 and L2 chains
+
+The Ethereum Name Service (ENS) is a decentralized naming protocol built on Ethereum, mapping human-readable names like `alice.eth` to Ethereum addresses, IPFS content hashes, and smart contracts. Originally deployed on Ethereum’s Layer 1 (L1), ENS now extends onto Layer 2 (L2) solutions such as Linea and Base, providing faster, lower-cost name registration and resolution.
+
+This documentation provides comprehensive technical details on ENS deployment across L1 and selected L2 chains (Linea and Base), highlighting key differences, contract implementations, and underlying architecture.
+
+## ENS on Ethereum L1 (Mainnet and Testnets)
+
+ENS on Ethereum Mainnet is the canonical deployment, managing global identities under the `.eth` top-level domain (TLD), such as `vitalik.eth`. ENS also supports Ethereum testnets such as Sepolia and Holesky, enabling development and experimentation without Mainnet costs.
+
+ENS on Ethereum L1 employs a modular set of contracts:
+
+- **ENS Registry:** The central contract storing mappings from ENS names to owners, resolvers, and TTL values. All ENS resolution and ownership checks depend on this registry.
+- **BaseRegistrar:** Manages registration, renewal, and NFT tokenization (ERC-721) of .eth second-level domains, enabling names like myname.eth to be securely transferred and managed.
+- **ETHController:** Implements a commitment-based registration mechanism to prevent front-running. It validates registration eligibility, calculates fees, and handles `.eth` domain registrations.
+- **PublicResolver:** Stores and resolves name records, including addresses, content hashes, and text metadata. It acts as the standard resolver for most ENS names.
+- **ReverseRegistrar:** Enables reverse resolution, allowing Ethereum addresses to resolve back to their primary ENS name (alice.eth rather than an address).
+- **NameWrapper:** Wraps ENS names into ERC-1155 tokens, providing advanced functionality such as granular subname permissions (fuses) and permanent management restrictions.
+
+These contracts form the robust and secure foundation of ENS on Ethereum L1, providing an extensible and highly interoperable identity system.
+
+
+## ENS on Linea (zkEVM L2 by ConsenSys)
+
+Linea is a zero-knowledge EVM (zkEVM) Layer 2 developed by ConsenSys, fully compatible with Ethereum L1, designed to deliver high throughput and lower transaction costs.
+
+On Linea, ENS domains are registered under the second-level domain `.linea.eth` (e.g., `alice.linea.eth`). While the contract structure on Linea closely mirrors L1 (Registry, BaseRegistrar, ETHController, ReverseRegistrar, PublicResolver, NameWrapper), domain registration has a distinctive mechanism involving identity verification: Proof of Humanity (PoH).
+
+Proof of Humanity (PoH) ensures .linea.eth domains are registered to unique human identities, mitigating domain squatting risks. Users must pass a PoH verification step to register and control names on Linea.
+
+Additionally, Linea integrates CCIP Read (EIP-3668) for off-chain data resolution. If a name’s data isn’t fully stored on-chain, the resolver delegates the query off-chain, significantly reducing gas costs while maintaining secure, verifiable resolution.
+
+Linea’s ENS thus provides a secure, scalable naming system tightly integrated with Ethereum’s ecosystem, especially valuable for existing Ethereum users seeking cost-effective identity management on L2.
+- [Linea ENS Official Repo](https://github.com/Consensys/linea-ens)
+- [ENS Linea Blog](https://ens.domains/blog/post/ens-lands-on-linea)
+
+## ENS on Base (Optimism L2 by Coinbase)
+
+Base, built by Coinbase using Optimism’s OP Stack, is a Layer 2 focused on mainstream adoption through faster transactions, lower fees, and simplified experiences. ENS integration on Base provides identity names under the `.base.eth` domain (e.g., `dapp.base.eth`).
+
+### System Architecture and Components on Base
+ENS on Base is architecturally simplified compared to L1. It does not deploy the NameWrapper or fuses mechanism; all ENS names on Base are thus unwrapped and simplified, facilitating ease of use and lower transaction costs.
+
+The system architecture for ENS on Base is divided into three main functional areas:
+
+#### L1 Resolver (Cross-chain Resolution)
+An L1 resolver deployed on Ethereum Mainnet enables cross-chain resolution of .base.eth names. When a name is requested from Ethereum L1 and the resolver does not have direct access to the requested data, it triggers an ENSIP-10 compliant CCIP Read (OffchainLookup) response. This instructs clients to retrieve the resolution data from Base’s off-chain gateway.
+
+#### On-chain ENS-like Registry and Registrar on Base
+
+Base deploys an optimized set of ENS-like contracts directly on L2:
+
+- `Registry.sol`: A simplified version of ENS’s Registry, managing .base.eth subdomain records in a streamlined mapping structure.
+- `BaseRegistrar.sol`: Derived from ENS’s BaseRegistrarImplementation, it issues ERC-721 tokens for subdomain ownership, managing transfers and expiry.
+- `RegistrarController.sol`: Permissioned contract managing domain registrations, interfacing with oracles for price calculations and validations.
+- `ReverseRegistrar.sol`: Enables reverse resolution (address to .base.eth name), allowing addresses to map back to their primary ENS identity on Base.
+- `L2Resolver.sol`: Functions as the public resolver on Base, storing standard ENS resolution data (address, contenthash, text records, etc.) for .base.eth names.
+
+#### Off-chain Gateway (CCIP Gateway)
+
+An off-chain CCIP Gateway service (DID service) handles off-chain resolution requests, compliant with ENSIP-10 (EIP-3668). This gateway efficiently serves resolution data to Ethereum L1 clients querying Base names, minimizing on-chain costs and ensuring rapid cross-chain lookups.
+
+Base ENS provides a frictionless yet powerful identity solution, specifically optimized for the Base environment, suitable for onboarding mainstream users with minimal technical friction.
+- [Base ENS GitHub](https://github.com/base/basenames)
+- [Base ENS Announcement](https://www.base.org/names)
+
+## Enscribe Integration for ENS on L1 and L2
+
+Enscribe integrates seamlessly with ENS across Ethereum Mainnet (L1), and L2 networks like Linea and Base:
+
+**Ethereum L1:** Full integration allowing comprehensive name management including registration, forward and reverse resolution and advanced name wrapping capabilities.
+
+**Linea:** Supports `.linea.eth` registrations, seamlessly handling Proof of Humanity verification, CCIP Read integration for efficient off-chain resolutions and full forward/reverse resolution capabilities.
+
+**Base:** Supports streamlined name registrations under `.base.eth`, interacting directly with Base’s simplified ENS architecture for quick and low-cost naming, forward resolution and cross-chain resolution via L1 resolver and off-chain gateways.
+
+Enscribe abstracts the complexities of these architectures, providing users and developers with an intuitive and uniform interface to leverage ENS capabilities across Ethereum and L2 environments.
