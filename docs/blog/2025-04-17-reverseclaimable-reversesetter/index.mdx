@@ -42,6 +42,8 @@ Should everything go right, we see a successful deployment & naming of our contr
 
 ![ReverseClaimable success](reverseclaimable-success.png)
 
+If a step fails after deploying the contract, instead of redeploying the contract (which will need eth), we can simply go to the Name Existing Contract page and change the name.
+
 ## ReverseSetter Contract
 
 A [ReverseSetter](https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor) contract allows the name to be set only once - during its deployment. This is done by passing the name to the constructor of the contract:
@@ -82,6 +84,8 @@ At last, we hit the Deploy button & complete the steps show:
 After the steps are completed, we see our success dialog:
 
 ![ReverseSetter success](reversesetter-success.png)
+
+If the last step fails, we can simply set the name of the deployed contract instead of redeploying it through the Name Existing Contract page.
 
 With support for ReverseClaimable and ReverSetter contracts now live, Enscribe keeps pushing the smart contract experience closer to something that actually feels user-friendly. Whether you’re deep in the weeds of dapp development or just want your contracts to show up with proper names, there’s never been a better time to give it a spin. Try it out, see what sticks—and maybe finally retire that long string of 0x gibberish.
 
