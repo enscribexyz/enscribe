@@ -4,7 +4,9 @@ sidebar_position: 2
 
 # ENS on L1 and L2 chains
 
-The Ethereum Name Service (ENS) is a decentralized naming protocol built on Ethereum, mapping human-readable names like `alice.eth` to Ethereum addresses, IPFS content hashes, and smart contracts. Originally deployed on Ethereum’s Layer 1 (L1), ENS now extends onto Layer 2 (L2) solutions such as Linea and Base, providing faster, lower-cost name registration and resolution.
+The Ethereum Name Service (ENS) is a decentralized naming protocol built on Ethereum, mapping human-readable names like `enscribe.eth` to Ethereum addresses, IPFS content hashes, and smart contracts.
+
+Originally deployed on Ethereum’s Layer 1 (L1), ENS now extends onto Layer 2 (L2) solutions such as Linea and Base, providing faster, lower-cost name registration and resolution.
 
 This documentation provides comprehensive technical details on ENS deployment across L1 and selected L2 chains (Linea and Base), highlighting key differences, contract implementations, and underlying architecture.
 
@@ -23,32 +25,33 @@ ENS on Ethereum L1 employs a modular set of contracts:
 
 These contracts form the robust and secure foundation of ENS on Ethereum L1, providing an extensible and highly interoperable identity system.
 
+## ENS on Linea
 
-## ENS on Linea (zkEVM L2 by ConsenSys)
-
-Linea is a zero-knowledge EVM (zkEVM) Layer 2 developed by ConsenSys, fully compatible with Ethereum L1, designed to deliver high throughput and lower transaction costs.
+[Linea](https://linea.build/) is a zero-knowledge EVM (zk-EVM) Layer 2 developed by ConsenSys, fully compatible with Ethereum L1, designed to deliver high throughput and lower transaction costs.
 
 On Linea, ENS domains are registered under the second-level domain `.linea.eth` (e.g., `alice.linea.eth`). While the contract structure on Linea closely mirrors L1 (Registry, BaseRegistrar, ETHController, ReverseRegistrar, PublicResolver, NameWrapper), domain registration has a distinctive mechanism involving identity verification: Proof of Humanity (PoH).
 
 Proof of Humanity (PoH) ensures .linea.eth domains are registered to unique human identities, mitigating domain squatting risks. Users must pass a PoH verification step to register and control names on Linea.
 
-Additionally, Linea integrates CCIP Read (EIP-3668) for off-chain data resolution. If a name’s data isn’t fully stored on-chain, the resolver delegates the query off-chain, significantly reducing gas costs while maintaining secure, verifiable resolution.
+Additionally, Linea integrates [CCIP Read (EIP-3668)](https://eips.ethereum.org/EIPS/eip-3668) for off-chain data resolution. If a name’s data isn’t fully stored on-chain, the resolver delegates the query off-chain, significantly reducing gas costs while maintaining secure, verifiable resolution.
 
 Linea’s ENS thus provides a secure, scalable naming system tightly integrated with Ethereum’s ecosystem, especially valuable for existing Ethereum users seeking cost-effective identity management on L2.
 - [Linea ENS Official Repo](https://github.com/Consensys/linea-ens)
 - [ENS Linea Blog](https://ens.domains/blog/post/ens-lands-on-linea)
 
-## ENS on Base (Optimism L2 by Coinbase)
+## ENS on Base
 
-Base, built by Coinbase using Optimism’s OP Stack, is a Layer 2 focused on mainstream adoption through faster transactions, lower fees, and simplified experiences. ENS integration on Base provides identity names under the `.base.eth` domain (e.g., `dapp.base.eth`).
+[Base](https://www.base.org/), built by Coinbase using Optimism’s OP Stack, is a Layer 2 focused on mainstream adoption through faster transactions, lower fees, and simplified experiences. ENS integration on Base provides identity names under the `.base.eth` domain (e.g., `dapp.base.eth`).
 
 ### System Architecture and Components on Base
+
 ENS on Base is architecturally simplified compared to L1. It does not deploy the NameWrapper or fuses mechanism; all ENS names on Base are thus unwrapped and simplified, facilitating ease of use and lower transaction costs.
 
 The system architecture for ENS on Base is divided into three main functional areas:
 
 #### L1 Resolver (Cross-chain Resolution)
-An L1 resolver deployed on Ethereum Mainnet enables cross-chain resolution of .base.eth names. When a name is requested from Ethereum L1 and the resolver does not have direct access to the requested data, it triggers an ENSIP-10 compliant CCIP Read (OffchainLookup) response. This instructs clients to retrieve the resolution data from Base’s off-chain gateway.
+
+An L1 resolver deployed on Ethereum Mainnet enables cross-chain resolution of `.base.eth` names. When a name is requested from Ethereum L1 and the resolver does not have direct access to the requested data, it triggers an ENSIP-10 compliant CCIP Read (OffchainLookup) response. This instructs clients to retrieve the resolution data from Base’s off-chain gateway.
 
 #### On-chain ENS-like Registry and Registrar on Base
 
@@ -57,8 +60,8 @@ Base deploys an optimized set of ENS-like contracts directly on L2:
 - `Registry.sol`: A simplified version of ENS’s Registry, managing .base.eth subdomain records in a streamlined mapping structure.
 - `BaseRegistrar.sol`: Derived from ENS’s BaseRegistrarImplementation, it issues ERC-721 tokens for subdomain ownership, managing transfers and expiry.
 - `RegistrarController.sol`: Permissioned contract managing domain registrations, interfacing with oracles for price calculations and validations.
-- `ReverseRegistrar.sol`: Enables reverse resolution (address to .base.eth name), allowing addresses to map back to their primary ENS identity on Base.
-- `L2Resolver.sol`: Functions as the public resolver on Base, storing standard ENS resolution data (address, contenthash, text records, etc.) for .base.eth names.
+- `ReverseRegistrar.sol`: Enables reverse resolution (address to `.base.eth` name), allowing addresses to map back to their primary ENS identity on Base.
+- `L2Resolver.sol`: Functions as the public resolver on Base, storing standard ENS resolution data (address, contenthash, text records, etc.) for `.base.eth` names.
 
 #### Off-chain Gateway (CCIP Gateway)
 

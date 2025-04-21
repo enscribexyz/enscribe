@@ -6,7 +6,7 @@ sidebar_position: 3
 
 Enscribe brings together multiple ENS-related actions into a single atomic transaction, significantly simplifying what was previously a fragmented, manual, and error-prone process.
 
-This documentation article explains the design and architecture of the [Enscribe contract](https://github.com/enscribexyz/enscribe-contracts/blob/main/src/main/solidity/Enscribe.sol). To explore all related contracts, visit our [Github contracts repository](https://github.com/enscribexyz/enscribe-contracts).
+This section covers the design and architecture of the [Enscribe contract](https://github.com/enscribexyz/enscribe-contracts/blob/main/src/main/solidity/Enscribe.sol). To explore all related contracts, visit our [Github contracts repository](https://github.com/enscribexyz/enscribe-contracts).
 
 Key ENS Contracts used:
 
@@ -22,8 +22,11 @@ Openzeppelin Contracts used:
 
 ## Enscribe Contract Functions
 
-### For new contract deployment 
-`setNameAndDeploy(bytes memory bytecode, string calldata label, string calldata parentName, bytes32 parentNode)`
+### For New Contract Deployment
+
+```solidity
+setNameAndDeploy(bytes memory bytecode, string calldata label, string calldata parentName, bytes32 parentNode)
+```
 
 **Input**
 
@@ -35,16 +38,21 @@ Openzeppelin Contracts used:
 
 `bytes32 parentNode`: NameHash of Parent ENS (Can be calculated using any Web3 Library or service)
 
-
 **Returns**
 
 `address`: Deployed contract address
 
-### For existing contracts
+### For Naming Existing Contracts
+
+If the provided contract implements Ownable/ERC-173, you may set a primary name for a contract (setting both a forward and reverse resolution record). Otherwise it is only possible to configure a forward resolving record.
 
 #### Contracts extending Ownable/ERC173
 
-1. `Forward Resolution - setName(address contractAddress, string calldata label, string calldata parentName, bytes32 parentNode)`
+**1. Forward Resolution**
+
+```solidity
+setName(address contractAddress, string calldata label, string calldata parentName, bytes32 parentNode)`
+```
 
 **Input**
 
@@ -61,7 +69,11 @@ Openzeppelin Contracts used:
 
 `Boolean`: success for setting forward resolution
 
-2. `Reverse Resolution - setNameForAddr(address contractAddress, address owner, address resolver, string memory ensName)`: Called on user or Dapp side
+**2. Reverse Resolution**
+
+```solidity
+setNameForAddr(address contractAddress, address owner, address resolver, string memory ensName)
+```
 
 **Input**
 
@@ -76,7 +88,11 @@ Openzeppelin Contracts used:
 
 #### All other Existing Contracts
 
-1. `Forward Resolution - setName(address contractAddress, string calldata label, string calldata parentName, bytes32 parentNode)`
+Forward Resolution
+
+```solidity
+setName(address contractAddress, string calldata label, string calldata parentName, bytes32 parentNode)`
+```
 
 **Input**
 
@@ -100,11 +116,11 @@ Openzeppelin Contracts used:
 
 - **Atomicity:** Deployment and ENS setup are performed in a single atomic transaction.
 
-- **Permissionless:** The user remains the ultimate owner; Enscribe temporarily holds permissions only to execute the flow.
+- **Permissionless:** The user remains the ultimate owner; control is delegated to Enscribe for initial deployment and subname creation if applicable.
 
 - **Fallback Safety:** If any step fails due to ownership mismatch or unsupported contract type, the transaction reverts to prevent partial deployments.
 
-## Sequence Diagram
+## Contract Deployment Sequence Diagrame
 
 ```mermaid
 ---
@@ -146,7 +162,8 @@ sequenceDiagram;
 
 ![Enscribe contract Workflow](/img/enscribe-workflow.png)
 
+Enscribe abstracts the complexity of deploying and naming smart contracts on Ethereum by combining everything into a single, atomic transaction.
 
-In summary, Enscribe abstracts the complexity of deploying and naming smart contracts on Ethereum by combining everything into a single, atomic transaction. The setNameAndDeploy function encapsulates the entire flow — from CREATE2-based deployment to ENS subname creation, forward resolution, and primary name assignment — all with robust on-chain checks to ensure security, correctness, and full user control.
+The `setNameAndDeploy` function encapsulates the entire flow — from CREATE2-based deployment to ENS subname creation, forward resolution, and primary name assignment — all with on-chain checks to ensure security, correctness, and full user control.
 
 Checkout the [Enscribe Whitepaper](https://docs.google.com/document/d/1gp9GES6jl41CMINexCffe6J0w6vwDXEZ0sbfQrJk7is/edit?usp=sharing) for more details.
