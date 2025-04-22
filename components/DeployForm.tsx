@@ -493,9 +493,9 @@ export default function DeployForm() {
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
 
+            const txCost = 100000000000000n
 
             if (isOwnable) {
-                const txCost = 100000000000000n
 
                 if (parentType === 'web3labs') {
                     steps.push({
@@ -569,140 +569,36 @@ export default function DeployForm() {
                 setModalSteps(steps)
                 setModalOpen(true)
             } else if (isReverseClaimable) {
-                const sender = (await signer)
-                const senderAddr = sender.address
-                const labelHash = keccak256(ethers.toUtf8Bytes(label))
-
-                const node = namehash(label + "." + parentName)
-                const nameExist = await ensRegistryContract.recordExists(node)
-                const publicResolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, sender)
-
                 if (isReverseSetter) {
-                    // step 1: create subname
+                    // step 1: set name & deploy contract via enscribe contract
                     steps.push({
-                        title: "Create subname",
+                        title: "Set name & Deploy contract",
                         action: async () => {
-                            if (parentType === 'web3labs') {
-                                return await namingContract.setName(sender.address, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
-                            } else if (chain?.id === 84532) {
-                                if (!nameExist) {
-                                    return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
-                                }
-                            } else {
-                                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-                                if (!nameExist) {
-                                    if (isWrapped) {
-                                        return await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config?.PUBLIC_RESOLVER, 0, 0, 0)
-                                    } else {
-                                        return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
-                                    }
-                                }
-                            }
-                        }
-                    })
-
-                    // step 2: deploy contract
-                    steps.push({
-                        title: "Deploy contract",
-                        action: async () => {
-                            const cf = new ContractFactory([], finalBytecode, (await signer));
-                            const contract = await cf.deploy()
-                            const txDeployReceipt = await contract.waitForDeployment() // get contract address
-                            deployedAddr = await txDeployReceipt.getAddress() // actual contract
-                            setDeployedAddress(deployedAddr)
-                            const txn = await txDeployReceipt.deploymentTransaction()?.getTransaction();
-                            if (txn != undefined) {
-                                return txn
-                            }
-                        }
-                    })
-
-                    // step 3: forward resolve
-                    steps.push({
-                        title: "Set forward resolution",
-                        action: async () => {
-                            if(parentType == 'web3labs') {
-                                return await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
-                            } else {
-                                const currentAddr = await publicResolverContract.addr(node)
-                                if (currentAddr.toLowerCase() !== deployedAddr.toLowerCase()) {
-                                    return await publicResolverContract.setAddr(node, deployedAddr)
-                                } else {
-                                    console.log("Forward resolution already set")
-                                }
-                            }
+                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const txReceipt = await tx.wait()
+                            setTxHash(txReceipt.hash)
+                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                            setDeployedAddress(deployedContractAddress)
+                            return tx
                         }
                     })
                 } else { // default ReverseClaimable flow
-                    // step 1: deploy contract
-                    // if error -> send error with notice, else deploy new
+                    // step 1: set name & deploy contract via enscribe contract
                     steps.push({
-                        title: "Deploy contract",
+                        title: "Set name & Deploy contract",
                         action: async () => {
-                            const cf = new ContractFactory([], finalBytecode, (await signer));
-                            const contract = await cf.deploy()
-                            const txDeployReceipt = await contract.waitForDeployment() // get contract address
-                            deployedAddr = await txDeployReceipt.getAddress() // actual contract
-                            setDeployedAddress(deployedAddr)
-                            const txn = await txDeployReceipt.deploymentTransaction()?.getTransaction();
-                            if (txn != undefined) {
-                                return txn
-                            }
-                        }
-                    })
-
-                    // step 2: create subname
-                    steps.push({
-                        title: "Create subname",
-                        action: async () => {
-                            if (parentType === 'web3labs') {
-                                return await namingContract.setName(deployedAddr, label, parentName, parentNode, {value: 100000000000000n}) // nonce = 51
-                            } else if (chain?.id === 84532) {
-                                if (!nameExist) {
-                                    return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
-                                }
-                            } else {
-                                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-                                if (!nameExist) {
-                                    if (isWrapped) {
-                                        return await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config?.PUBLIC_RESOLVER, 0, 0, 0)
-                                    } else {
-                                        return await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
-                                    }
-                                }
-                            }
-                        }
-                    })
-
-                    // Step 3: Set Forward Resolution (if not web3labs)
-                    if (parentType != 'web3labs') {
-                        steps.push({
-                            title: "Set forward resolution",
-                            action: async () => {
-                                const currentAddr = await publicResolverContract.addr(node)
-                                if (currentAddr.toLowerCase() !== deployedAddr.toLowerCase()) {
-                                    return await publicResolverContract.setAddr(node, deployedAddr)
-                                } else {
-                                    console.log("Forward resolution already set")
-                                }
-                            }
-                        })
-                    }
-
-                    // step 4: Set Reverse Resolution
-                    steps.push({
-                        title: "Set Reverse Resolution",
-                        action: async () => {
-                            const addrLabel = deployedAddr.slice(2).toLowerCase()
-                            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
-                            return await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
+                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const txReceipt = await tx.wait()
+                            setTxHash(txReceipt.hash)
+                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                            setDeployedAddress(deployedContractAddress)
+                            return tx
                         }
                     })
                 }
 
-                // setTxHash(contract.deploymentTransaction() != null ? contract.deploymentTransaction()!.hash : tx.hash)
-                // setDeployedAddress(deployedAddr) //0xD817F6daF4F5088716Ac942181a8Dc7B89FB6Edc
-                // setShowPopup(true)
                 setModalTitle("Deploy Contract and set Primary Name")
                 setModalSubtitle("Complete each step to finish naming this contract")
                 setModalSteps(steps)
@@ -712,7 +608,6 @@ export default function DeployForm() {
             if (!isEmpty(deployedAddr)) {
                 setError("Your contract was deployed but the name wasn\'t set properly. Please use the 'Name Existing Contract' page to set the name of the contract. If you attempt to retry on this page, your contract will get deployed again with a different address.")
             }
-            console.error(err)
             setError(err?.code || 'Error deploying contract')
         } finally {
             setLoading(false)
