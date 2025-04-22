@@ -1,5 +1,58 @@
 const enscribeContractABI = [
 	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_reverseRegistrar",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_ensRegistry",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_nameWrapper",
+				"type": "address"
+			},
+			{
+				"internalType": "string",
+				"name": "_defaultParent",
+				"type": "string"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_pricing",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "owner",
+				"type": "address"
+			}
+		],
+		"name": "OwnableInvalidOwner",
+		"type": "error"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "account",
+				"type": "address"
+			}
+		],
+		"name": "OwnableUnauthorizedAccount",
+		"type": "error"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -36,31 +89,6 @@ const enscribeContractABI = [
 		"inputs": [
 			{
 				"indexed": false,
-				"internalType": "string",
-				"name": "parentName",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "bytes32",
-				"name": "parentNode",
-				"type": "bytes32"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "tokenID",
-				"type": "uint256"
-			}
-		],
-		"name": "ContractStarted",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
 				"internalType": "address",
 				"name": "sender",
 				"type": "address"
@@ -73,44 +101,6 @@ const enscribeContractABI = [
 			}
 		],
 		"name": "EtherReceived",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "msg",
-				"type": "string"
-			},
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "tokenId",
-				"type": "uint256"
-			}
-		],
-		"name": "IsWrapped",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "uint256",
-				"name": "parentTokenId",
-				"type": "uint256"
-			},
-			{
-				"indexed": false,
-				"internalType": "address",
-				"name": "owner",
-				"type": "address"
-			}
-		],
-		"name": "NameOwnershipTransferred",
 		"type": "event"
 	},
 	{
@@ -133,6 +123,13 @@ const enscribeContractABI = [
 		"type": "event"
 	},
 	{
+		"inputs": [],
+		"name": "renounceOwnership",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
 		"anonymous": false,
 		"inputs": [
 			{
@@ -152,275 +149,14 @@ const enscribeContractABI = [
 		"type": "event"
 	},
 	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": true,
-				"internalType": "address",
-				"name": "deployedAddress",
-				"type": "address"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "subname",
-				"type": "string"
-			}
-		],
-		"name": "SetPrimaryNameSuccess",
-		"type": "event"
-	},
-	{
-		"anonymous": false,
-		"inputs": [
-			{
-				"indexed": false,
-				"internalType": "bytes32",
-				"name": "parentHash",
-				"type": "bytes32"
-			},
-			{
-				"indexed": false,
-				"internalType": "string",
-				"name": "label",
-				"type": "string"
-			}
-		],
-		"name": "SubnameCreated",
-		"type": "event"
-	},
-	{
-		"stateMutability": "payable",
-		"type": "fallback"
-	},
-	{
-		"inputs": [],
-		"name": "BASE_REGISTRAR_ADDRESS",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "ENS_REGISTRY_ADDRESS",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "NAME_WRAPPER_ADDRESS",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "PUBLIC_RESOLVER_ADDRESS",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "REVERSE_REGISTRAR_ADDRESS",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "bytes32",
-				"name": "parentNode",
-				"type": "bytes32"
-			}
-		],
-		"name": "checkWrapped",
-		"outputs": [
-			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "uint256",
-				"name": "salt",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bytes",
-				"name": "bytecode",
-				"type": "bytes"
-			}
-		],
-		"name": "computeAddress",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "computedAddress",
-				"type": "address"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "defaultParent",
-		"outputs": [
-			{
-				"internalType": "string",
-				"name": "",
-				"type": "string"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
 		"inputs": [
 			{
 				"internalType": "address",
-				"name": "operator",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "from",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "ids",
-				"type": "uint256[]"
-			},
-			{
-				"internalType": "uint256[]",
-				"name": "values",
-				"type": "uint256[]"
-			},
-			{
-				"internalType": "bytes",
-				"name": "data",
-				"type": "bytes"
-			}
-		],
-		"name": "onERC1155BatchReceived",
-		"outputs": [
-			{
-				"internalType": "bytes4",
-				"name": "",
-				"type": "bytes4"
-			}
-		],
-		"stateMutability": "pure",
-		"type": "function"
-	},
-	{
-		"inputs": [
-			{
-				"internalType": "address",
-				"name": "operator",
-				"type": "address"
-			},
-			{
-				"internalType": "address",
-				"name": "from",
-				"type": "address"
-			},
-			{
-				"internalType": "uint256",
-				"name": "id",
-				"type": "uint256"
-			},
-			{
-				"internalType": "uint256",
-				"name": "value",
-				"type": "uint256"
-			},
-			{
-				"internalType": "bytes",
-				"name": "data",
-				"type": "bytes"
-			}
-		],
-		"name": "onERC1155Received",
-		"outputs": [
-			{
-				"internalType": "bytes4",
-				"name": "",
-				"type": "bytes4"
-			}
-		],
-		"stateMutability": "pure",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "owner",
-		"outputs": [
-			{
-				"internalType": "address",
-				"name": "",
+				"name": "_addr",
 				"type": "address"
 			}
 		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "pricing",
-		"outputs": [
-			{
-				"internalType": "uint256",
-				"name": "",
-				"type": "uint256"
-			}
-		],
-		"stateMutability": "view",
-		"type": "function"
-	},
-	{
-		"inputs": [],
-		"name": "renounceOwnership",
+		"name": "setENSRegistry",
 		"outputs": [],
 		"stateMutability": "nonpayable",
 		"type": "function"
@@ -496,21 +232,163 @@ const enscribeContractABI = [
 	{
 		"inputs": [
 			{
-				"internalType": "bytes4",
-				"name": "interfaceId",
-				"type": "bytes4"
+				"internalType": "bytes",
+				"name": "bytecode",
+				"type": "bytes"
+			},
+			{
+				"internalType": "string",
+				"name": "label",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "parentName",
+				"type": "string"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "parentNode",
+				"type": "bytes32"
 			}
 		],
-		"name": "supportsInterface",
+		"name": "setNameAndDeployReverseClaimer",
 		"outputs": [
 			{
-				"internalType": "bool",
-				"name": "",
-				"type": "bool"
+				"internalType": "address",
+				"name": "deployedAddress",
+				"type": "address"
 			}
 		],
-		"stateMutability": "pure",
+		"stateMutability": "payable",
 		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "bytecode",
+				"type": "bytes"
+			},
+			{
+				"internalType": "string",
+				"name": "label",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "parentName",
+				"type": "string"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "parentNode",
+				"type": "bytes32"
+			}
+		],
+		"name": "setNameAndDeployReverseSetter",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "deployedAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes",
+				"name": "bytecode",
+				"type": "bytes"
+			},
+			{
+				"internalType": "string",
+				"name": "ensName",
+				"type": "string"
+			},
+			{
+				"internalType": "bytes32",
+				"name": "node",
+				"type": "bytes32"
+			}
+		],
+		"name": "setNameAndDeployWithoutLabel",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "deployedAddress",
+				"type": "address"
+			}
+		],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_addr",
+				"type": "address"
+			}
+		],
+		"name": "setNameWrapper",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": true,
+				"internalType": "address",
+				"name": "deployedAddress",
+				"type": "address"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "subname",
+				"type": "string"
+			}
+		],
+		"name": "SetPrimaryNameSuccess",
+		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_addr",
+				"type": "address"
+			}
+		],
+		"name": "setReverseRegistrar",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"anonymous": false,
+		"inputs": [
+			{
+				"indexed": false,
+				"internalType": "bytes32",
+				"name": "parentHash",
+				"type": "bytes32"
+			},
+			{
+				"indexed": false,
+				"internalType": "string",
+				"name": "label",
+				"type": "string"
+			}
+		],
+		"name": "SubnameCreated",
+		"type": "event"
 	},
 	{
 		"inputs": [
@@ -526,10 +404,14 @@ const enscribeContractABI = [
 		"type": "function"
 	},
 	{
+		"stateMutability": "payable",
+		"type": "fallback"
+	},
+	{
 		"inputs": [
 			{
 				"internalType": "string",
-				"name": "updatedParent",
+				"name": "newParent",
 				"type": "string"
 			}
 		],
@@ -542,7 +424,7 @@ const enscribeContractABI = [
 		"inputs": [
 			{
 				"internalType": "uint256",
-				"name": "updatedPrice",
+				"name": "newPrice",
 				"type": "uint256"
 			}
 		],
@@ -561,6 +443,224 @@ const enscribeContractABI = [
 	{
 		"stateMutability": "payable",
 		"type": "receive"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes32",
+				"name": "node",
+				"type": "bytes32"
+			}
+		],
+		"name": "checkWrapped",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "salt",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "bytecode",
+				"type": "bytes"
+			}
+		],
+		"name": "computeAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "defaultParent",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "ensRegistry",
+		"outputs": [
+			{
+				"internalType": "contract IENSRegistry",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "nameWrapper",
+		"outputs": [
+			{
+				"internalType": "contract INameWrapper",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"name": "onERC1155BatchReceived",
+		"outputs": [
+			{
+				"internalType": "bytes4",
+				"name": "",
+				"type": "bytes4"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			},
+			{
+				"internalType": "bytes",
+				"name": "",
+				"type": "bytes"
+			}
+		],
+		"name": "onERC1155Received",
+		"outputs": [
+			{
+				"internalType": "bytes4",
+				"name": "",
+				"type": "bytes4"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "owner",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "pricing",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "reverseRegistrar",
+		"outputs": [
+			{
+				"internalType": "contract IReverseRegistrar",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "bytes4",
+				"name": "interfaceId",
+				"type": "bytes4"
+			}
+		],
+		"name": "supportsInterface",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
 	}
 ]
 

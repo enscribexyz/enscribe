@@ -13,6 +13,20 @@ export type NetworkConfig = {
 };
 
 export const CONTRACTS: Record<number, NetworkConfig> = {
+    // mainnet
+    1: {
+        ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT!,
+        ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY!,
+        BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION!,
+        NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER!,
+        REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR!,
+        PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER!,
+        ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN!,
+        ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN!,
+        ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP!,
+        CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS!,
+        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API!
+    },
     // Sepolia Testnet
     11155111: {
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_SEPOLIA!,
