@@ -222,7 +222,7 @@ export default function DeployForm() {
     }
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532) return
+        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
 
         setFetchingENS(true)
         try {
@@ -245,7 +245,7 @@ export default function DeployForm() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141 || chain?.id == 84532) return
+        if (!signer || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
 
 
         // Validate label and parent name before checking
@@ -309,11 +309,11 @@ export default function DeployForm() {
             if (!recordExist) return false
 
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532) {
+            if (chain?.id != 84532 && chain?.id != 8453) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
-            if (chain?.id == 84532) {
+            if (chain?.id == 84532 || chain?.id == 8453) {
                 return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
             } else {
                 const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
@@ -348,7 +348,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532) {
+            if (chain?.id === 84532 || chain?.id === 8453) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -381,7 +381,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532) {
+            if (chain?.id === 84532 || chain?.id === 8453) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -447,7 +447,7 @@ export default function DeployForm() {
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const parentNode = getParentNode(parentName)
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532) {
+            if (chain?.id != 84532 && chain?.id != 8453) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
@@ -469,7 +469,7 @@ export default function DeployForm() {
                     const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                     setDeployedAddress(deployedContractAddress)
                     setShowPopup(true)
-                } else if (chain?.id == 84532) {
+                } else if (chain?.id == 84532 || chain?.id == 8453) {
 
                     const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
@@ -534,7 +534,7 @@ export default function DeployForm() {
                 // step 1: create subname
                 if (parentType === 'web3labs') {
                     await namingContract.setName(preDeploymentAddr, label, parentName, parentNode, { value: 100000000000000n })
-                } else if (chain?.id === 84532) {
+                } else if (chain?.id === 84532 || chain?.id == 8453) {
                     if (!nameExist) {
                         await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config?.PUBLIC_RESOLVER, 0)
                     }
