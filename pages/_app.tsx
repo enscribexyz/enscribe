@@ -1,6 +1,6 @@
 import type { AppProps } from 'next/app'
 import { WagmiProvider } from 'wagmi'
-import { sepolia, lineaSepolia, baseSepolia, mainnet } from 'wagmi/chains'
+import { sepolia, lineaSepolia, baseSepolia, mainnet, base } from 'wagmi/chains'
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css'
@@ -13,7 +13,8 @@ const wagmiClient = getDefaultConfig({
     mainnet,
     sepolia,
     lineaSepolia,
-    baseSepolia
+    base,
+    baseSepolia,
   ],
   ssr: true,
 });
