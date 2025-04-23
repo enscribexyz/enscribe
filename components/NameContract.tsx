@@ -70,7 +70,7 @@ export default function NameContract() {
     }, [config, parentType])
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532) return
+        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
 
         setFetchingENS(true)
         try {
@@ -92,7 +92,7 @@ export default function NameContract() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (isEmpty(label) || !signer || chain?.id == 59141 || chain?.id == 84532) return
+        if (isEmpty(label) || !signer || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
 
         // Validate label and parent name before checking
         // if (!label.trim()) {
@@ -238,11 +238,11 @@ export default function NameContract() {
             if (!recordExist) return false
 
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532) {
+            if (chain?.id != 84532 && chain?.id != 8453) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
-            if (chain?.id == 84532) {
+            if (chain?.id == 84532 || chain?.id == 8453) {
                 return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
             } else {
                 const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
@@ -277,7 +277,7 @@ export default function NameContract() {
 
             let tx;
 
-            if (chain?.id === 84532) {
+            if (chain?.id === 84532 || chain?.id === 8453) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -310,7 +310,7 @@ export default function NameContract() {
 
             let tx;
 
-            if (chain?.id === 84532) {
+            if (chain?.id === 84532 || chain?.id === 8453) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -381,7 +381,7 @@ export default function NameContract() {
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, sender)
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, sender)
             let nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532) {
+            if (chain?.id != 84532 && chain?.id != 8453) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, sender)
             }
             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, sender)
@@ -416,7 +416,7 @@ export default function NameContract() {
                             setError("Forward resolution already set")
                             console.log("Forward resolution already set")
                         }
-                    } else if (chain?.id === 84532) {
+                    } else if (chain?.id === 84532 || chain?.id === 84532) {
                         if (!nameExist) {
                             const tx = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
                             return tx

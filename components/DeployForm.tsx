@@ -236,7 +236,7 @@ export default function DeployForm() {
     }
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532) return
+        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
 
         setFetchingENS(true)
         try {
@@ -259,7 +259,7 @@ export default function DeployForm() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141 || chain?.id == 84532) return
+        if (!signer || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
 
 
         // Validate label and parent name before checking
@@ -333,11 +333,11 @@ export default function DeployForm() {
             if (!recordExist) return false
 
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532) {
+            if (chain?.id != 84532 && chain?.id != 8453) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
-            if (chain?.id == 84532) {
+            if (chain?.id == 84532 || chain?.id == 8453) {
                 return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
             } else {
                 const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
@@ -372,7 +372,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532) {
+            if (chain?.id === 84532 || chain?.id === 8453) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -405,7 +405,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532) {
+            if (chain?.id === 84532 || chain?.id === 8453) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -482,7 +482,7 @@ export default function DeployForm() {
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const parentNode = getParentNode(parentName)
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532) {
+            if (chain?.id != 84532 && chain?.id != 8453) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
@@ -497,25 +497,23 @@ export default function DeployForm() {
 
             if (isOwnable) {
                 if (parentType === 'web3labs') {
-                    steps.push({
-                        title: "Deploy and Set Primary Name",
-                        action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
 
-                        }
-                    })
-                } else if (chain?.id == 84532) {
+                    const txReceipt = await tx.wait()
+                    setTxHash(txReceipt.hash)
+                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                    setDeployedAddress(deployedContractAddress)
+                    setShowPopup(true)
+                } else if (chain?.id == 84532 || chain?.id == 8453) {
 
                     const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
-                        steps.push({
-                            title: "Give operator access",
-                            action: async () => {
-                                return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                            }
-                        })
-                    }
+                        const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                        await txSetApproval.wait();
 
+                        console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
+                    }
                     let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                     const txReceipt = await tx.wait()
                     setTxHash(txReceipt.hash)
@@ -523,6 +521,7 @@ export default function DeployForm() {
                     const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                     setDeployedAddress(deployedContractAddress)
                     setShowPopup(true)
+
                 } else {
                     console.log("User's parent deployment type")
                     const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
@@ -532,12 +531,10 @@ export default function DeployForm() {
                         console.log(`Wrapped detected.`);
                         const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                         if (!isApprovedForAll) {
-                            steps.push({
-                                title: "Give operator access",
-                                action: async () => {
-                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                }
-                            })
+                            const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                            await txSetApproval.wait();
+
+                            console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
                         }
 
                     } else {
@@ -545,12 +542,10 @@ export default function DeployForm() {
                         console.log(`Unwrapped detected.`);
                         const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                         if (!isApprovedForAll) {
-                            steps.push({
-                                title: "Give operator access",
-                                action: async () => {
-                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                }
-                            })
+                            const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                            await txSetApproval.wait();
+
+                            console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
                         }
                     }
 
@@ -562,11 +557,6 @@ export default function DeployForm() {
                     setDeployedAddress(deployedContractAddress)
                     setShowPopup(true)
                 }
-
-                setModalTitle("Deploy Contract and set Primary Name")
-                setModalSubtitle("Complete each step to finish naming this contract")
-                setModalSteps(steps)
-                setModalOpen(true)
             } else if (isReverseClaimable) {
                 if (isReverseSetter) {
                     // step 1: Get operator access

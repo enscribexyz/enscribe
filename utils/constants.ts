@@ -13,6 +13,20 @@ export type NetworkConfig = {
 };
 
 export const CONTRACTS: Record<number, NetworkConfig> = {
+    // mainnet
+    1: {
+        ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT!,
+        ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY!,
+        BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION!,
+        NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER!,
+        REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR!,
+        PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER!,
+        ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN!,
+        ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN!,
+        ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP!,
+        CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS!,
+        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API!
+    },
     // Sepolia Testnet
     11155111: {
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_SEPOLIA!,
@@ -41,6 +55,21 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_LINEA_SEPOLIA!,
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_LINEA_SEPOLIA!,
         ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_LINEA_SEPOLIA!
+    },
+
+    // BASE Sepolia Testnet
+    8453: {
+        ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE!,
+        ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_BASE!,
+        BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_BASE!,
+        NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_BASE!,
+        REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_BASE!,
+        PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_BASE!,
+        ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_BASE!,
+        ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_BASE!,
+        ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_BASE!,
+        CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_BASE!,
+        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_BASE!
     },
 
     // BASE Sepolia Testnet
