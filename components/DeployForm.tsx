@@ -496,7 +496,6 @@ export default function DeployForm() {
             const txCost = 100000000000000n
 
             if (isOwnable) {
-
                 if (parentType === 'web3labs') {
                     steps.push({
                         title: "Deploy and Set Primary Name",
@@ -570,7 +569,36 @@ export default function DeployForm() {
                 setModalOpen(true)
             } else if (isReverseClaimable) {
                 if (isReverseSetter) {
-                    // step 1: set name & deploy contract via enscribe contract
+                    // step 1: Get operator access
+                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+
+                    if (isWrapped) {
+                        // Wrapped Names
+                        console.log(`Wrapped detected.`);
+                        const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        if (!isApprovedForAll) {
+                            steps.push({
+                                title: "Give operator access",
+                                action: async () => {
+                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                }
+                            })
+                        }
+                    } else {
+                        //Unwrapped Names
+                        console.log(`Unwrapped detected.`);
+                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        if (!isApprovedForAll) {
+                            steps.push({
+                                title: "Give operator access",
+                                action: async () => {
+                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                }
+                            })
+                        }
+                    }
+
+                    // step 2: set name & deploy contract via enscribe contract
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
@@ -584,7 +612,36 @@ export default function DeployForm() {
                         }
                     })
                 } else { // default ReverseClaimable flow
-                    // step 1: set name & deploy contract via enscribe contract
+                    // step 1: Get operator access
+                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+
+                    if (isWrapped) {
+                        // Wrapped Names
+                        console.log(`Wrapped detected.`);
+                        const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        if (!isApprovedForAll) {
+                            steps.push({
+                                title: "Give operator access",
+                                action: async () => {
+                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                }
+                            })
+                        }
+                    } else {
+                        //Unwrapped Names
+                        console.log(`Unwrapped detected.`);
+                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        if (!isApprovedForAll) {
+                            steps.push({
+                                title: "Give operator access",
+                                action: async () => {
+                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                }
+                            })
+                        }
+                    }
+
+                    // step 2: set name & deploy contract via enscribe contract
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
