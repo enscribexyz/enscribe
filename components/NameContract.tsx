@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import {CheckCircleIcon} from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function NameContract() {
     const { address, isConnected, chain } = useAccount()
@@ -46,9 +46,7 @@ export default function NameContract() {
     const [isReverseClaimable, setIsReverseClaimable] = useState<boolean | null>(false);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
-    const [operatorAccess, setOperatorAccess] = useState(false)
     const [recordExists, setRecordExists] = useState(true);
-    const [accessLoading, setAccessLoading] = useState(false)
 
     const [modalOpen, setModalOpen] = useState(false);
     const [modalSteps, setModalSteps] = useState<Step[]>([]);
@@ -87,8 +85,6 @@ export default function NameContract() {
             setParentName("")
         }
         setFetchingENS(false)
-        const approved = await checkOperatorAccess()
-        setOperatorAccess(approved)
     }
 
     const checkENSReverseResolution = async () => {
@@ -130,7 +126,7 @@ export default function NameContract() {
     }
 
     function isEmpty(value: string) {
-        return (value == null ||  value.trim().length === 0);
+        return (value == null || value.trim().length === 0);
     }
 
     const checkIfAddressEmpty = (existingContractAddress: string): boolean => {
@@ -225,109 +221,6 @@ export default function NameContract() {
             return true
         } catch (err) {
             return false
-        }
-    }
-
-    const checkOperatorAccess = async (): Promise<boolean> => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return false;
-
-        try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const parentNode = getParentNode(parentName)
-
-            if (!recordExist) return false
-
-            var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532 && chain?.id != 8453) {
-                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
-            }
-
-            if (chain?.id == 84532 || chain?.id == 8453) {
-                return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-            } else {
-                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-                let approved = false
-
-                if (isWrapped) {
-                    // Wrapped Names
-                    console.log(`Wrapped detected.`);
-                    approved = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                } else {
-                    //Unwrapped Names
-                    console.log(`Unwrapped detected.`);
-                    approved = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
-                }
-                return approved
-            }
-        } catch (err) {
-            console.error("Approval check failed:", err)
-            return false
-        }
-    }
-
-    const revokeOperatorAccess = async () => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
-
-        setAccessLoading(true)
-
-        try {
-            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
-            const parentNode = getParentNode(parentName)
-            if (!(await recordExist())) return;
-
-            let tx;
-
-            if (chain?.id === 84532 || chain?.id === 8453) {
-                tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
-            } else {
-                const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
-                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
-
-                tx = isWrapped
-                    ? await nameWrapperContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false)
-                    : await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
-            }
-
-            await tx.wait()
-            toast({ title: "Access Revoked", description: `Operator role of ${parentName} revoked from Enscribe Contract` })
-            setOperatorAccess(false)
-        } catch (err: any) {
-            toast({ variant: "destructive", title: "Error", description: err?.message || "Revoke access failed" })
-        } finally {
-            setAccessLoading(false)
-        }
-    }
-
-    const grantOperatorAccess = async () => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
-
-        setAccessLoading(true)
-
-        try {
-            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
-            const parentNode = getParentNode(parentName)
-            if (!(await recordExist())) return;
-
-            let tx;
-
-            if (chain?.id === 84532 || chain?.id === 8453) {
-                tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
-            } else {
-                const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
-                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
-
-                tx = isWrapped
-                    ? await nameWrapperContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true)
-                    : await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
-            }
-
-            await tx.wait()
-            toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
-            setOperatorAccess(true)
-        } catch (err: any) {
-            toast({ variant: "destructive", title: "Error", description: err?.message || "Grant access failed" })
-        } finally {
-            setAccessLoading(false)
         }
     }
 
@@ -534,15 +427,15 @@ export default function NameContract() {
                     <>
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract implements <Link
-                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                                    className="text-gray-700 inline">Contract implements <Link
+                                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="text-gray-700 inline">Contract is either <Link
-                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                                    className="text-gray-700 inline">Contract is either <Link
+                                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                        className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
                         </div>
                     </>
                 }
@@ -596,44 +489,17 @@ export default function NameContract() {
                                     value={parentName}
                                     onChange={(e) => {
                                         setParentName(e.target.value)
-                                        setOperatorAccess(false)
                                         setRecordExists(false)
                                     }}
                                     onBlur={async () => {
                                         const exist = await recordExist()
                                         setRecordExists(exist)
-
-                                        const approved = await checkOperatorAccess()
-                                        console.log("Operator check for ", parentName, " is ", approved)
-                                        setOperatorAccess(approved)
-
-
                                     }}
                                     placeholder="mydomain.eth"
                                     className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
 
-                                {operatorAccess && recordExists && (
-                                    <Button variant="destructive" disabled={accessLoading} onClick={revokeOperatorAccess}>
-                                        {accessLoading ? "Revoking..." : "Revoke Access"}
-                                    </Button>
-                                )}
-
-                                {!operatorAccess && recordExists && (
-                                    <Button disabled={accessLoading} onClick={grantOperatorAccess}>
-                                        {accessLoading ? "Granting..." : "Grant Access"}
-                                    </Button>
-                                )}
-
                             </div>
-                        )}
-                        {/* Access Info Message */}
-                        {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
-                            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
-                                {operatorAccess
-                                    ? "Note: You can revoke Operator role from Enscribe here."
-                                    : "Note: You can grant Operator role to Enscribe through here, otherwise Enscribe will ask you to grant operator access during deployment. Operator access is required to create subnames and forward resolution records."}
-                            </p>
                         )}
                     </>
                 )}
