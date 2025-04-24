@@ -175,6 +175,7 @@ export default function NameContract() {
     const checkIfReverseClaimable = async (address: string) => {
         if (checkIfAddressEmpty(address) || !isAddressValid(address)) {
             setIsOwnable(false);
+            setIsReverseClaimable(false);
             return
         }
 
@@ -431,11 +432,11 @@ export default function NameContract() {
                                     className="text-gray-700 inline">Contract implements <Link
                                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                                         className="text-blue-600 hover:underline">Ownable</Link></p></>)}
-                            {isReverseClaimable && (<><CheckCircleIcon
+                            {isReverseClaimable && !isOwnable && (<><CheckCircleIcon
                                 className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
-                                    className="text-gray-700 inline">Contract is either <Link
+                                    className="text-gray-700 inline">Contract is <Link
                                         href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                        className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
+                                        className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
                     </>
                 }
