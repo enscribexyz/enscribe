@@ -11,10 +11,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import {CONTRACTS, TOPIC0} from '../utils/constants';
+import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
-import SetNameStepsModal, {Step} from './SetNameStepsModal';
-import {CheckCircleIcon} from "@heroicons/react/24/outline";
+import SetNameStepsModal, { Step } from './SetNameStepsModal';
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 
 const OWNABLE_FUNCTION_SELECTORS = [
@@ -55,8 +55,8 @@ const checkIfReverseClaimable = (bytecode: string): boolean => {
 };
 
 export default function DeployForm() {
-    const {address, isConnected, chain} = useAccount()
-    const {data: walletClient} = useWalletClient()
+    const { address, isConnected, chain } = useAccount()
+    const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -117,11 +117,11 @@ export default function DeployForm() {
     }, [bytecode])
 
     const addArg = () =>
-        setArgs([...args, {type: "string", value: "", isCustom: false}])
+        setArgs([...args, { type: "string", value: "", isCustom: false }])
 
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
         const newArgs = [...args]
-        newArgs[index] = {...newArgs[index], ...updated}
+        newArgs[index] = { ...newArgs[index], ...updated }
         setArgs(newArgs)
     }
 
@@ -132,7 +132,7 @@ export default function DeployForm() {
     }
 
     function isEmpty(value: string) {
-        return (value == null ||  value.trim().length === 0);
+        return (value == null || value.trim().length === 0);
     }
 
     const handleAbiInput = (text: string) => {
@@ -143,7 +143,7 @@ export default function DeployForm() {
         }
 
         try {
-            const {value: parsed, error} = parseJson(text)
+            const { value: parsed, error } = parseJson(text)
 
             if (error || !parsed) {
                 console.log("Invalid ABI")
@@ -465,7 +465,7 @@ export default function DeployForm() {
             console.log("Using Enscribe contract:", config.ENSCRIBE_CONTRACT);
         }
 
-        let deployedAddr ='';
+        let deployedAddr = '';
 
         try {
             setLoading(true)
@@ -497,30 +497,31 @@ export default function DeployForm() {
 
             if (isOwnable) {
                 if (parentType === 'web3labs') {
-                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                    steps.push({
+                        title: "Deploy and Set Primary Name",
+                        action: async () => {
+                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                        }
+                    })
 
-                    const txReceipt = await tx.wait()
-                    setTxHash(txReceipt.hash)
-                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                    setDeployedAddress(deployedContractAddress)
-                    setShowPopup(true)
                 } else if (chain?.id == 84532 || chain?.id == 8453) {
 
                     const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
-                        const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                        await txSetApproval.wait();
-
-                        console.log(`Base name approvalStatus changed: ${txSetApproval.hash}`);
+                        steps.push({
+                            title: "Give operator access",
+                            action: async () => {
+                                return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                            }
+                        })
                     }
-                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
-                    const txReceipt = await tx.wait()
-                    setTxHash(txReceipt.hash)
-                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                    setDeployedAddress(deployedContractAddress)
-                    setShowPopup(true)
+
+                    steps.push({
+                        title: "Deploy and Set primary Name",
+                        action: async () => {
+                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                        }
+                    })
 
                 } else {
                     console.log("User's parent deployment type")
@@ -531,10 +532,12 @@ export default function DeployForm() {
                         console.log(`Wrapped detected.`);
                         const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                         if (!isApprovedForAll) {
-                            const txSetApproval = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                            await txSetApproval.wait();
-
-                            console.log(`Wrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                            steps.push({
+                                title: "Give operator access",
+                                action: async () => {
+                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                }
+                            })
                         }
 
                     } else {
@@ -542,21 +545,27 @@ export default function DeployForm() {
                         console.log(`Unwrapped detected.`);
                         const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                         if (!isApprovedForAll) {
-                            const txSetApproval = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                            await txSetApproval.wait();
-
-                            console.log(`Unwrapped name approvalStatus changed: ${txSetApproval.hash}`);
+                            steps.push({
+                                title: "Give operator access",
+                                action: async () => {
+                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                }
+                            })
                         }
                     }
 
-                    let tx = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
-                    const txReceipt = await tx.wait()
-                    setTxHash(txReceipt.hash)
-                    const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                    const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                    setDeployedAddress(deployedContractAddress)
-                    setShowPopup(true)
+                    steps.push({
+                        title: "Deploy and Set primary Name",
+                        action: async () => {
+                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                        }
+                    })
                 }
+
+                setModalTitle("Deploy Contract and set Primary Name")
+                setModalSubtitle("Complete each step to finish naming this contract")
+                setModalSteps(steps)
+                setModalOpen(true)
             } else if (isReverseClaimable) {
                 if (isReverseSetter) {
                     // step 1: Get operator access
@@ -592,7 +601,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await tx.wait()
                             setTxHash(txReceipt.hash)
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -635,7 +644,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await tx.wait()
                             setTxHash(txReceipt.hash)
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -685,7 +694,7 @@ export default function DeployForm() {
                     }}
                     placeholder="0x60037..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
-                    }`}
+                        }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
@@ -698,15 +707,15 @@ export default function DeployForm() {
                     <>
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="ml-1 text-gray-700 inline">Contract implements <Link
-                                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                                className="text-blue-600 hover:underline">Ownable</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                                    className="ml-1 text-gray-700 inline">Contract implements <Link
+                                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="ml-1 text-gray-700 inline">Contract is either <Link
-                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                                    className="ml-1 text-gray-700 inline">Contract is either <Link
+                                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                        className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
                         </div>
                     </>
                 }
@@ -716,7 +725,7 @@ export default function DeployForm() {
                         <div className={"flex"}>
                             <Input type={"checkbox"} className={"w-4 h-4 mt-1"} checked={isReverseSetter} onChange={(e) => {
                                 setIsReverseSetter(!isReverseSetter)
-                            }}/>
+                            }} />
                             <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract is a <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link> (This will deploy & set the name of the contract using different steps than ReverseClaimable)</label>
                         </div>
                     </>
@@ -748,15 +757,15 @@ export default function DeployForm() {
                                     value={arg.type}
                                     onValueChange={(value) => {
                                         if (value === "custom") {
-                                            updateArg(index, {isCustom: true, type: ""})
+                                            updateArg(index, { isCustom: true, type: "" })
                                         } else {
-                                            updateArg(index, {type: value, isCustom: false})
+                                            updateArg(index, { type: value, isCustom: false })
                                         }
                                     }}
                                 >
                                     <SelectTrigger
                                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                                        <SelectValue className="text-gray-900"/>
+                                        <SelectValue className="text-gray-900" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                                         {commonTypes.map((t) => (
@@ -769,7 +778,7 @@ export default function DeployForm() {
                                 <Input
                                     type="text"
                                     value={arg.type}
-                                    onChange={(e) => updateArg(index, {type: e.target.value})}
+                                    onChange={(e) => updateArg(index, { type: e.target.value })}
                                     placeholder="Enter custom type (e.g. tuple(string,uint256))"
                                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
@@ -778,7 +787,7 @@ export default function DeployForm() {
                             <Input
                                 type="text"
                                 value={arg.value}
-                                onChange={(e) => updateArg(index, {value: e.target.value})}
+                                onChange={(e) => updateArg(index, { value: e.target.value })}
                                 placeholder={
                                     arg.type.includes("tuple") && arg.type.includes("[]")
                                         ? '[["name", 10, "0x..."], ["bob", 20, "0x..."]]'
@@ -836,7 +845,7 @@ export default function DeployForm() {
                 >
                     <SelectTrigger
                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900"/>
+                        <SelectValue className="text-gray-900" />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
@@ -905,9 +914,9 @@ export default function DeployForm() {
             >
                 {loading ? (
                     <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
-                         xmlns="http://www.w3.org/2000/svg">
+                        xmlns="http://www.w3.org/2000/svg">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                strokeWidth="4"></circle>
+                            strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                 ) : 'Deploy'}
