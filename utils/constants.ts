@@ -42,6 +42,21 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_SEPOLIA!
     },
 
+    // Linea mainnet
+    59144: {
+        ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA!,
+        ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_LINEA!,
+        BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_LINEA!,
+        NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_LINEA!,
+        REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_LINEA!,
+        PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_LINEA!,
+        ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_LINEA!,
+        ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_LINEA!,
+        ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_LINEA!,
+        CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_LINEA!,
+        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_LINEA!
+    },
+
     // Linea Sepolia Testnet
     59141: {
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA_SEPOLIA!,
@@ -57,7 +72,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_LINEA_SEPOLIA!
     },
 
-    // BASE Sepolia Testnet
+    // BASE mainnet
     8453: {
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE!,
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_BASE!,
