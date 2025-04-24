@@ -1,0 +1,96 @@
+---
+slug: enscribe-reverseclaimable-reversesetter
+title: ReverseClaimable and ReverseSetter Support for Naming Contracts with Enscribe
+authors: [abhi]
+tags: [ens]
+---
+
+Ethereum contracts are powerful — but to most users, they’re still just anonymous strings of hex. With Enscribe, we’re changing that. Today, we’re adding support for ReverseClaimable and ReverseSetter contracts, making it easier than ever to give your smart contracts a name that users and apps can actually recognise.
+
+Whether you’re building a dapp, deploying infrastructure, or simply want your contracts to show up in wallets and explorers with real names instead of 0x addresses, Enscribe now supports flows that integrate reverse name claiming directly into your deployments.
+
+This post walks you through both approaches — what they are, how they work, and how to use them in Enscribe today.
+
+## ReverseClaimable Contract
+
+When this contract is deployed, the account that is deploying this contract will be given the ownership of the reverse node for that contract address. For e.g., if the address is 0x123, then a reverse node is the name-hash of 0x123.addr.reverse. This will give you the authorization to set the name of the reverse node via a call to `setName(reverseNode, name)` method on the public resolver contract.
+
+## How to deploy a contract that implements ReverseClaimer
+
+Let's create a sample contract that implements [ReverseClaimable](https://docs.ens.domains/web/naming-contracts#reverseclaimersol):
+
+```Solidity
+import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
+import "@ensdomains/ens-contracts/contracts/reverseRegistrar/ReverseClaimer.sol";
+
+contract MyContract is ReverseClaimer {
+	constructor (
+    	ENS ens
+	) ReverseClaimer(ens, msg.sender) {}
+}
+```
+
+This contract requires the ENS registry address as the constructor parameter. You can find registry addresses for different chains [here](https://docs.ens.domains/learn/deployments/). After we compile the contract & paste its ABI on the Enscribe UI, we can enter the value of the parameter, label value as usual & select the ENS parent type:
+
+![ReverseClaimable deploy form](reverseclaimable-deploy.png)
+
+Final step is to hit the Deploy button and complete the single step shown:
+
+![ReverseClaimable steps](reverseclaimable-steps.png)
+
+This will delegate the contract deployment & setting of primary name to the Enscribe contract. After the deployment & naming is successful, we see a dialog showing us the transaction details:
+
+![ReverseClaimable success](reverseclaimable-success.png)
+
+If a step fails after deploying the contract, instead of redeploying the contract (which will need eth), we can simply go to the Name Existing Contract page and change the name.
+
+## ReverseSetter Contract
+
+A [ReverseSetter](https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor) contract allows the name to be set only once - during its deployment. This is done by passing the name to the constructor of the contract:
+
+```Solidity
+contract ReverseSetter {
+        /// @dev The ENS registry
+        ENS private constant ens = ENS(0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e);
+
+        /// @dev Output of namehash("addr.reverse")
+        bytes32 private constant ADDR_REVERSE_NODE =
+            0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
+
+        /// @param name The reverse name to set for this contract's address.
+        constructor(string memory name) {
+            IReverseRegistrar reverseRegistrar = IReverseRegistrar(
+                ens.owner(ADDR_REVERSE_NODE)
+            );
+            reverseRegistrar.setName(name);
+        }
+}
+```
+
+## How to deploy a ReverseSetter Contract
+
+As before, let's compile the above contract, copy & paste the bytecode, ABI values in the respective fields. We’ll also tick the box to tell Enscribe that our contract is a ReverseSetter.
+
+The reason why we need to tick this box when deploying & naming a ReverseSetter contract is because there’s no way to differentiate the bytecode of a ReverseClaimable contract from that of a Reversetter contract. So, the onus lies on the deployer of the contract to tell Enscribe what kind of a contract they are deploying. Ticking this box will tell Enscribe to  perform a different set of steps than the ReverseClaimable flow above to deploy & set the primary name.
+
+Now, enter the full name of the contract in the constructor argument field. Let's also put the same label value in the label field & select the appropriate parent. Remember, the ‘name’ arg value should match the label & parent values.
+
+![ReverseSetter deploy](reversesetter-deploy.png)
+
+At last, we hit the Deploy button & complete the single step shown:
+
+![ReverseSetter steps](reversesetter-steps.png)
+
+In this case too, contract deployment & setting of primary name is delegated to the Enscribe contract. After the steps are completed, we see our success dialog:
+
+![ReverseSetter success](reversesetter-success.png)
+
+If the deployment of the contract succeeds but naming fails, we can simply set the name of the deployed contract instead of redeploying it through the Name Existing Contract page.
+
+With support for ReverseClaimable and ReverSetter contracts now live, Enscribe keeps pushing the smart contract experience closer to something that actually feels user-friendly. Whether you’re deep in the weeds of dapp development or just want your contracts to show up with proper names, there’s never been a better time to give it a spin. Try it out, see what sticks—and maybe finally retire that long string of 0x gibberish.
+
+To learn more about using Enscribe, visit our [documentation](https://www.enscribe.xyz/docs).
+
+We'd love to hear your feedback and collaborate — join our [Discord community](https://discord.gg/8QUMMdS5GY) and let’s build a clearer, safer Ethereum together.
+
+Happy deploying! 🚀
