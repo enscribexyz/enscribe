@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router';
 import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
@@ -18,6 +19,7 @@ import SetNameStepsModal, { Step } from './SetNameStepsModal';
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function NameContract() {
+    const router = useRouter();
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
@@ -60,6 +62,24 @@ export default function NameContract() {
             return ""
         }
     }
+
+    useEffect(() => {
+        const initFromQuery = async () => {
+            if (
+                router.query.contract &&
+                ethers.isAddress(router.query.contract as string) &&
+                signer
+            ) {
+                const addr = router.query.contract as string;
+                setExistingContractAddress(addr);
+                isAddressValid(addr);
+                await checkIfOwnable(addr);
+                await checkIfReverseClaimable(addr);
+            }
+        };
+
+        initFromQuery();
+    }, [router.query.contract, signer]);
 
     useEffect(() => {
         if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
