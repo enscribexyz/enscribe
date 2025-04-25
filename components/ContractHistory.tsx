@@ -138,13 +138,13 @@ export default function ContractHistory() {
                         <TabsTrigger
                             value="with-ens"
                             className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-white text-black data-[state=active]:bg-black data-[state=active]:text-white">
-                            Contracts With Primary ENS
+                            Named Contracts
                         </TabsTrigger>
 
                         <TabsTrigger
                             value="without-ens"
                             className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-white text-black data-[state=active]:bg-black data-[state=active]:text-white">
-                            Contracts Without Primary ENS
+                            Unnamed Contracts
                         </TabsTrigger>
                     </TabsList>
 
