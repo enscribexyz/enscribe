@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { CONTRACTS, TOPIC0 } from '../utils/constants'
@@ -22,12 +23,14 @@ interface Contract {
     ensName: string
     contractAddress: string
     txHash: string
+    isOwnable: boolean;
 }
 
 export default function ContractHistory() {
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined
+    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const [withENS, setWithENS] = useState<Contract[]>([])
     const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -66,11 +69,15 @@ export default function ContractHistory() {
 
             for (const tx of data.result || []) {
                 const txHash = tx.hash
+                let isOwnable = true
 
                 if (tx.to === '') {
                     const contractAddr = tx.contractAddress
                     const ensName = await getENS(contractAddr)
-                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash }
+                    if (!ensName) {
+                        isOwnable = await checkIfOwnable(contractAddr)
+                    }
+                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
 
                     if (!isMounted) return
                     ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev])
@@ -79,7 +86,7 @@ export default function ContractHistory() {
                     const deployed = await extractDeployed(txHash)
                     if (deployed) {
                         const ensName = await getENS(deployed)
-                        const contract: Contract = { ensName, contractAddress: deployed, txHash }
+                        const contract: Contract = { ensName, contractAddress: deployed, txHash, isOwnable }
 
                         if (!isMounted) return
                         ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev])
@@ -119,6 +126,19 @@ export default function ContractHistory() {
             return ''
         }
     }
+
+    const checkIfOwnable = async (address: string): Promise<boolean> => {
+        try {
+            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer));
+            const ownerAddress = await contract.owner();
+            if (ownerAddress)
+                return true
+            return false
+        } catch (err) {
+            return false
+        }
+    };
+
 
     const truncate = (text: string) =>
         text.length <= 20 ? text : `${text.slice(0, 20)}...${text.slice(-3)}`
@@ -250,6 +270,30 @@ export default function ContractHistory() {
                                                 <Link href={`${etherscanUrl}address/${c.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
                                                     {truncate(c.contractAddress)}
                                                 </Link>
+                                                {c.isOwnable && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <InformationCircleIcon className="w-5 h-5 inline text-gray-500 ml-2 cursor-pointer" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" align="center">
+                                                                <p>Extends Ownable</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
+                                                {c.isOwnable && (
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" align="center">
+                                                                <p>You can set Primary Name for this address</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank" className="text-blue-600 hover:underline">
