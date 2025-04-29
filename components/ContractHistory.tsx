@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAccount, useWalletClient } from 'wagmi'
-import { ethers } from 'ethers'
+import { ethers, namehash } from 'ethers'
 import {
     Table,
     TableBody,
@@ -13,11 +13,12 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { CONTRACTS, TOPIC0 } from '../utils/constants'
+import ensRegistryABI from '../contracts/ENSRegistry'
 
 interface Contract {
     ensName: string
@@ -69,27 +70,37 @@ export default function ContractHistory() {
 
             for (const tx of data.result || []) {
                 const txHash = tx.hash
-                let isOwnable = true
+                let isOwnable = false
 
                 if (tx.to === '') {
                     const contractAddr = tx.contractAddress
                     const ensName = await getENS(contractAddr)
-                    if (!ensName) {
-                        isOwnable = await checkIfOwnable(contractAddr)
+
+                    isOwnable = await checkIfOwnable(contractAddr)
+                    if (!isOwnable) {
+                        isOwnable = await checkIfReverseClaimable(contractAddr)
                     }
                     const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
+                    console.log("contract - ", contract)
 
-                    if (!isMounted) return
-                    ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev])
+                    if (isMounted) {
+                        ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev]);
+                    }
 
                 } else if (["0xacd71554", "0x04917062", "0x7ed7e08c", "0x5a0dac49"].includes(tx.methodId)) {
                     const deployed = await extractDeployed(txHash)
                     if (deployed) {
                         const ensName = await getENS(deployed)
+                        isOwnable = await checkIfOwnable(deployed)
+                        if (!isOwnable) {
+                            isOwnable = await checkIfReverseClaimable(deployed)
+                        }
                         const contract: Contract = { ensName, contractAddress: deployed, txHash, isOwnable }
+                        console.log("contract - ", contract)
 
-                        if (!isMounted) return
-                        ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev])
+                        if (isMounted) {
+                            ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev]);
+                        }
                     }
                 }
             }
@@ -119,22 +130,52 @@ export default function ContractHistory() {
     }
 
     const getENS = async (addr: string): Promise<string> => {
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum)
-            return (await provider.lookupAddress(addr)) || ''
-        } catch {
-            return ''
+        if (chain?.id == 1 || chain?.id == 11155111) {
+            try {
+                return (await (await signer)?.provider.lookupAddress(addr)) || ''
+            } catch {
+                return ''
+            }
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+                const reversedNode = await reverseRegistrarContract.node(addr)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+                const name = await resolverContract.name(reversedNode)
+                return name || '';
+            } catch (error) {
+                return ''
+            }
         }
+
     }
 
     const checkIfOwnable = async (address: string): Promise<boolean> => {
         try {
-            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer));
-            const ownerAddress = await contract.owner();
-            if (ownerAddress)
-                return true
-            return false
+            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer)?.provider);
+            await contract.owner();
+            return true
         } catch (err) {
+            return false
+        }
+    };
+
+    const checkIfReverseClaimable = async (address: string): Promise<boolean> => {
+        try {
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const addrLabel = address.slice(2).toLowerCase()
+            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
+
+            const sender = (await signer)
+            const signerAddress = sender?.address;
+            if (resolvedAddr === signerAddress) {
+                return true
+            } else {
+                return false
+            }
+        } catch (err) {
+            console.log("err " + err);
             return false
         }
     };
@@ -260,7 +301,7 @@ export default function ContractHistory() {
                                     <TableRow>
                                         <TableHead>Address</TableHead>
                                         <TableHead>Tx Hash</TableHead>
-                                        <TableHead>Action</TableHead>
+                                        <TableHead className="text-center">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -270,42 +311,55 @@ export default function ContractHistory() {
                                                 <Link href={`${etherscanUrl}address/${c.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
                                                     {truncate(c.contractAddress)}
                                                 </Link>
-                                                {c.isOwnable && (
+                                                {c.isOwnable ?
                                                     <TooltipProvider>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
-                                                                <InformationCircleIcon className="w-5 h-5 inline text-gray-500 ml-2 cursor-pointer" />
+                                                                <InformationCircleIcon className="w-5 h-5 inline text-green-700 ml-2 cursor-pointer" />
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top" align="center">
-                                                                <p>Extends Ownable</p>
+                                                                <p>You can set Primary Name for this contract</p>
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
-                                                )}
-                                                {c.isOwnable && (
+                                                    :
                                                     <TooltipProvider>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
-                                                                <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
+                                                                <ExclamationCircleIcon className="w-5 h-5 inline text-amber-500 ml-2 cursor-pointer" />
                                                             </TooltipTrigger>
                                                             <TooltipContent side="top" align="center">
-                                                                <p>You can set Primary Name for this address</p>
+                                                                <p>You can only set Forward Resolution for this contract</p>
                                                             </TooltipContent>
                                                         </Tooltip>
                                                     </TooltipProvider>
-                                                )}
+                                                }
                                             </TableCell>
                                             <TableCell>
                                                 <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank" className="text-blue-600 hover:underline">
                                                     {truncate(c.txHash)}
                                                 </Link>
                                             </TableCell>
-                                            <TableCell>
-                                                <Button asChild variant="default">
+                                            <TableCell className="flex gap-2 justify-center">
+                                                {c.isOwnable ?
+                                                    <Button asChild variant="default">
+                                                        <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
+                                                            Name Contract
+                                                        </Link>
+                                                    </Button>
+                                                    :
+                                                    <Button asChild variant="default">
+                                                        <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
+                                                            Forward Resolve
+                                                        </Link>
+                                                    </Button>
+
+                                                }
+                                                {/* <Button asChild variant="default">
                                                     <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
                                                         Name Contract
                                                     </Link>
-                                                </Button>
+                                                </Button> */}
                                             </TableCell>
                                         </TableRow>
                                     ))}

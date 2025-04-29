@@ -9,8 +9,8 @@ interface LayoutProps {
 }
 
 const navigation = [
-    { name: 'Deploy New Contract', href: '/deploy', icon: PencilSquareIcon },
-    { name: 'Name Existing Contract', href: '/nameContract', icon: DocumentTextIcon },
+    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
+    { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
     { name: 'My Contracts', href: '/history', icon: ClockIcon }
 ];
 

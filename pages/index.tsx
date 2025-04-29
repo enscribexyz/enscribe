@@ -1,6 +1,7 @@
 import React from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Link } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -21,17 +22,42 @@ export default function Home() {
         </div>
 
         {/* Main Content Card */}
-        <Card className="w-full max-w-4xl shadow-lg rounded-lg">
+        <Card className="w-full max-w-5xl shadow-lg rounded-lg">
           <CardHeader>
             <CardTitle className="text-3xl font-bold text-gray-900 dark:text-white text-center">
-              DApp to Deploy Contracts with Primary ENS Name
+              Name Your Smart Contracts
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
-            <p className="text-gray-700 dark:text-gray-300 text-center leading-relaxed">
-              This DApp allows users to seamlessly deploy Ethereum contracts while linking them to their primary ENS names.
-              Utilize the sidebar for quick navigation and streamlined contract deployment.
+
+          <CardContent className="p-6 space-y-4 text-gray-700 leading-relaxed">
+            <p>
+              Enscribe is here to increase trust for users of Ethereum. By getting everyone to name their smart contracts with ENS names, users stop being confronted with meaningless hex and instead see ENS names such as
+              <a
+                href="https://app.ens.domains/v0.app.enscribe.eth"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline mx-1"
+              >
+                v0.app.enscribe.eth
+              </a>
+              when transacting with an app.
             </p>
+
+            <div>
+              <p>You can use the Enscribe app to:</p>
+              <ul className="list-disc list-inside mt-2">
+                <li>Deploy smart contracts with ENS name → <b>Deploy Contract</b> page</li>
+                <li>Name existing contract with ENS name → <b>Name Contract</b> page</li>
+                <li>View contracts you’ve deployed that can be named</li>
+              </ul>
+            </div>
+
+            <p>
+              Naming contracts is the first step in improving the safety of Ethereum for users.
+              Coming soon are verifications to further enhance the safety and UX.
+            </p>
+
+            <p className="font-medium">Happy naming!</p>
           </CardContent>
         </Card>
       </div>
