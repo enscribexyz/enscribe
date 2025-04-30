@@ -17,8 +17,11 @@ import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/2
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { CONTRACTS, TOPIC0 } from '../utils/constants'
+import { CONTRACTS, TOPIC0, CHAINS } from '../utils/constants'
 import ensRegistryABI from '../contracts/ENSRegistry'
+import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
+import publicResolverABI from '../contracts/PublicResolver'
+
 
 interface Contract {
     ensName: string
@@ -152,7 +155,7 @@ export default function ContractHistory() {
     }
 
     const getENS = async (addr: string): Promise<string> => {
-        if (chain?.id == 1 || chain?.id == 11155111) {
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
             try {
                 return (await (await signer)?.provider.lookupAddress(addr)) || ''
             } catch {
@@ -160,9 +163,9 @@ export default function ContractHistory() {
             }
         } else {
             try {
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
                 const reversedNode = await reverseRegistrarContract.node(addr)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
                 const name = await resolverContract.name(reversedNode)
                 return name || '';
             } catch (error) {

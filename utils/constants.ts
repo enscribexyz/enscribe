@@ -111,3 +111,12 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
 };
 
 export const TOPIC0 = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
+
+export enum CHAINS {
+    MAINNET = 1,
+    SEPOLIA = 11155111,
+    LINEA = 59144,
+    LINEA_SEPOLIA = 59141,
+    BASE = 8453,
+    BASE_SEPOLIA = 84532
+}

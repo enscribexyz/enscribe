@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import { CONTRACTS, TOPIC0 } from '../utils/constants';
+import { CHAINS, CONTRACTS, TOPIC0 } from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
@@ -240,7 +240,7 @@ export default function DeployForm() {
 
         const provider = (await signer).provider
         setFetchingENS(true)
-        if (chain?.id === 1 || chain?.id === 11155111) {
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
             try {
                 const ensName = await provider.lookupAddress(address)
                 if (ensName) {
@@ -276,7 +276,7 @@ export default function DeployForm() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
+        if (!signer) return
 
 
         // Validate label and parent name before checking
@@ -350,11 +350,11 @@ export default function DeployForm() {
             if (!recordExist) return false
 
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532 && chain?.id != 8453) {
+            if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
-            if (chain?.id == 84532 || chain?.id == 8453) {
+            if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                 return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
             } else {
                 const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
@@ -389,7 +389,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532 || chain?.id === 8453) {
+            if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -422,7 +422,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532 || chain?.id === 8453) {
+            if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -521,7 +521,7 @@ export default function DeployForm() {
                         }
                     })
 
-                } else if (chain?.id == 84532 || chain?.id == 8453) {
+                } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
 
                     const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {

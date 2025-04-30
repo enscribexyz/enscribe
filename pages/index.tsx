@@ -46,9 +46,9 @@ export default function Home() {
             <div>
               <p>You can use the Enscribe app to:</p>
               <ul className="list-disc list-inside mt-2">
-                <li>Deploy smart contracts with ENS name → <b>Deploy Contract</b> page</li>
-                <li>Name existing contract with ENS name → <b>Name Contract</b> page</li>
-                <li>View contracts you’ve deployed that can be named</li>
+                <li><a href="/deploy" className="text-blue-600 hover:underline mx-1">Deploy smart contracts with ENS name</a></li>
+                <li><a href="/nameContract" className="text-blue-600 hover:underline mx-1">Name existing contract with ENS name</a></li>
+                <li><a href="/history" className="text-blue-600 hover:underline mx-1">View contracts you’ve deployed that can be named</a></li>
               </ul>
             </div>
 
