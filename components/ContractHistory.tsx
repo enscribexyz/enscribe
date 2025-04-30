@@ -45,6 +45,8 @@ export default function ContractHistory() {
 
     const etherscanApi = config!.ETHERSCAN_API
     const etherscanUrl = config!.ETHERSCAN_URL
+    const blockscoutUrl = config!.BLOCKSCOUT_URL
+    const chainlensUrl = config!.CHAINLENS_URL
     const ensAppUrl = config!.ENS_APP_URL
     const topic0 = TOPIC0
 
@@ -84,11 +86,21 @@ export default function ContractHistory() {
                     console.log("contract - ", contract)
 
                     if (isMounted) {
-                        ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev]);
+                        if (ensName) {
+                            setWithENS(prev => {
+                                const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                return alreadyExists ? prev : [contract, ...prev];
+                            });
+                        } else {
+                            setWithoutENS(prev => {
+                                const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                return alreadyExists ? prev : [contract, ...prev];
+                            });
+                        }
                     }
 
                 } else if (["0xacd71554", "0x04917062", "0x7ed7e08c", "0x5a0dac49"].includes(tx.methodId)) {
-                    const deployed = await extractDeployed(txHash)
+                    const deployed = await extractDeployed(txHash) || ""
                     if (deployed) {
                         const ensName = await getENS(deployed)
                         isOwnable = await checkIfOwnable(deployed)
@@ -99,7 +111,17 @@ export default function ContractHistory() {
                         console.log("contract - ", contract)
 
                         if (isMounted) {
-                            ensName ? setWithENS(prev => [contract, ...prev]) : setWithoutENS(prev => [contract, ...prev]);
+                            if (ensName) {
+                                setWithENS(prev => {
+                                    const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                    return alreadyExists ? prev : [contract, ...prev];
+                                });
+                            } else {
+                                setWithoutENS(prev => {
+                                    const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                    return alreadyExists ? prev : [contract, ...prev];
+                                });
+                            }
                         }
                     }
                 }
@@ -244,6 +266,20 @@ export default function ContractHistory() {
                                                         Etherscan
                                                     </Link>
                                                 </Button>
+                                                {chainlensUrl ?
+                                                    <Button asChild variant="outline">
+                                                        <Link href={`${chainlensUrl}transactions/${c.txHash}`} target="_blank">
+                                                            Chainlens
+                                                        </Link>
+                                                    </Button>
+                                                    :
+                                                    <Button asChild variant="outline">
+                                                        <Link href={`${blockscoutUrl}tx/${c.txHash}`} target="_blank">
+                                                            Blockscout
+                                                        </Link>
+                                                    </Button>
+                                                }
+
                                                 <Button asChild variant="outline">
                                                     <Link href={`${ensAppUrl}${c.ensName}`} target="_blank">
                                                         ENS App

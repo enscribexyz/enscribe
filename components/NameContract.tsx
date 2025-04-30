@@ -88,21 +88,37 @@ export default function NameContract() {
     }, [config, parentType])
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
+        if (!signer || !address) return
 
+        const provider = (await signer).provider
         setFetchingENS(true)
-        try {
-            const provider = (await signer).provider
-            const ensName = await provider.lookupAddress(address)
-
-            if (ensName) {
-                setParentName(ensName)
-            } else {
+        if (chain?.id === 1 || chain?.id === 11155111) {
+            try {
+                const ensName = await provider.lookupAddress(address)
+                if (ensName) {
+                    setParentName(ensName)
+                } else {
+                    setParentName("")
+                }
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
                 setParentName("")
             }
-        } catch (error) {
-            console.error("Error fetching ENS name:", error)
-            setParentName("")
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+                const reversedNode = await reverseRegistrarContract.node(address)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+                const ensName = await resolverContract.name(reversedNode)
+                if (ensName) {
+                    setParentName(ensName)
+                } else {
+                    setParentName("")
+                }
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
+                setParentName("")
+            }
         }
         setFetchingENS(false)
     }
