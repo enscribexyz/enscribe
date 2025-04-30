@@ -1,254 +1,450 @@
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useAccount, useWalletClient } from 'wagmi';
-import { ethers } from 'ethers';
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
+// ContractHistory.tsx (with incremental loading and improved UX)
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useAccount, useWalletClient } from 'wagmi'
+import { ethers, namehash } from 'ethers'
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { ExclamationCircleIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { CONTRACTS, TOPIC0 } from '../utils/constants';
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { CONTRACTS, TOPIC0, CHAINS } from '../utils/constants'
+import ensRegistryABI from '../contracts/ENSRegistry'
+import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
+import publicResolverABI from '../contracts/PublicResolver'
+
 
 interface Contract {
-    ensName: string;
-    contractAddress: string;
-    txHash: string;
-    isPrimary: boolean;
+    ensName: string
+    contractAddress: string
+    txHash: string
     isOwnable: boolean;
 }
 
 export default function ContractHistory() {
-    const { address, isConnected, chain } = useAccount();
-    const { data: walletClient } = useWalletClient();
-    const config = chain?.id ? CONTRACTS[chain.id] : undefined;
+    const { address, isConnected, chain } = useAccount()
+    const { data: walletClient } = useWalletClient()
+    const config = chain?.id ? CONTRACTS[chain.id] : undefined
+    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
-    const [contracts, setContracts] = useState<Contract[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const [withENS, setWithENS] = useState<Contract[]>([])
+    const [withoutENS, setWithoutENS] = useState<Contract[]>([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [processing, setProcessing] = useState(true)
 
-    const contractAddress = config?.ENSCRIBE_CONTRACT!
-    const topic0_setName = TOPIC0!
-    const etherscanUrl = config!.ETHERSCAN_URL
-    const ensAppUrl = config!.ENS_APP_URL
-    const chainlensUrl = config!.CHAINLENS_URL
+    const [pageWith, setPageWith] = useState(1)
+    const [pageWithout, setPageWithout] = useState(1)
+    const itemsPerPage = 10
+
     const etherscanApi = config!.ETHERSCAN_API
+    const etherscanUrl = config!.ETHERSCAN_URL
+    const blockscoutUrl = config!.BLOCKSCOUT_URL
+    const chainlensUrl = config!.CHAINLENS_URL
+    const ensAppUrl = config!.ENS_APP_URL
+    const topic0 = TOPIC0
 
     useEffect(() => {
-        if (!isConnected || !address || !walletClient) return;
-        fetchTransactions();
-    }, [address, isConnected, walletClient]);
+        if (!isConnected || !address || !walletClient) return
+        fetchTxs()
+    }, [address, isConnected, walletClient])
 
-    const fetchTransactions = async () => {
-        setLoading(true);
-        setError(null);
+    const fetchTxs = async () => {
+        setLoading(true)
+        setError(null)
+        setWithENS([])
+        setWithoutENS([])
+
+        let isMounted = true
 
         try {
-            const url = etherscanApi + `&address=${address}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            const url = `${etherscanApi}&action=txlist&address=${address}`
+            const res = await fetch(url)
+            const data = await res.json()
 
-            if (data.status !== '1' || !data.result) {
-                setLoading(false);
-                return;
-            }
+            setProcessing(true);
 
-            const filteredTxs = data.result.filter((tx: any) =>
-                tx.to.toLowerCase() === contractAddress.toLowerCase()
-            );
+            for (const tx of data.result || []) {
+                const txHash = tx.hash
+                let isOwnable = false
 
-            const contractData: Contract[] = [];
-            for (const tx of filteredTxs) {
-                const { deployedAddress, ensName } = await fetchTransactionReceipt(tx.hash);
-                if (deployedAddress) {
-                    const isPrimary = await checkPrimaryENS(deployedAddress) || false
-                    const isOwnable = await checkOwnableContract(deployedAddress) || false
+                if (tx.to === '') {
+                    const contractAddr = tx.contractAddress
+                    const ensName = await getENS(contractAddr)
 
-                    contractData.push({
-                        ensName: ensName || 'N/A',
-                        contractAddress: deployedAddress,
-                        txHash: tx.hash,
-                        isPrimary,
-                        isOwnable
-                    });
+                    isOwnable = await checkIfOwnable(contractAddr)
+                    if (!isOwnable) {
+                        isOwnable = await checkIfReverseClaimable(contractAddr)
+                    }
+                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
+                    console.log("contract - ", contract)
+
+                    if (isMounted) {
+                        if (ensName) {
+                            setWithENS(prev => {
+                                const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                return alreadyExists ? prev : [contract, ...prev];
+                            });
+                        } else {
+                            setWithoutENS(prev => {
+                                const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                return alreadyExists ? prev : [contract, ...prev];
+                            });
+                        }
+                    }
+
+                } else if (["0xacd71554", "0x04917062", "0x7ed7e08c", "0x5a0dac49"].includes(tx.methodId)) {
+                    const deployed = await extractDeployed(txHash) || ""
+                    if (deployed) {
+                        const ensName = await getENS(deployed)
+                        isOwnable = await checkIfOwnable(deployed)
+                        if (!isOwnable) {
+                            isOwnable = await checkIfReverseClaimable(deployed)
+                        }
+                        const contract: Contract = { ensName, contractAddress: deployed, txHash, isOwnable }
+                        console.log("contract - ", contract)
+
+                        if (isMounted) {
+                            if (ensName) {
+                                setWithENS(prev => {
+                                    const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                    return alreadyExists ? prev : [contract, ...prev];
+                                });
+                            } else {
+                                setWithoutENS(prev => {
+                                    const alreadyExists = prev.some(c => c.contractAddress === contract.contractAddress);
+                                    return alreadyExists ? prev : [contract, ...prev];
+                                });
+                            }
+                        }
+                    }
                 }
             }
-
-            setContracts(contractData.reverse());
-        } catch (error: any) {
-            setError('Failed to fetch contract history');
+            setProcessing(false);
+        } catch (e) {
+            setError('Failed to fetch transactions')
         } finally {
-            setLoading(false);
+            if (isMounted) setLoading(false)
         }
-    };
 
-    const fetchTransactionReceipt = async (txHash: string): Promise<{ deployedAddress: string | null; ensName: string | null }> => {
+        return () => { isMounted = false }
+    }
+
+    const extractDeployed = async (txHash: string): Promise<string | null> => {
         try {
-            if (!walletClient) return { deployedAddress: null, ensName: null };
-
-            const provider = new ethers.BrowserProvider(window.ethereum);
-            const signer = await provider.getSigner();
-            const receipt = await signer.provider.getTransactionReceipt(txHash);
-
-            if (!receipt || !receipt.logs) return { deployedAddress: null, ensName: null };
-
-            let deployedAddr: string | null = null;
-            let ensName: string | null = null;
-
-            for (const log of receipt.logs) {
-                if (log.topics[0] === topic0_setName) {
-                    deployedAddr = ethers.getAddress("0x" + log.topics[1].slice(-40));
-                    const decodedData = ethers.AbiCoder.defaultAbiCoder().decode(['string'], log.data);
-                    ensName = decodedData[0];
+            const provider = new ethers.BrowserProvider(window.ethereum)
+            const receipt = await (await provider.getSigner()).provider.getTransactionReceipt(txHash)
+            for (const log of receipt!.logs) {
+                if (log.topics[0] === topic0) {
+                    return ethers.getAddress('0x' + log.topics[1].slice(-40))
                 }
             }
-
-            return { deployedAddress: deployedAddr, ensName };
-        } catch (error) {
-            return { deployedAddress: null, ensName: null };
+            return null
+        } catch {
+            return null
         }
-    };
+    }
 
-    const checkPrimaryENS = async (address: string): Promise<boolean> => {
-        const signer = new ethers.BrowserProvider(window.ethereum).getSigner()
-        try {
-            if (!address || address === 'N/A') return false;
-            const ensName = await (await signer)?.provider.lookupAddress(address)
-            return ensName !== null;
-        } catch (error) {
-            return false;
+    const getENS = async (addr: string): Promise<string> => {
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+            try {
+                return (await (await signer)?.provider.lookupAddress(addr)) || ''
+            } catch {
+                return ''
+            }
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
+                const reversedNode = await reverseRegistrarContract.node(addr)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
+                const name = await resolverContract.name(reversedNode)
+                return name || '';
+            } catch (error) {
+                return ''
+            }
         }
-    };
 
-    const checkOwnableContract = async (contractAddress: string): Promise<boolean> => {
-        const signer = new ethers.BrowserProvider(window.ethereum).getSigner()
+    }
+
+    const checkIfOwnable = async (address: string): Promise<boolean> => {
         try {
-            const contract = new ethers.Contract(contractAddress, ["function owner() view returns (address)"], (await signer).provider);
+            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer)?.provider);
             await contract.owner();
-            return true;
+            return true
         } catch (err) {
-            return false;
+            return false
         }
     };
 
-    const truncateText = (text: string) => text.length <= 20 ? text : `${text.slice(0, 20)}...${text.slice(-3)}`;
+    const checkIfReverseClaimable = async (address: string): Promise<boolean> => {
+        try {
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const addrLabel = address.slice(2).toLowerCase()
+            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
 
-    const totalPages = Math.ceil(contracts.length / itemsPerPage);
-    const paginatedContracts = contracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+            const sender = (await signer)
+            const signerAddress = sender?.address;
+            if (resolvedAddr === signerAddress) {
+                return true
+            } else {
+                return false
+            }
+        } catch (err) {
+            console.log("err " + err);
+            return false
+        }
+    };
+
+
+    const truncate = (text: string) =>
+        text.length <= 20 ? text : `${text.slice(0, 20)}...${text.slice(-3)}`
+
+    const paginated = (list: Contract[], page: number) =>
+        list.slice((page - 1) * itemsPerPage, page * itemsPerPage)
 
     return (
-        <div className="container mx-auto p-6">
+        <div className="flex flex-col space-y-2 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
             {!isConnected ? (
-                <p className="text-red-500 text-lg text-center">Please connect your wallet to view contract history.</p>
-            ) : loading ? (
-                <Skeleton className="h-10 w-full rounded-lg" />
+                <p className="text-red-500 text-lg text-center">Please connect your wallet</p>
             ) : error ? (
                 <p className="text-red-500">{error}</p>
-            ) : contracts.length === 0 ? (
-                <p className="text-gray-700 dark:text-gray-300 text-center">No transactions found.</p>
             ) : (
-                <Card className="p-6">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>ENS Name</TableHead>
-                                <TableHead>Contract Address</TableHead>
-                                <TableHead>Transaction Hash</TableHead>
-                                <TableHead className="text-center">View on Apps</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paginatedContracts.map((contract, index) => (
-                                <TableRow key={index}>
-                                    <TableCell>
-                                        <Link href={`${ensAppUrl}${contract.ensName}`} target="_blank" className="text-blue-600 hover:underline">
-                                            {contract.ensName}
-                                        </Link>
-                                        {contract.isPrimary && (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" align="center">
-                                                        <p>Primary Name</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Link href={`${etherscanUrl}address/${contract.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
-                                            {truncateText(contract.contractAddress)}
-                                        </Link>
-                                        {contract.isOwnable && (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <InformationCircleIcon className="w-5 h-5 inline text-gray-500 ml-2 cursor-pointer" />
-                                                    </TooltipTrigger>
-                                                    <TooltipContent side="top" align="center">
-                                                        <p>Extends Ownable</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        <Link href={`${etherscanUrl}tx/${contract.txHash}`} target="_blank" className="text-blue-600 hover:underline">
-                                            {truncateText(contract.txHash)}
-                                        </Link>
-                                    </TableCell>
-                                    <TableCell className="flex gap-2 justify-center">
-                                        {chainlensUrl && (
-                                            <Button asChild variant="outline">
-                                                <Link href={`${chainlensUrl}transactions/${contract.txHash}`} target="_blank">
-                                                    Chainlens
-                                                </Link>
-                                            </Button>
-                                        )}
-                                        <Button asChild variant="outline">
-                                            <Link href={`${etherscanUrl}tx/${contract.txHash}`} target="_blank">
-                                                Etherscan
-                                            </Link>
-                                        </Button>
-                                        {ensAppUrl && (
-                                            <Button asChild variant="outline">
-                                                <Link href={`${ensAppUrl}${contract.ensName}`} target="_blank">
-                                                    ENS App
-                                                </Link>
-                                            </Button>
-                                        )}
-                                    </TableCell>
+                <Tabs defaultValue="with-ens" >
+                    <TabsList className="inline-flex bg-white shadow-sm">
+                        <TabsTrigger
+                            value="with-ens"
+                            className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-white text-black data-[state=active]:bg-black data-[state=active]:text-white">
+                            Named Contracts
+                        </TabsTrigger>
 
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                        <TabsTrigger
+                            value="without-ens"
+                            className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-white text-black data-[state=active]:bg-black data-[state=active]:text-white">
+                            Unnamed Contracts
+                        </TabsTrigger>
+                    </TabsList>
 
-                    {/* Pagination */}
-                    <div className="flex justify-center mt-4 space-x-4">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setCurrentPage(currentPage - 1)}
-                            disabled={currentPage === 1}
-                        >
-                            Previous
-                        </Button>
-                        <Badge>{`Page ${currentPage} of ${totalPages}`}</Badge>
-                        <Button
-                            variant="ghost"
-                            onClick={() => setCurrentPage(currentPage + 1)}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
-                        </Button>
-                    </div>
-                </Card>
+                    <TabsContent value="with-ens">
+                        <Card className="p-6">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>ENS Name</TableHead>
+                                        <TableHead>Address</TableHead>
+                                        <TableHead>Tx Hash</TableHead>
+                                        <TableHead className="text-center">View on Apps</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginated(withENS, pageWith).map((c, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell>
+                                                <Link href={`${ensAppUrl}${c.ensName}`} target="_blank" className="text-blue-600 hover:underline">
+                                                    {c.ensName}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link href={`${etherscanUrl}address/${c.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
+                                                    {truncate(c.contractAddress)}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank" className="text-blue-600 hover:underline">
+                                                    {truncate(c.txHash)}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell className="flex gap-2 justify-center">
+                                                <Button asChild variant="outline">
+                                                    <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank">
+                                                        Etherscan
+                                                    </Link>
+                                                </Button>
+                                                {chainlensUrl ?
+                                                    <Button asChild variant="outline">
+                                                        <Link href={`${chainlensUrl}transactions/${c.txHash}`} target="_blank">
+                                                            Chainlens
+                                                        </Link>
+                                                    </Button>
+                                                    :
+                                                    <Button asChild variant="outline">
+                                                        <Link href={`${blockscoutUrl}tx/${c.txHash}`} target="_blank">
+                                                            Blockscout
+                                                        </Link>
+                                                    </Button>
+                                                }
+
+                                                <Button asChild variant="outline">
+                                                    <Link href={`${ensAppUrl}${c.ensName}`} target="_blank">
+                                                        ENS App
+                                                    </Link>
+                                                </Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {!processing && withENS.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center text-black-700 py-4">
+                                                No Contracts Deployed
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+
+                                    {processing && (
+                                        <TableRow>
+                                            <TableCell colSpan={4} className="text-center py-4">
+                                                <div className="w-6 h-6 mx-auto border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+
+                            </Table>
+                            <div className="flex justify-center mt-4 space-x-4">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setPageWith(p => p - 1)}
+                                    disabled={pageWith === 1}
+                                >
+                                    Previous
+                                </Button>
+
+                                <Badge>
+                                    {`Page ${pageWith} of ${Math.max(1, Math.ceil(withENS.length / itemsPerPage))}`}
+                                </Badge>
+
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setPageWith(p => p + 1)}
+                                    disabled={pageWith >= Math.ceil(withENS.length / itemsPerPage)}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="without-ens">
+                        <Card className="p-6">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Address</TableHead>
+                                        <TableHead>Tx Hash</TableHead>
+                                        <TableHead className="text-center">Action</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginated(withoutENS, pageWithout).map((c, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell>
+                                                <Link href={`${etherscanUrl}address/${c.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
+                                                    {truncate(c.contractAddress)}
+                                                </Link>
+                                                {c.isOwnable ?
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <InformationCircleIcon className="w-5 h-5 inline text-green-700 ml-2 cursor-pointer" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" align="center">
+                                                                <p>You can set Primary Name for this contract</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                    :
+                                                    <TooltipProvider>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <ExclamationCircleIcon className="w-5 h-5 inline text-amber-500 ml-2 cursor-pointer" />
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="top" align="center">
+                                                                <p>You can only set Forward Resolution for this contract</p>
+                                                            </TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                }
+                                            </TableCell>
+                                            <TableCell>
+                                                <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank" className="text-blue-600 hover:underline">
+                                                    {truncate(c.txHash)}
+                                                </Link>
+                                            </TableCell>
+                                            <TableCell className="flex gap-2 justify-center">
+                                                {c.isOwnable ?
+                                                    <Button asChild variant="default">
+                                                        <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
+                                                            Name Contract
+                                                        </Link>
+                                                    </Button>
+                                                    :
+                                                    <Button asChild variant="default">
+                                                        <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
+                                                            Forward Resolve
+                                                        </Link>
+                                                    </Button>
+
+                                                }
+                                                {/* <Button asChild variant="default">
+                                                    <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
+                                                        Name Contract
+                                                    </Link>
+                                                </Button> */}
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                    {!processing && withoutENS.length === 0 && (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center text-black-700 py-4">
+                                                No Contracts Deployed
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+
+                                    {processing && (
+                                        <TableRow>
+                                            <TableCell colSpan={3} className="text-center py-4">
+                                                <div className="w-6 h-6 mx-auto border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+
+                            </Table>
+                            <div className="flex justify-center mt-4 space-x-4">
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setPageWithout(p => p - 1)}
+                                    disabled={pageWithout === 1}
+                                >
+                                    Previous
+                                </Button>
+
+                                <Badge>
+                                    {`Page ${pageWithout} of ${Math.max(1, Math.ceil(withoutENS.length / itemsPerPage))}`}
+                                </Badge>
+
+                                <Button
+                                    variant="ghost"
+                                    onClick={() => setPageWithout(p => p + 1)}
+                                    disabled={pageWithout >= Math.ceil(withoutENS.length / itemsPerPage)}
+                                >
+                                    Next
+                                </Button>
+                            </div>
+                        </Card>
+                    </TabsContent>
+                </Tabs>
             )}
         </div>
-    );
+    )
 }

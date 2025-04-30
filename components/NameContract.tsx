@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/router';
 import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
@@ -12,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
-import { CONTRACTS, TOPIC0 } from '../utils/constants';
+import { CONTRACTS, CHAINS } from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 export default function NameContract() {
+    const router = useRouter();
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
@@ -62,33 +64,67 @@ export default function NameContract() {
     }
 
     useEffect(() => {
+        const initFromQuery = async () => {
+            if (
+                router.query.contract &&
+                ethers.isAddress(router.query.contract as string) &&
+                signer
+            ) {
+                const addr = router.query.contract as string;
+                setExistingContractAddress(addr);
+                isAddressValid(addr);
+                await checkIfOwnable(addr);
+                await checkIfReverseClaimable(addr);
+            }
+        };
+
+        initFromQuery();
+    }, [router.query.contract, signer]);
+
+    useEffect(() => {
         if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
             setParentName(config.ENSCRIBE_DOMAIN)
         }
     }, [config, parentType])
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
+        if (!signer || !address) return
 
+        const provider = (await signer).provider
         setFetchingENS(true)
-        try {
-            const provider = (await signer).provider
-            const ensName = await provider.lookupAddress(address)
-
-            if (ensName) {
-                setParentName(ensName)
-            } else {
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+            try {
+                const ensName = await provider.lookupAddress(address)
+                if (ensName) {
+                    setParentName(ensName)
+                } else {
+                    setParentName("")
+                }
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
                 setParentName("")
             }
-        } catch (error) {
-            console.error("Error fetching ENS name:", error)
-            setParentName("")
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+                const reversedNode = await reverseRegistrarContract.node(address)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+                const ensName = await resolverContract.name(reversedNode)
+                if (ensName) {
+                    setParentName(ensName)
+                } else {
+                    setParentName("")
+                }
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
+                setParentName("")
+            }
         }
         setFetchingENS(false)
     }
 
     const checkENSReverseResolution = async () => {
-        if (isEmpty(label) || !signer || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
+        if (isEmpty(label) || !signer) return
 
         // Validate label and parent name before checking
         // if (!label.trim()) {
@@ -275,7 +311,7 @@ export default function NameContract() {
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, sender)
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, sender)
             let nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532 && chain?.id != 8453) {
+            if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, sender)
             }
             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, sender)
@@ -310,7 +346,7 @@ export default function NameContract() {
                             setError("Forward resolution already set")
                             console.log("Forward resolution already set")
                         }
-                    } else if (chain?.id === 84532 || chain?.id === 84532) {
+                    } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                         if (!nameExist) {
                             const tx = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
                             return tx

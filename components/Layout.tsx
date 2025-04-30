@@ -9,9 +9,9 @@ interface LayoutProps {
 }
 
 const navigation = [
-    { name: 'Deploy New Contract', href: '/deploy', icon: PencilSquareIcon },
-    { name: 'Name Existing Contract', href: '/nameContract', icon: DocumentTextIcon },
-    { name: 'Contract History', href: '/history', icon: ClockIcon }
+    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
+    { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
+    { name: 'My Contracts', href: '/history', icon: ClockIcon }
 ];
 
 const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL;

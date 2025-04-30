@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import { CONTRACTS, TOPIC0 } from '../utils/constants';
+import { CHAINS, CONTRACTS, TOPIC0 } from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
@@ -236,22 +236,39 @@ export default function DeployForm() {
     }
 
     const fetchPrimaryENS = async () => {
-        if (!signer || !address || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
+        if (!signer || !address) return
 
+        const provider = (await signer).provider
         setFetchingENS(true)
-        try {
-            const provider = (await signer).provider
-            const ensName = await provider.lookupAddress(address)
-
-            if (ensName) {
-                setParentName(ensName)
-            } else {
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+            try {
+                const ensName = await provider.lookupAddress(address)
+                if (ensName) {
+                    setParentName(ensName)
+                } else {
+                    setParentName("")
+                }
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
                 setParentName("")
             }
-        } catch (error) {
-            console.error("Error fetching ENS name:", error)
-            setParentName("")
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+                const reversedNode = await reverseRegistrarContract.node(address)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+                const ensName = await resolverContract.name(reversedNode)
+                if (ensName) {
+                    setParentName(ensName)
+                } else {
+                    setParentName("")
+                }
+            } catch (error) {
+                console.error("Error fetching ENS name:", error)
+                setParentName("")
+            }
         }
+
         setFetchingENS(false)
         const approved = await checkOperatorAccess()
         setOperatorAccess(approved)
@@ -259,7 +276,7 @@ export default function DeployForm() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer || chain?.id == 59141 || chain?.id == 84532 || chain?.id == 8453) return
+        if (!signer) return
 
 
         // Validate label and parent name before checking
@@ -333,11 +350,11 @@ export default function DeployForm() {
             if (!recordExist) return false
 
             var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532 && chain?.id != 8453) {
+            if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
             }
 
-            if (chain?.id == 84532 || chain?.id == 8453) {
+            if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                 return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
             } else {
                 const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
@@ -372,7 +389,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532 || chain?.id === 8453) {
+            if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -405,7 +422,7 @@ export default function DeployForm() {
 
             let tx;
 
-            if (chain?.id === 84532 || chain?.id === 8453) {
+            if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                 tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
             } else {
                 const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
@@ -504,7 +521,7 @@ export default function DeployForm() {
                         }
                     })
 
-                } else if (chain?.id == 84532 || chain?.id == 8453) {
+                } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
 
                     const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
@@ -897,10 +914,12 @@ export default function DeployForm() {
                         )}
                         {/* Access Info Message */}
                         {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
-                            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-2">
+                            <p className="text-sm text-yellow-600 mt-2">
                                 {operatorAccess
                                     ? "Note: You can revoke Operator role from Enscribe here."
-                                    : "Note: You can grant Operator role to Enscribe through here, otherwise Enscribe will ask you to grant operator access during deployment. Operator access is required to create subnames and forward resolution records."}
+                                    : <p className="text-yellow-600">Note: You can grant Operator role to Enscribe through here, otherwise Enscribe will ask you to grant operator access during deployment. <Link
+                                        href="https://www.enscribe.xyz/docs/getting-started/opearator-role"
+                                        className="text-blue-600 hover:underline">Why Operator Access is needed?</Link></p>}
                             </p>
                         )}
                     </>
