@@ -100,6 +100,13 @@ const config = {
           },
         ],
       },
+      algolia: {
+        appId: 'FDHVY14O0W',
+
+        apiKey: 'a16f9c245539783b5555ed92781838aa',
+
+        indexName: 'enscribe',
+      },
       footer: {
         style: "dark",
         links: [
