@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "@docusaurus/Link"
 import useBaseUrl from "@docusaurus/useBaseUrl"
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import { FaShieldAlt, FaBolt, FaGlobe, FaStar, FaGithub, FaDiscord, FaUserAlt, FaLock, FaPlug } from "react-icons/fa"
+import { FaShieldAlt, FaBolt, FaGlobe, FaStar, FaGithub, FaTelegram, FaDiscord, FaUserAlt, FaLock, FaPlug } from "react-icons/fa"
 import { FaXTwitter } from "react-icons/fa6"
 import { SiFarcaster } from "react-icons/si";
 import { HiArrowDown, HiArrowRight, HiCheck, HiCode, HiChevronDown } from "react-icons/hi"
@@ -438,6 +438,10 @@ export default function EnscribeLandingPage() {
               <Link to="https://github.com/enscribexyz/enscribe" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaGithub className="h-5 w-5" />
                 <span className="sr-only">GitHub</span>
+              </Link>
+              <Link to="https://t.me/enscribers" className="text-slate-400 hover:text-cyan-400 transition-colors">
+                <FaTelegram className="h-5 w-5" />
+                <span className="sr-only">Telegram</span>
               </Link>
               <Link to="https://discord.gg/8QUMMdS5GY" className="text-slate-400 hover:text-cyan-400 transition-colors">
                 <FaDiscord className="h-5 w-5" />

@@ -116,6 +116,10 @@ const config = {
             title: "Community",
             items: [
               {
+                label: "Telegram",
+                href: "https://t.me/enscribers",
+              },
+              {
                 label: "Discord",
                 href: "https://discord.gg/8QUMMdS5GY",
               },
