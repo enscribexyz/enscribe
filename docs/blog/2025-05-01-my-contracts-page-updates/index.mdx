@@ -1,0 +1,89 @@
+---
+slug: my-contracts-page-updates
+title: Manage Your Contracts with Ease - Major Update to the “My Contracts” Page
+authors: [nischal]
+tags: [ens]
+---
+
+We’re excited to announce a powerful new update to the [“My Contracts”](https://app.enscribe.xyz/history/) page on Enscribe. If you’ve ever deployed smart contracts and wished for a clearer, more structured way to manage and track them — especially across ENS names — this update is built just for you.
+
+In this release, we’ve reimagined how developers interact with their deployed contracts by dividing the view into two clear categories: 
+
+1. **Named Contracts** - Contracts deployed by the user which has ENS Primary Name
+2. **Unnamed Contracts** - Contracts deployed by the user which doesn't have ENS Primary name
+
+This makes it easy to monitor which of your contracts have verifiable identities through ENS, and which ones are still waiting to be named.
+
+
+## A Smarter Way to See Your Deployed Contracts
+
+Until now, developers often had to dig through Blockchain Explorers like Etherscan or keep manual records to know which contracts they’ve deployed and whether they had ENS names. With Enscribe, we’re changing that.
+
+The “My Contracts” page automatically surfaces all contracts directly deployed by your connected wallet. This includes both contracts deployed through standard Ethereum transactions (where the transaction "to" is null) and contracts deployed using CREATE2 via Enscribe.
+
+One thing to note: we currently do not track indirect deployments — such as contracts created through another factory contract (internal contract creation calls). This is a planned improvement and is on our roadmap for upcoming releases.
+
+
+## Named vs Unnamed
+
+The page is now split into two tabs:
+
+### Named Contracts
+
+In the Named Contracts tab, you’ll find all contracts that have been deployed by your wallet and already have a Primary ENS Name. 
+Each contract entry displays its ENS name, contract address, the transaction hash for creation, and direct links to tools like Etherscan, Chainlens, and the ENS App. 
+This makes it easy to verify and share your named contracts.
+We support Etherum Mainnet, Sepolia, Linea, Linea Testnet, Base and Base testnet.
+
+![Named Contracts Tab](named.png)
+
+### Unnamed Contracts
+
+The Unnamed Contracts tab, on the other hand, helps you track contracts you’ve deployed that haven’t yet been named with ENS. Each entry includes the contract address and creation transaction hash, along with a contextual action button. Depending on the contract’s structure, 
+this button will either prompt you to “Name Contract” (if it supports Primary Name assignment through Ownable/ERC173/ReverseClaimer) or “Forward Resolve” (if only forward resolution is possible).
+
+We’ve also added smart visual cues to guide you:
+- A "yellow exclamation" icon indicates contracts that support only ENS forward resolution.
+- A "green info" icon marks contracts that are eligible for full ENS primary name assignment.
+
+Clicking on the action button takes you directly to the naming interface with the contract address pre-filled — allowing you to easily upgrade your unnamed contracts into trusted, named entities.
+
+![Unnamed Contracts Tab](unnamed.png)
+
+## Fully On-Chain, Fully Trustless
+
+One of the most powerful aspects of our DApp is that it’s completely stateless and trustless. Enscribe doesn’t use a centralized database. All contract discovery, naming info, and status checks are done on-chain, directly from your connected wallet via RPC calls.
+This means no vendor lock-in, no stale cache, no single point of failure — just accurate, permissionless data every time you load the page.
+
+Because we query the chain live, loading the full list of contracts happens asynchronously and can take a bit of time. While your contracts are being processed, you’ll see a spinner at the bottom of the table. Once loading is complete, the spinner disappears, indicating the tables are now fully up to date.
+
+![Loading Contracts](loading.png)
+
+## See It in Action
+
+// import ReactPlayer from 'react-player';
+
+We’ve recorded a short walkthrough showing how the updated “My Contracts” page works and how you can use it to name your existing or new contracts instantly.
+
+Watch the demo here:
+
+<iframe
+  src="https://www.loom.com/share/11d079e4ae5b472a8c0bbc1da2644ce9?sid=1fa955b7-e400-4778-9a92-b150f0fa120f"
+  frameBorder="0"
+  webkitAllowFullScreen
+  mozAllowFullScreen
+  allowFullScreen
+  style={{ width: '100%', height: '500px', border: 'none' }}
+></iframe>
+{/* <ReactPlayer controls url='https://www.loom.com/share/11d079e4ae5b472a8c0bbc1da2644ce9?sid=1fa955b7-e400-4778-9a92-b150f0fa120f' /> */}
+
+
+## The Takeaway
+
+This update turns Enscribe into more than just a naming tool — it’s now your command center for managing smart contract identity across Ethereum and Layer 2s. Whether you’re shipping production contracts or deploying testnet experiments, the new “My Contracts” page gives you a structured, intuitive way to understand what you’ve deployed and what still needs to be named.
+
+Naming your contracts helps users trust them. It makes them recognizable in wallets, block explorers, and dApps. And now, managing that naming process is easier than ever.
+
+For more details, visit our [site](https://www.enscribe.xyz/), and don't hesitate to join our [Discord community](https://discord.gg/8QUMMdS5GY) to share your feedback and experiences.
+
+Happy Naming! 🚀
