@@ -83,3 +83,7 @@ NEXT_PUBLIC_TOPIC0_SET_NAME="0xbce672f287ca218b7a90c84485d9b40640252149f0e8c2932
 
 # Docs
 NEXT_PUBLIC_DOCS_SITE_URL=https://enscribe.xyz
+
+# SOURCIFY
+NEXT_PUBLIC_SOURCIFY_URL=https://repo.sourcify.dev/
+NEXT_PUBLIC_SOURCIFY_API=https://sourcify.dev/server/v2/contract/

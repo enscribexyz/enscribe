@@ -112,6 +112,9 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
 
 export const TOPIC0 = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
 
+export const SOURCIFY_API = process.env.NEXT_PUBLIC_SOURCIFY_API;
+export const SOURCIFY_URL = process.env.NEXT_PUBLIC_SOURCIFY_URL;
+
 export enum CHAINS {
     MAINNET = 1,
     SEPOLIA = 11155111,
