@@ -33,19 +33,36 @@ export async function getVerificationData(chainId: string, address: string) {
         console.error('Etherscan fetch failed:', err);
     }
 
-    let ens_name = ""
+    let blockscout_verification = 'unverified';
+    const config = chainId ? CONTRACTS[Number(chainId)] : undefined
+
     try {
-        ens_name = await getENS(chainId, address)
-    } catch (error) {
-        console.error('ENS primary name fetch failed:', error);
+        const blockscoutApi = `${config?.BLOCKSCOUT_URL}api/v2/smart-contracts/${address}`
+        console.log("blockscout-api - ", blockscoutApi)
+        const res = await fetch(blockscoutApi);
+        const data = await res.json();
+        if (data.is_verified === true) {
+            if (data.is_fully_verified === true) blockscout_verification = 'exact_match';
+            else blockscout_verification = 'match';
+        }
+    } catch (err) {
+        console.error('Blockscout fetch failed:', err);
     }
+
+    // let ens_name = ""
+    // try {
+    //     ens_name = await getENS(chainId, address)
+    // } catch (error) {
+    //     console.error('ENS primary name fetch failed:', error);
+    // }
 
     return {
         sourcify_verification,
         etherscan_verification,
+        blockscout_verification,
         audit_status: "audited",
         attestation_tx_hash: "0xabc123",
-        ens_name
+        // ens_name
     };
 }
 

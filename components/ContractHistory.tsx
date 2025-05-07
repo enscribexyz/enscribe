@@ -16,7 +16,7 @@ import { Card } from '@/components/ui/card'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { CONTRACTS, TOPIC0, CHAINS, SOURCIFY_API, ETHERSCAN_API } from '../utils/constants'
+import { CONTRACTS, TOPIC0, CHAINS, SOURCIFY_URL, ETHERSCAN_API } from '../utils/constants'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '../contracts/PublicResolver'
@@ -31,6 +31,7 @@ interface Contract {
     isOwnable: boolean;
     sourcifyVerification?: 'exact_match' | 'match' | 'unverified';
     etherscanVerification?: 'verified' | 'unverified';
+    blockscoutVerification?: 'exact_match' | 'match' | 'unverified';
     attestation?: 'audited' | 'unaudited';
 }
 
@@ -97,10 +98,12 @@ export default function ContractHistory() {
                     const result = await getContractStatus(chain?.id, contractAddr)
                     const sourcifyVerification = result.sourcify_verification
                     const etherscanVerification = result.etherscan_verification
-                    const attestation = result.audited
-                    const ensName = result.ens_name
+                    const blockscoutVerification = result.blockscout_verification
+                    const attestation = result.audit_status
+                    // const ensName = result.ens_name
+                    const ensName = await getENS(contractAddr)
 
-                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, attestation }
+                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, blockscoutVerification, attestation }
                     // const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
                     console.log("contract - ", contract)
 
@@ -129,10 +132,12 @@ export default function ContractHistory() {
                         const result = await getContractStatus(chain?.id, deployed)
                         const sourcifyVerification = result.sourcify_verification
                         const etherscanVerification = result.etherscan_verification
+                        const blockscoutVerification = result.blockscout_verification
                         const attestation = result.audit_status
-                        const ensName = result.ens_name
+                        // const ensName = result.ens_name
+                        const ensName = await getENS(deployed)
 
-                        const contract: Contract = { ensName, contractAddress: deployed, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, attestation }
+                        const contract: Contract = { ensName, contractAddress: deployed, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, blockscoutVerification, attestation }
 
                         console.log("contract - ", contract)
 
@@ -177,6 +182,7 @@ export default function ContractHistory() {
         }
     }
 
+
     const getENS = async (addr: string): Promise<string> => {
         if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
             try {
@@ -197,6 +203,7 @@ export default function ContractHistory() {
         }
 
     }
+
 
     const checkIfOwnable = async (address: string): Promise<boolean> => {
         try {
@@ -228,43 +235,13 @@ export default function ContractHistory() {
         }
     };
 
-    const getVerificationStatus = async (address: string, chainId: number | undefined): Promise<'exact' | 'partial' | 'unverified'> => {
-        try {
-            const resSourcify = await fetch(`${SOURCIFY_API}${chainId}/${address.toLowerCase()}`);
-            const resEtherscan = await fetch(`${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getabi&address=${address}`);
-            if (!resSourcify.ok && !resEtherscan.ok) return 'unverified';
-
-            const dataSourcify = await resSourcify.json();
-            const dataEtherscan = await resEtherscan.json();
-
-            if (dataSourcify.match === 'exact_match') return 'exact';
-            if (dataSourcify.match === 'match' || dataEtherscan.message === "OK") return 'partial';
-            return 'unverified';
-        } catch {
-            return 'unverified';
-        }
-    }
-
-    const getAttestationStatus = async (address: string, chainId: number | undefined): Promise<'audited' | 'unaudited'> => {
-        try {
-            const res = await fetch(`/api/v1/verification/${chainId}/${address.toLowerCase()}`);
-            if (!res.ok) return 'unaudited';
-
-            const data = await res.json();
-
-            if (data.audit_status === 'audited') return 'audited';
-            return 'unaudited';
-        } catch {
-            return 'unaudited';
-        }
-    }
-
     const getContractStatus = async (chainId: number | undefined, address: string,) => {
         const defaultStatus = {
             sourcify_verification: "unverified",
             etherscan_verification: "unverified",
             audit_status: "unaudited",
             attestation_tx_hash: "0xabc123",
+            blockscout_verification: "unverified",
             ens_name: ""
         }
 
@@ -329,16 +306,18 @@ export default function ContractHistory() {
                                                         {c.ensName}
                                                     </Link>
                                                     <TooltipProvider>
-                                                        {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match' || c.etherscanVerification === 'verified') && c.attestation === 'audited' && (
-                                                            <Tooltip>
-                                                                <TooltipTrigger asChild>
-                                                                    <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
-                                                                </TooltipTrigger>
-                                                                <TooltipContent>
-                                                                    <p>Trusted - App has been verifed and audited</p>
-                                                                </TooltipContent>
-                                                            </Tooltip>
-                                                        )}
+                                                        {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match' || c.etherscanVerification === 'verified'
+                                                            || c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match')
+                                                            && c.attestation === 'audited' && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Trusted - App has been verifed and audited</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
                                                     </TooltipProvider>
                                                 </div>
                                             </TableCell>
@@ -353,27 +332,25 @@ export default function ContractHistory() {
                                                         {truncate(c.contractAddress)}
                                                     </Link>
                                                     <TooltipProvider>
-
                                                         {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match') && (
                                                             <div className="flex items-center gap-2">
                                                                 <Button
                                                                     asChild
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
                                                                 >
-                                                                    <a
-                                                                        href={`https://sourcify.dev/#/verifier`}
+                                                                    <Link
+                                                                        href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
+                                                                        className="cursor-pointer"
                                                                     >
                                                                         <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
-                                                                        Verifed
-                                                                    </a>
+                                                                        Verified
+                                                                    </Link>
                                                                 </Button>
-
                                                             </div>
-
                                                         )}
                                                         {c.etherscanVerification === 'verified' && (
                                                             <div className="flex items-center gap-2">
@@ -382,19 +359,38 @@ export default function ContractHistory() {
                                                                     asChild
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
                                                                 >
-                                                                    <a
+                                                                    <Link
                                                                         href={`${etherscanUrl}address/${c.contractAddress}#code`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                     >
                                                                         <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
                                                                         Verifed
-                                                                    </a>
+                                                                    </Link>
                                                                 </Button>
                                                             </div>
-
+                                                        )}
+                                                        {(c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match') && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Button
+                                                                    asChild
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                >
+                                                                    <Link
+                                                                        href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="cursor-pointer"
+                                                                    >
+                                                                        <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                                        Verified
+                                                                    </Link>
+                                                                </Button>
+                                                            </div>
                                                         )}
                                                         {c.sourcifyVerification === 'unverified' && (
                                                             <div className="flex items-center gap-2">
@@ -402,31 +398,55 @@ export default function ContractHistory() {
                                                                     asChild
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
                                                                 >
-                                                                    <a
+                                                                    <Link
                                                                         href={`https://sourcify.dev/#/verifier`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                     >
                                                                         <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
                                                                         Verify
-                                                                    </a>
+                                                                    </Link>
                                                                 </Button>
+                                                            </div>
+                                                        )}
+                                                        {c.etherscanVerification === 'unverified' && (
+                                                            <div className="flex items-center gap-2">
                                                                 <Button
                                                                     asChild
                                                                     size="sm"
                                                                     variant="outline"
-                                                                    className="text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
                                                                 >
-                                                                    <a
+                                                                    <Link
                                                                         href={`${etherscanUrl}address/${c.contractAddress}#code`}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                     >
                                                                         <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
                                                                         Verify
-                                                                    </a>
+                                                                    </Link>
+                                                                </Button>
+                                                            </div>
+                                                        )}
+                                                        {(c.blockscoutVerification === 'unverified') && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Button
+                                                                    asChild
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                >
+                                                                    <Link
+                                                                        href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="cursor-pointer"
+                                                                    >
+                                                                        <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                                        Verify
+                                                                    </Link>
                                                                 </Button>
                                                             </div>
                                                         )}
@@ -437,27 +457,31 @@ export default function ContractHistory() {
                                                 {c.contractCreated}
                                             </TableCell>
                                             <TableCell className="flex gap-2 justify-center">
-                                                <Button asChild variant="outline">
+                                                <Button asChild variant="outline" className="hover:bg-gray-200">
                                                     <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank">
+                                                        <img src="/etherscan.svg" alt="Etherscan" className="w-5 h-5" />
                                                         Etherscan
                                                     </Link>
                                                 </Button>
                                                 {chainlensUrl ?
-                                                    <Button asChild variant="outline">
+                                                    <Button asChild variant="outline" className="hover:bg-gray-200">
                                                         <Link href={`${chainlensUrl}transactions/${c.txHash}`} target="_blank">
+                                                            <img src="/chainlens.png" alt="Chainlens" className="w-5 h-5" />
                                                             Chainlens
                                                         </Link>
                                                     </Button>
                                                     :
-                                                    <Button asChild variant="outline">
+                                                    <Button asChild variant="outline" className="hover:bg-gray-200">
                                                         <Link href={`${blockscoutUrl}tx/${c.txHash}`} target="_blank">
+                                                            <img src="/blockscout.svg" alt="Blockscout" className="w-5 h-5" />
                                                             Blockscout
                                                         </Link>
                                                     </Button>
                                                 }
 
-                                                <Button asChild variant="outline">
+                                                <Button asChild variant="outline" className="hover:bg-gray-200">
                                                     <Link href={`${ensAppUrl}${c.ensName}`} target="_blank">
+                                                        <img src="/ens.svg" alt="ENS" className="w-5 h-5" />
                                                         ENS App
                                                     </Link>
                                                 </Button>

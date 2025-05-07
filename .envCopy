@@ -11,7 +11,7 @@ NEXT_PUBLIC_ETHERSCAN='https://etherscan.io/'
 NEXT_PUBLIC_ENS_APP='https://app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS=''
 NEXT_PUBLIC_BLOCKSCOUT='https://eth.blockscout.com/'
-NEXT_PUBLIC_ETHERSCAN_API=https://api.etherscan.io/v2/api?chainid=1&module=account&startblock=0&endblock=99999999&sort=asc&apikey=
+NEXT_PUBLIC_RPC='https://mainnet.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
 
 # SEPOLIA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_SEPOLIA='0x98350BfB3ba627B18CC84c8A46440A2E3f74d6a7'
@@ -24,7 +24,7 @@ NEXT_PUBLIC_ETHERSCAN_SEPOLIA='https://sepolia.etherscan.io/'
 NEXT_PUBLIC_ENS_APP_SEPOLIA='https://sepolia.app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_SEPOLIA=''
 NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA='https://eth-sepolia.blockscout.com/'
-NEXT_PUBLIC_ETHERSCAN_API_SEPOLIA=https://api.etherscan.io/v2/api?chainid=11155111&module=account&startblock=0&endblock=99999999&sort=asc&apikey=
+NEXT_PUBLIC_RPC_SEPOLIA='https://sepolia.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
 
 # LINEA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA='0x6d8Ac46BFC1bD0b6022f997108e9800Fd84fdD44'
@@ -37,7 +37,7 @@ NEXT_PUBLIC_ETHERSCAN_LINEA='https://lineascan.build/'
 NEXT_PUBLIC_ENS_APP_LINEA='https://names.linea.build/'
 NEXT_PUBLIC_CHAINLENS_LINEA='https://linea.chainlens.com/'
 NEXT_PUBLIC_BLOCKSCOUT_LINEA='https://explorer.linea.build/'
-NEXT_PUBLIC_ETHERSCAN_API_LINEA=https://api.etherscan.io/v2/api?chainid=59144&module=account&startblock=0&endblock=9999999999&sort=asc&apikey=
+NEXT_PUBLIC_RPC_LENIA='https://linea-mainnet.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
 
 # LINEA SEPOLIA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA_SEPOLIA='0x57732B1dE5cB25A6b2A8a2311e1A865ED16a484E'
@@ -50,7 +50,7 @@ NEXT_PUBLIC_ETHERSCAN_LINEA_SEPOLIA='https://sepolia.lineascan.build/'
 NEXT_PUBLIC_ENS_APP_LINEA_SEPOLIA='https://names.linea.build/'
 NEXT_PUBLIC_CHAINLENS_LINEA_SEPOLIA='https://testnet.linea.chainlens.com/'
 NEXT_PUBLIC_BLOCKSCOUT_LINEA_SEPOLIA='https://explorer.sepolia.linea.build/'
-NEXT_PUBLIC_ETHERSCAN_API_LINEA_SEPOLIA=https://api.etherscan.io/v2/api?chainid=59141&module=account&startblock=0&endblock=9999999999&sort=asc&apikey=
+NEXT_PUBLIC_RPC_LINEA_SEPOLIA='https://linea-sepolia.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
 
 # BASE Mainnet Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE='0x8429c428F93754449C4b955F2Ae9fde17eF4e95a'
@@ -63,7 +63,7 @@ NEXT_PUBLIC_ETHERSCAN_BASE='https://basescan.org/'
 NEXT_PUBLIC_ENS_APP_BASE='https://app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_BASE=''
 NEXT_PUBLIC_BLOCKSCOUT_BASE='https://base.blockscout.com/'
-NEXT_PUBLIC_ETHERSCAN_API_BASE=https://api.etherscan.io/v2/api?chainid=8453&module=account&startblock=0&endblock=9999999999&sort=asc&apikey=
+NEXT_PUBLIC_RPC_BASE='https://base-mainnet.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
 
 # BASE SEPOLIA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE_SEPOLIA='0x3b854b093A4F60aB7C9635c2b84d015BC2359B2a'
@@ -76,13 +76,16 @@ NEXT_PUBLIC_ETHERSCAN_BASE_SEPOLIA='https://sepolia.basescan.org/'
 NEXT_PUBLIC_ENS_APP_BASE_SEPOLIA='https://sepolia.app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_BASE_SEPOLIA=''
 NEXT_PUBLIC_BLOCKSCOUT_BASE_SEPOLIA='https://base-sepolia.blockscout.com/'
-NEXT_PUBLIC_ETHERSCAN_API_BASE_SEPOLIA=https://api.etherscan.io/v2/api?chainid=84532&module=account&startblock=0&endblock=9999999999&sort=asc&apikey=
+NEXT_PUBLIC_RPC_BASE_SEPOLIA='https://base-sepolia.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
 
 # Events topic
 NEXT_PUBLIC_TOPIC0_SET_NAME="0xbce672f287ca218b7a90c84485d9b40640252149f0e8c2932fe972e3fbc6fdc3"
 
 # Docs
 NEXT_PUBLIC_DOCS_SITE_URL=https://enscribe.xyz
+
+# Etherscan
+NEXT_PUBLIC_ETHERSCAN_API=https://api.etherscan.io/v2/api?apikey=
 
 # SOURCIFY
 NEXT_PUBLIC_SOURCIFY_URL=https://repo.sourcify.dev/
