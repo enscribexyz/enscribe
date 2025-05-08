@@ -10,7 +10,7 @@ export type NetworkConfig = {
     ENS_APP_URL: string;
     CHAINLENS_URL: string;
     BLOCKSCOUT_URL: string;
-    ETHERSCAN_API: string;
+    RPC_ENDPOINT: string;
 };
 
 export const CONTRACTS: Record<number, NetworkConfig> = {
@@ -27,7 +27,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP || "",
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT || "",
-        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API || ""
+        RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC || "",
     },
     // Sepolia Testnet
     11155111: {
@@ -42,7 +42,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_SEPOLIA || "",
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_SEPOLIA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA || "",
-        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_SEPOLIA || ""
+        RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SEPOLIA || "",
     },
 
     // Linea mainnet
@@ -58,7 +58,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_LINEA || "",
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_LINEA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA || "",
-        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_LINEA || ""
+        RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA || "",
     },
 
     // Linea Sepolia Testnet
@@ -74,7 +74,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_LINEA_SEPOLIA || "",
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_LINEA_SEPOLIA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA_SEPOLIA || "",
-        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_LINEA_SEPOLIA || ""
+        RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || "",
     },
 
     // BASE mainnet
@@ -90,7 +90,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_BASE || "",
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_BASE || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE || "",
-        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_BASE || ""
+        RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE || "",
     },
 
     // BASE Sepolia Testnet
@@ -106,11 +106,16 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         ENS_APP_URL: process.env.NEXT_PUBLIC_ENS_APP_BASE_SEPOLIA || "",
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_BASE_SEPOLIA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE_SEPOLIA || "",
-        ETHERSCAN_API: process.env.NEXT_PUBLIC_ETHERSCAN_API_BASE_SEPOLIA || ""
+        RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || "",
     },
 };
 
 export const TOPIC0 = process.env.NEXT_PUBLIC_TOPIC0_SET_NAME;
+
+export const ETHERSCAN_API = process.env.NEXT_PUBLIC_ETHERSCAN_API;
+
+export const SOURCIFY_API = process.env.NEXT_PUBLIC_SOURCIFY_API;
+export const SOURCIFY_URL = process.env.NEXT_PUBLIC_SOURCIFY_URL;
 
 export enum CHAINS {
     MAINNET = 1,
