@@ -314,7 +314,7 @@ export default function ContractHistory() {
                                                                         <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
                                                                     </TooltipTrigger>
                                                                     <TooltipContent>
-                                                                        <p>Trusted - App has been verifed and audited</p>
+                                                                        <p>Trusted - Named and Verified Contract</p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             )}
