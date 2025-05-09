@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, {useState, useEffect, useId} from 'react'
 import { ethers, namehash, keccak256, getCreateAddress, ContractFactory } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
@@ -11,11 +11,12 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import { CHAINS, CONTRACTS, TOPIC0 } from '../utils/constants';
+import {CHAINS, CONTRACTS, METRICS_URL, SUPABASE_URL, TOPIC0} from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
+import { v4 as uuid } from 'uuid'
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -93,6 +94,7 @@ export default function DeployForm() {
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
 
+    const corelationId = uuid()
 
     const getParentNode = (name: string) => {
         try {
@@ -401,6 +403,10 @@ export default function DeployForm() {
             }
 
             await tx.wait()
+            const txReceipt = await tx.wait()
+            let contractType;
+            if(isOwnable) { contractType = 'Ownable'; } else if(isReverseClaimable) { contractType = 'ReverseClaimer'; } else { contractType = 'ReverseSetter'; }
+            await logMetric(Date.now(), '', 'revoke::setApprovalForAll', txReceipt.hash, contractType);
             toast({ title: "Access Revoked", description: `Operator role of ${parentName} revoked from Enscribe Contract` })
             setOperatorAccess(false)
         } catch (err: any) {
@@ -434,6 +440,11 @@ export default function DeployForm() {
             }
 
             await tx.wait()
+            const txReceipt = await tx.wait()
+            let contractType;
+            if(isOwnable) { contractType = 'Ownable'; } else if(isReverseClaimable) { contractType = 'ReverseClaimer'; } else { contractType = 'ReverseSetter'; }
+            await logMetric(Date.now(), '', 'grant::setApprovalForAll', txReceipt.hash, contractType);
+
             toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
             setOperatorAccess(true)
         } catch (err: any) {
@@ -441,6 +452,31 @@ export default function DeployForm() {
         } finally {
             setAccessLoading(false)
         }
+    }
+
+    async function logMetric(timestamp: number, contractAddress: String, step: String, txnHash: String, contractType: String) {
+        if (!signer) return
+
+        await fetch(METRICS_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+            },
+            body: JSON.stringify({
+                co_id: corelationId,
+                contract_address: contractAddress,
+                ens_name: `${label}.${parentName}`,
+                deployer_address: (await signer).address,
+                network: chain?.id,
+                timestamp: Math.floor(timestamp / 1000),
+                step: step,
+                txn_hash: txnHash,
+                contract_type: contractType,
+                op_type: "deployandname",
+                source: "enscribe"
+            }),
+        });
     }
 
     const deployContract = async () => {
@@ -484,6 +520,7 @@ export default function DeployForm() {
 
         let deployedAddr = '';
 
+
         try {
             setLoading(true)
             setError('')
@@ -517,7 +554,12 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set Primary Name",
                         action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txn =  await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txReceipt = await txn.wait()
+                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeploy', txReceipt.hash, 'Ownable');
+                            return txn;
                         }
                     })
 
@@ -528,7 +570,10 @@ export default function DeployForm() {
                         steps.push({
                             title: "Give operator access",
                             action: async () => {
-                                return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                const txReceipt = await txn.wait()
+                                await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'Ownable');
+                                return txn;
                             }
                         })
                     }
@@ -536,7 +581,12 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txn =  await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txReceipt = await txn.wait()
+                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeploy', txn.hash, 'Ownable');
+                            return txn;
                         }
                     })
 
@@ -552,7 +602,10 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn =  await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txReceipt = await txn.wait()
+                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'Ownable');
+                                    return txn;
                                 }
                             })
                         }
@@ -565,7 +618,10 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txReceipt = await txn.wait()
+                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'Ownable');
+                                    return txn;
                                 }
                             })
                         }
@@ -574,7 +630,12 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            return await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txn =  await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txReceipt = await txn.wait()
+                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeploy', txReceipt.hash, 'Ownable');
+                            return txn;
                         }
                     })
                 }
@@ -596,7 +657,10 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn =  await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txReceipt = await txn.wait()
+                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseSetter');
+                                    return txn;
                                 }
                             })
                         }
@@ -608,7 +672,10 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txReceipt = await txn.wait()
+                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseSetter');
+                                    return txn;
                                 }
                             })
                         }
@@ -624,6 +691,7 @@ export default function DeployForm() {
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                             setDeployedAddress(deployedContractAddress)
+                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeployReverseSetter', txReceipt.hash, 'ReverseSetter');
                             return tx
                         }
                     })
@@ -639,7 +707,10 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    return await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn =  await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txReceipt = await txn.wait()
+                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseClaimer');
+                                    return txn;
                                 }
                             })
                         }
@@ -651,7 +722,10 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    return await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txReceipt = await txn.wait()
+                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseClaimer');
+                                    return txn;
                                 }
                             })
                         }
@@ -667,6 +741,7 @@ export default function DeployForm() {
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                             setDeployedAddress(deployedContractAddress)
+                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeployReverseClaimer', txReceipt.hash, 'ReverseClaimer');
                             return tx
                         }
                     })
