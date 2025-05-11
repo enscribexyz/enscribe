@@ -90,3 +90,7 @@ NEXT_PUBLIC_ETHERSCAN_API=https://api.etherscan.io/v2/api?apikey=
 # SOURCIFY
 NEXT_PUBLIC_SOURCIFY_URL=https://repo.sourcify.dev/
 NEXT_PUBLIC_SOURCIFY_API=https://sourcify.dev/server/v2/contract/
+
+# SUPABASE
+NEXT_PUBLIC_SUPABASE_URL=''
+NEXT_PUBLIC_SUPABASE_KEY=''

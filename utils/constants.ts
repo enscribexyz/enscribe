@@ -117,8 +117,8 @@ export const ETHERSCAN_API = process.env.NEXT_PUBLIC_ETHERSCAN_API;
 export const SOURCIFY_API = process.env.NEXT_PUBLIC_SOURCIFY_API;
 export const SOURCIFY_URL = process.env.NEXT_PUBLIC_SOURCIFY_URL;
 
-export const SUPABASE_URL = process.env.NEXT_SUPABASE_URL || "";
-export const SUPABASE_KEY = process.env.NEXT_SUPABASE_KEY || "";
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || "";
 
 export enum CHAINS {
     MAINNET = 1,
