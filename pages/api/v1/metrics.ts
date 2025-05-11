@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextApiRequest, NextApiResponse } from 'next';
 import {SUPABASE_KEY, SUPABASE_URL} from "@/utils/constants";
-import {Database, Tables} from "@/pages/api/v1/supabase";
+import {Database, Tables} from "@/types/supabase";
 
 const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY);
 

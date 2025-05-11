@@ -1,22 +1,23 @@
 import React, {useState, useEffect, useId} from 'react'
-import { ethers, namehash, keccak256, getCreateAddress, ContractFactory } from 'ethers'
+import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
-import { useAccount, useWalletClient, } from 'wagmi'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast"
+import {useAccount, useWalletClient,} from 'wagmi'
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
+import {Textarea} from "@/components/ui/textarea"
+import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {useToast} from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
 import {CHAINS, CONTRACTS, METRICS_URL, SUPABASE_URL, TOPIC0} from '../utils/constants';
 import publicResolverABI from "@/contracts/PublicResolver";
-import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import SetNameStepsModal, {Step} from './SetNameStepsModal';
+import {CheckCircleIcon} from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { v4 as uuid } from 'uuid'
+import {v4 as uuid} from 'uuid'
+import {logMetric} from "@/components/componentUtils";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -46,6 +47,8 @@ type ConstructorArg = {
     label?: string
 }
 
+const opType = "deployandname"
+
 const checkIfOwnable = (bytecode: string): boolean => {
     return OWNABLE_FUNCTION_SELECTORS.every(selector => bytecode.includes(selector));
 };
@@ -56,8 +59,8 @@ const checkIfReverseClaimable = (bytecode: string): boolean => {
 };
 
 export default function DeployForm() {
-    const { address, isConnected, chain } = useAccount()
-    const { data: walletClient } = useWalletClient()
+    const {address, isConnected, chain} = useAccount()
+    const {data: walletClient} = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -65,7 +68,9 @@ export default function DeployForm() {
     const etherscanUrl = config?.ETHERSCAN_URL!
     const ensAppUrl = config?.ENS_APP_URL!
 
-    const { toast } = useToast()
+    const chainId = chain?.id!
+
+    const {toast} = useToast()
 
     const [bytecode, setBytecode] = useState('')
     const [label, setLabel] = useState('')
@@ -119,11 +124,11 @@ export default function DeployForm() {
     }, [bytecode])
 
     const addArg = () =>
-        setArgs([...args, { type: "string", value: "", isCustom: false }])
+        setArgs([...args, {type: "string", value: "", isCustom: false}])
 
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
         const newArgs = [...args]
-        newArgs[index] = { ...newArgs[index], ...updated }
+        newArgs[index] = {...newArgs[index], ...updated}
         setArgs(newArgs)
     }
 
@@ -145,7 +150,7 @@ export default function DeployForm() {
         }
 
         try {
-            const { value: parsed, error } = parseJson(text)
+            const {value: parsed, error} = parseJson(text)
 
             if (error || !parsed) {
                 console.log("Invalid ABI")
@@ -405,12 +410,32 @@ export default function DeployForm() {
             await tx.wait()
             const txReceipt = await tx.wait()
             let contractType;
-            if(isOwnable) { contractType = 'Ownable'; } else if(isReverseClaimable) { contractType = 'ReverseClaimer'; } else { contractType = 'ReverseSetter'; }
-            await logMetric(Date.now(), '', 'revoke::setApprovalForAll', txReceipt.hash, contractType);
-            toast({ title: "Access Revoked", description: `Operator role of ${parentName} revoked from Enscribe Contract` })
+            if (isOwnable) {
+                contractType = 'Ownable';
+            } else if (isReverseClaimable) {
+                contractType = 'ReverseClaimer';
+            } else {
+                contractType = 'ReverseSetter';
+            }
+            await logMetric(
+                corelationId,
+                Date.now(),
+                chainId,
+                '',
+                (await signer).address,
+                `${label}.${parentName}`,
+                'revoke::setApprovalForAll',
+                txReceipt.hash,
+                contractType,
+                opType);
+
+            toast({
+                title: "Access Revoked",
+                description: `Operator role of ${parentName} revoked from Enscribe Contract`
+            })
             setOperatorAccess(false)
         } catch (err: any) {
-            toast({ variant: "destructive", title: "Error", description: err?.message || "Revoke access failed" })
+            toast({variant: "destructive", title: "Error", description: err?.message || "Revoke access failed"})
         } finally {
             setAccessLoading(false)
         }
@@ -442,42 +467,34 @@ export default function DeployForm() {
             await tx.wait()
             const txReceipt = await tx.wait()
             let contractType;
-            if(isOwnable) { contractType = 'Ownable'; } else if(isReverseClaimable) { contractType = 'ReverseClaimer'; } else { contractType = 'ReverseSetter'; }
-            await logMetric(Date.now(), '', 'grant::setApprovalForAll', txReceipt.hash, contractType);
+            if (isOwnable) {
+                contractType = 'Ownable';
+            } else if (isReverseClaimable) {
+                contractType = 'ReverseClaimer';
+            } else {
+                contractType = 'ReverseSetter';
+            }
+            await logMetric(
+                corelationId,
+                Date.now(),
+                chainId,
+                '',
+                (await signer).address,
+                `${label}.${parentName}`,
+                'grant::setApprovalForAll',
+                txReceipt.hash,
+                contractType,
+                opType);
 
-            toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
+            toast({title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract`})
             setOperatorAccess(true)
         } catch (err: any) {
-            toast({ variant: "destructive", title: "Error", description: err?.message || "Grant access failed" })
+            toast({variant: "destructive", title: "Error", description: err?.message || "Grant access failed"})
         } finally {
             setAccessLoading(false)
         }
     }
 
-    async function logMetric(timestamp: number, contractAddress: String, step: String, txnHash: String, contractType: String) {
-        if (!signer) return
-
-        await fetch(METRICS_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',
-            },
-            body: JSON.stringify({
-                co_id: corelationId,
-                contract_address: contractAddress,
-                ens_name: `${label}.${parentName}`,
-                deployer_address: (await signer).address,
-                network: chain?.id,
-                timestamp: Math.floor(timestamp / 1000),
-                step: step,
-                txn_hash: txnHash,
-                contract_type: contractType,
-                op_type: "deployandname",
-                source: "enscribe"
-            }),
-        });
-    }
 
     const deployContract = async () => {
         if (!label.trim()) {
@@ -548,31 +565,53 @@ export default function DeployForm() {
             console.log("parentNode - ", parentNode)
 
             const txCost = 100000000000000n
+            let senderAddress = (await signer).address
+            let name = `${label}.${parentName}`
 
             if (isOwnable) {
                 if (parentType === 'web3labs') {
                     steps.push({
                         title: "Deploy and Set Primary Name",
                         action: async () => {
-                            const txn =  await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeploy', txReceipt.hash, 'Ownable');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                deployedContractAddress,
+                                senderAddress,
+                                name,
+                                'setNameAndDeploy',
+                                txReceipt.hash,
+                                'Ownable',
+                                opType);
                             return txn;
                         }
                     })
 
                 } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
 
-                    const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    const isApprovedForAll = await ensRegistryContract.isApprovedForAll(senderAddress, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
                         steps.push({
                             title: "Give operator access",
                             action: async () => {
-                                const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                 const txReceipt = await txn.wait()
-                                await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'Ownable');
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    '',
+                                    senderAddress,
+                                    name,
+                                    'setApprovalForAll',
+                                    txReceipt.hash,
+                                    'Ownable',
+                                    opType);
                                 return txn;
                             }
                         })
@@ -581,11 +620,21 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            const txn =  await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeploy', txn.hash, 'Ownable');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                deployedContractAddress,
+                                senderAddress,
+                                name,
+                                'setNameAndDeploy',
+                                txn.hash,
+                                'Ownable',
+                                opType);
                             return txn;
                         }
                     })
@@ -602,9 +651,19 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn =  await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                     const txReceipt = await txn.wait()
-                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'Ownable');
+                                    await logMetric(
+                                        corelationId,
+                                        Date.now(),
+                                        chainId,
+                                        '',
+                                        senderAddress,
+                                        name,
+                                        'setApprovalForAll',
+                                        txReceipt.hash,
+                                        'Ownable',
+                                        opType);
                                     return txn;
                                 }
                             })
@@ -618,9 +677,19 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                     const txReceipt = await txn.wait()
-                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'Ownable');
+                                    await logMetric(
+                                        corelationId,
+                                        Date.now(),
+                                        chainId,
+                                        '',
+                                        senderAddress,
+                                        name,
+                                        'setApprovalForAll',
+                                        txReceipt.hash,
+                                        'Ownable',
+                                        opType);
                                     return txn;
                                 }
                             })
@@ -630,11 +699,21 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            const txn =  await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeploy', txReceipt.hash, 'Ownable');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                deployedContractAddress,
+                                senderAddress,
+                                name,
+                                'setNameAndDeploy',
+                                txReceipt.hash,
+                                'Ownable',
+                                opType);
                             return txn;
                         }
                     })
@@ -657,9 +736,19 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn =  await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                     const txReceipt = await txn.wait()
-                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseSetter');
+                                    await logMetric(
+                                        corelationId,
+                                        Date.now(),
+                                        chainId,
+                                        '',
+                                        senderAddress,
+                                        name,
+                                        'setApprovalForAll',
+                                        txReceipt.hash,
+                                        'ReverseSetter',
+                                        opType);
                                     return txn;
                                 }
                             })
@@ -672,9 +761,19 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                     const txReceipt = await txn.wait()
-                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseSetter');
+                                    await logMetric(
+                                        corelationId,
+                                        Date.now(),
+                                        chainId,
+                                        '',
+                                        senderAddress,
+                                        name,
+                                        'setApprovalForAll',
+                                        txReceipt.hash,
+                                        'ReverseSetter',
+                                        opType);
                                     return txn;
                                 }
                             })
@@ -685,13 +784,23 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, {value: txCost})
                             const txReceipt = await tx.wait()
                             setTxHash(txReceipt.hash)
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                             setDeployedAddress(deployedContractAddress)
-                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeployReverseSetter', txReceipt.hash, 'ReverseSetter');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                deployedContractAddress,
+                                senderAddress,
+                                name,
+                                'setNameAndDeployReverseSetter',
+                                txReceipt.hash,
+                                'ReverseSetter',
+                                opType);
                             return tx
                         }
                     })
@@ -707,9 +816,19 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn =  await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                     const txReceipt = await txn.wait()
-                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseClaimer');
+                                    await logMetric(
+                                        corelationId,
+                                        Date.now(),
+                                        chainId,
+                                        '',
+                                        senderAddress,
+                                        name,
+                                        'setApprovalForAll',
+                                        txReceipt.hash,
+                                        'ReverseClaimer',
+                                        opType);
                                     return txn;
                                 }
                             })
@@ -722,9 +841,19 @@ export default function DeployForm() {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn =  await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
+                                    const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
                                     const txReceipt = await txn.wait()
-                                    await logMetric(Date.now(), '', 'setApprovalForAll', txReceipt.hash, 'ReverseClaimer');
+                                    await logMetric(
+                                        corelationId,
+                                        Date.now(),
+                                        chainId,
+                                        '',
+                                        senderAddress,
+                                        name,
+                                        'setApprovalForAll',
+                                        txReceipt.hash,
+                                        'ReverseClaimer',
+                                        opType);
                                     return txn;
                                 }
                             })
@@ -735,13 +864,23 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, { value: txCost })
+                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, {value: txCost})
                             const txReceipt = await tx.wait()
                             setTxHash(txReceipt.hash)
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
                             setDeployedAddress(deployedContractAddress)
-                            await logMetric(Date.now(), deployedContractAddress, 'setNameAndDeployReverseClaimer', txReceipt.hash, 'ReverseClaimer');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                deployedContractAddress,
+                                senderAddress,
+                                name,
+                                'setNameAndDeployReverseClaimer',
+                                txReceipt.hash,
+                                'ReverseClaimer',
+                                opType);
                             return tx
                         }
                     })
@@ -786,7 +925,7 @@ export default function DeployForm() {
                     }}
                     placeholder="0x60037..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
-                        }`}
+                    }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
@@ -799,15 +938,17 @@ export default function DeployForm() {
                     <>
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
-                                    className="ml-1 text-gray-700 inline">Contract implements <Link
-                                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="ml-1 text-gray-700 inline">Contract implements <Link
+                                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
-                                    className="ml-1 text-gray-700 inline">Contract is either <Link
-                                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                        className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="ml-1 text-gray-700 inline">Contract is either <Link
+                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link
+                                href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor"
+                                className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
                         </div>
                     </>
                 }
@@ -815,10 +956,14 @@ export default function DeployForm() {
                 {isReverseClaimable && (
                     <>
                         <div className={"flex"}>
-                            <Input type={"checkbox"} className={"w-4 h-4 mt-1"} checked={isReverseSetter} onChange={(e) => {
-                                setIsReverseSetter(!isReverseSetter)
-                            }} />
-                            <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract is a <Link href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor" className="text-blue-600 hover:underline">ReverseSetter</Link> (This will deploy & set the name of the contract using different steps than ReverseClaimable)</label>
+                            <Input type={"checkbox"} className={"w-4 h-4 mt-1"} checked={isReverseSetter}
+                                   onChange={(e) => {
+                                       setIsReverseSetter(!isReverseSetter)
+                                   }}/>
+                            <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract is a <Link
+                                href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor"
+                                className="text-blue-600 hover:underline">ReverseSetter</Link> (This will deploy & set
+                                the name of the contract using different steps than ReverseClaimable)</label>
                         </div>
                     </>
                 )
@@ -849,15 +994,15 @@ export default function DeployForm() {
                                     value={arg.type}
                                     onValueChange={(value) => {
                                         if (value === "custom") {
-                                            updateArg(index, { isCustom: true, type: "" })
+                                            updateArg(index, {isCustom: true, type: ""})
                                         } else {
-                                            updateArg(index, { type: value, isCustom: false })
+                                            updateArg(index, {type: value, isCustom: false})
                                         }
                                     }}
                                 >
                                     <SelectTrigger
                                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                                        <SelectValue className="text-gray-900" />
+                                        <SelectValue className="text-gray-900"/>
                                     </SelectTrigger>
                                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                                         {commonTypes.map((t) => (
@@ -870,7 +1015,7 @@ export default function DeployForm() {
                                 <Input
                                     type="text"
                                     value={arg.type}
-                                    onChange={(e) => updateArg(index, { type: e.target.value })}
+                                    onChange={(e) => updateArg(index, {type: e.target.value})}
                                     placeholder="Enter custom type (e.g. tuple(string,uint256))"
                                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
@@ -879,7 +1024,7 @@ export default function DeployForm() {
                             <Input
                                 type="text"
                                 value={arg.value}
-                                onChange={(e) => updateArg(index, { value: e.target.value })}
+                                onChange={(e) => updateArg(index, {value: e.target.value})}
                                 placeholder={
                                     arg.type.includes("tuple") && arg.type.includes("[]")
                                         ? '[["name", 10, "0x..."], ["bob", 20, "0x..."]]'
@@ -937,7 +1082,7 @@ export default function DeployForm() {
                 >
                     <SelectTrigger
                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900" />
+                        <SelectValue className="text-gray-900"/>
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
@@ -974,7 +1119,8 @@ export default function DeployForm() {
                                 />
 
                                 {operatorAccess && recordExists && (
-                                    <Button variant="destructive" disabled={accessLoading} onClick={revokeOperatorAccess}>
+                                    <Button variant="destructive" disabled={accessLoading}
+                                            onClick={revokeOperatorAccess}>
                                         {accessLoading ? "Revoking..." : "Revoke Access"}
                                     </Button>
                                 )}
@@ -992,9 +1138,13 @@ export default function DeployForm() {
                             <p className="text-sm text-yellow-600 mt-2">
                                 {operatorAccess
                                     ? "Note: You can revoke Operator role from Enscribe here."
-                                    : <p className="text-yellow-600">Note: You can grant Operator role to Enscribe through here, otherwise Enscribe will ask you to grant operator access during deployment. <Link
-                                        href="https://www.enscribe.xyz/docs/getting-started/opearator-role"
-                                        className="text-blue-600 hover:underline">Why Operator Access is needed?</Link></p>}
+                                    :
+                                    <p className="text-yellow-600">Note: You can grant Operator role to Enscribe through
+                                        here, otherwise Enscribe will ask you to grant operator access during
+                                        deployment. <Link
+                                            href="https://www.enscribe.xyz/docs/getting-started/opearator-role"
+                                            className="text-blue-600 hover:underline">Why Operator Access is
+                                            needed?</Link></p>}
                             </p>
                         )}
                     </>
@@ -1008,9 +1158,9 @@ export default function DeployForm() {
             >
                 {loading ? (
                     <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
-                        xmlns="http://www.w3.org/2000/svg">
+                         xmlns="http://www.w3.org/2000/svg">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                            strokeWidth="4"></circle>
+                                strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                 ) : 'Deploy'}

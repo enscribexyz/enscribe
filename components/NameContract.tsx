@@ -18,6 +18,7 @@ import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import {v4 as uuid} from "uuid";
+import {logMetric} from "@/components/componentUtils";
 
 export default function NameContract() {
     const router = useRouter();
@@ -57,6 +58,7 @@ export default function NameContract() {
     const [modalSubtitle, setModalSubtitle] = useState('');
 
     const corelationId = uuid()
+    const opType = "deployandname"
 
     const getParentNode = (name: string) => {
         try {
@@ -297,31 +299,6 @@ export default function NameContract() {
             return
         }
 
-        async function logMetric(timestamp: number, contractAddress: String, step: String, txnHash: String, contractType: String) {
-            if (!signer) return
-
-            await fetch(METRICS_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Origin': '*',
-                },
-                body: JSON.stringify({
-                    co_id: corelationId,
-                    contract_address: contractAddress,
-                    ens_name: `${label}.${parentName}`,
-                    deployer_address: (await signer).address,
-                    network: chain?.id,
-                    timestamp: Math.floor(timestamp / 1000),
-                    step: step,
-                    txn_hash: txnHash,
-                    contract_type: contractType,
-                    op_type: "nameexisting",
-                    source: "enscribe"
-                }),
-            });
-        }
-
         try {
             setLoading(true)
             setError('')
@@ -334,7 +311,9 @@ export default function NameContract() {
             }
 
             const sender = (await signer)
-            const signerAddress = sender.address;
+            const senderAddress = sender.address;
+            const name = `${label}.${parentName}`
+            const chainId = chain?.id!
 
             const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, sender)
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, sender)
@@ -370,7 +349,17 @@ export default function NameContract() {
                         if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
                             const txn = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: 100000000000000n })
                             const txReceipt = await txn.wait()
-                            await logMetric(Date.now(), existingContractAddress, 'subname::setName', txReceipt.hash, isOwnable ? 'Ownable' : 'ReverseClaimer');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                existingContractAddress,
+                                senderAddress,
+                                name,
+                                'subname::setName',
+                                txReceipt.hash,
+                                isOwnable ? 'Ownable' : 'ReverseClaimer',
+                                opType);
                             return txn
                         } else {
                             setError("Forward resolution already set")
@@ -380,7 +369,17 @@ export default function NameContract() {
                         if (!nameExist) {
                             const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
                             const txReceipt = await txn.wait()
-                            await logMetric(Date.now(), existingContractAddress, 'subname::setSubnodeRecord', txReceipt.hash, isOwnable ? 'Ownable' : 'ReverseClaimer');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                existingContractAddress,
+                                senderAddress,
+                                name,
+                                'subname::setSubnodeRecord',
+                                txReceipt.hash,
+                                isOwnable ? 'Ownable' : 'ReverseClaimer',
+                                opType);
                             return txn
                         }
                     } else {
@@ -389,12 +388,32 @@ export default function NameContract() {
                             if (isWrapped) {
                                 const txn = await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config.PUBLIC_RESOLVER, 0, 0, 0)
                                 const txReceipt = await txn.wait()
-                                await logMetric(Date.now(), existingContractAddress, 'subname::setSubnodeRecord', txReceipt.hash, isOwnable ? 'Ownable' : 'ReverseClaimer');
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    existingContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'subname::setSubnodeRecord',
+                                    txReceipt.hash,
+                                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                                    opType);
                                 return txn
                             } else {
                                 const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
                                 const txReceipt = await txn.wait()
-                                await logMetric(Date.now(), existingContractAddress, 'subname::setSubnodeRecord', txReceipt.hash, isOwnable ? 'Ownable' : 'ReverseClaimer');
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    existingContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'subname::setSubnodeRecord',
+                                    txReceipt.hash,
+                                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                                    opType);
                                 return txn
                             }
                         }
@@ -411,7 +430,17 @@ export default function NameContract() {
                         if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
                             const txn = await publicResolverContract.setAddr(node, existingContractAddress)
                             const txReceipt = await txn.wait()
-                            await logMetric(Date.now(), existingContractAddress, 'fwdres::setAddr', txReceipt.hash, isOwnable ? 'Ownable' : 'ReverseClaimer');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                existingContractAddress,
+                                senderAddress,
+                                name,
+                                'fwdres::setAddr',
+                                txReceipt.hash,
+                                isOwnable ? 'Ownable' : 'ReverseClaimer',
+                                opType);
                             return txn
                         } else {
                             setError("Forward resolution already set")
@@ -433,7 +462,17 @@ export default function NameContract() {
                         action: async () => {
                             const txn = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
                             const txReceipt = await txn.wait()
-                            await logMetric(Date.now(), existingContractAddress, 'revres::setName', txReceipt.hash, 'ReverseClaimer');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                existingContractAddress,
+                                senderAddress,
+                                name,
+                                'revres::setName',
+                                txReceipt.hash,
+                                'ReverseClaimer',
+                                opType);
                             return txn
                         }
                     })
@@ -444,7 +483,17 @@ export default function NameContract() {
                         action: async () => {
                             const txn = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
                             const txReceipt = await txn.wait()
-                            await logMetric(Date.now(), existingContractAddress, 'revres::setNameForAddr', txReceipt.hash, 'Ownable');
+                            await logMetric(
+                                corelationId,
+                                Date.now(),
+                                chainId,
+                                existingContractAddress,
+                                senderAddress,
+                                name,
+                                'revres::setNameForAddr',
+                                txReceipt.hash,
+                                'Ownable',
+                                opType);
                             return txn
                         }
                     })
