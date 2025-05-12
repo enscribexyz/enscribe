@@ -331,126 +331,125 @@ export default function ContractHistory() {
                                                     >
                                                         {truncate(c.contractAddress)}
                                                     </Link>
-                                                    <TooltipProvider>
-                                                        {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match') && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                                                                >
-                                                                    <Link
-                                                                        href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="cursor-pointer"
-                                                                    >
-                                                                        <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
-                                                                        Verified
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        {c.etherscanVerification === 'verified' && (
-                                                            <div className="flex items-center gap-2">
 
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                    {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match') && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="cursor-pointer"
                                                                 >
-                                                                    <Link
-                                                                        href={`${etherscanUrl}address/${c.contractAddress}#code`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                    >
-                                                                        <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
-                                                                        Verifed
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        {(c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match') && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
+                                                                    Verified
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {c.etherscanVerification === 'verified' && (
+                                                        <div className="flex items-center gap-2">
+
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${etherscanUrl}address/${c.contractAddress}#code`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                 >
-                                                                    <Link
-                                                                        href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="cursor-pointer"
-                                                                    >
-                                                                        <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
-                                                                        Verified
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        {c.sourcifyVerification === 'unverified' && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
+                                                                    Verifed
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {(c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match') && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="cursor-pointer"
                                                                 >
-                                                                    <Link
-                                                                        href={`https://sourcify.dev/#/verifier`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                    >
-                                                                        <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
-                                                                        Verify
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        {c.etherscanVerification === 'unverified' && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                                    Verified
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {c.sourcifyVerification === 'unverified' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`https://sourcify.dev/#/verifier`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                 >
-                                                                    <Link
-                                                                        href={`${etherscanUrl}address/${c.contractAddress}#code`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                    >
-                                                                        <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
-                                                                        Verify
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                        {(c.blockscoutVerification === 'unverified') && (
-                                                            <div className="flex items-center gap-2">
-                                                                <Button
-                                                                    asChild
-                                                                    size="sm"
-                                                                    variant="outline"
-                                                                    className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                    <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
+                                                                    Verify
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {c.etherscanVerification === 'unverified' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${etherscanUrl}address/${c.contractAddress}#code`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
                                                                 >
-                                                                    <Link
-                                                                        href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="cursor-pointer"
-                                                                    >
-                                                                        <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
-                                                                        Verify
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        )}
-                                                    </TooltipProvider>
+                                                                    <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
+                                                                    Verify
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {(c.blockscoutVerification === 'unverified') && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                                    Verify
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </TableCell>
                                             <TableCell>
@@ -545,32 +544,153 @@ export default function ContractHistory() {
                                     {paginated(withoutENS, pageWithout).map((c, i) => (
                                         <TableRow key={i}>
                                             <TableCell>
-                                                <Link href={`${etherscanUrl}address/${c.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
-                                                    {truncate(c.contractAddress)}
-                                                </Link>
-                                                {c.isOwnable ?
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <Info className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" align="center">
-                                                                <p>You can set Primary Name for this contract</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                    :
-                                                    <TooltipProvider>
-                                                        <Tooltip>
-                                                            <TooltipTrigger asChild>
-                                                                <CircleAlert className="w-5 h-5 inline text-amber-500 ml-2 cursor-pointer" />
-                                                            </TooltipTrigger>
-                                                            <TooltipContent side="top" align="center">
-                                                                <p>You can only set Forward Resolution for this contract</p>
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                }
+                                                <div className="flex items-center gap-2">
+                                                    <Link href={`${etherscanUrl}address/${c.contractAddress}`} target="_blank" className="text-blue-600 hover:underline">
+                                                        {truncate(c.contractAddress)}
+                                                    </Link>
+                                                    {c.isOwnable ?
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <Info className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" align="center">
+                                                                    <p>You can set Primary Name for this contract</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                        :
+                                                        <TooltipProvider>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <CircleAlert className="w-5 h-5 inline text-amber-500 ml-2 cursor-pointer" />
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" align="center">
+                                                                    <p>You can only set Forward Resolution for this contract</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    }
+
+                                                    {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match') && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
+                                                                    Verified
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {c.etherscanVerification === 'verified' && (
+                                                        <div className="flex items-center gap-2">
+
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${etherscanUrl}address/${c.contractAddress}#code`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
+                                                                    Verifed
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {(c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match') && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                                    Verified
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {c.sourcifyVerification === 'unverified' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`https://sourcify.dev/#/verifier`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
+                                                                    Verify
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {c.etherscanVerification === 'unverified' && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${etherscanUrl}address/${c.contractAddress}#code`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                >
+                                                                    <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
+                                                                    Verify
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                    {(c.blockscoutVerification === 'unverified') && (
+                                                        <div className="flex items-center gap-2">
+                                                            <Button
+                                                                asChild
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                            >
+                                                                <Link
+                                                                    href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="cursor-pointer"
+                                                                >
+                                                                    <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                                    Verify
+                                                                </Link>
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </TableCell>
                                             <TableCell>
                                                 <Link href={`${etherscanUrl}tx/${c.txHash}`} target="_blank" className="text-blue-600 hover:underline">
@@ -605,7 +725,7 @@ export default function ContractHistory() {
                                     ))}
                                     {!processing && withoutENS.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center text-black-700 py-4">
+                                            <TableCell colSpan={4} className="text-center text-black-700 py-4">
                                                 No Contracts Deployed
                                             </TableCell>
                                         </TableRow>
@@ -613,7 +733,7 @@ export default function ContractHistory() {
 
                                     {processing && (
                                         <TableRow>
-                                            <TableCell colSpan={3} className="text-center py-4">
+                                            <TableCell colSpan={4} className="text-center py-4">
                                                 <div className="w-6 h-6 mx-auto border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
                                             </TableCell>
                                         </TableRow>
