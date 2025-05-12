@@ -1,0 +1,64 @@
+---
+slug: contracts-verification
+title: Integration of Contracts Verification in Enscribe
+authors: [nischal]
+tags: [ens]
+---
+
+We’re excited to share a new enhancement in Enscribe's [“My Contracts”](https://app.enscribe.xyz/history/) page that gives users 
+more visibility and confidence around their verification of deployed smart contracts with **Contract Verification Badges**.
+
+Smart contract verification is essential for transparency. It lets users and developers inspect the exact source code that’s running on-chain. 
+Until now, finding all your deployed contracts and checking whether they were verified required manually opening Etherscan or other block explorers, copying contract addresses, and digging through multiple tabs.
+
+With this update, Enscribe now **shows verification badges next to every contract you’ve deployed** — across both the **Named Contracts** and **Unnamed Contracts** tabs on the "My Contracts" page.
+
+
+## What You’ll See
+
+For each deployed contract, Enscribe checks whether your contract is verified on the major platforms:
+
+- [Etherscan](https://etherscan.io)
+- [Sourcify](https://sourcify.dev)
+- [Blockscout](https://blockscout.com)
+
+If verified, you’ll see a **green-bordered badge** labeled **"Verified"** for that platform. Clicking on this badge will take you directly to the verified record on the respective platform, where you (and your users) can inspect the source code, compiler details, and verification status like “Exact Match” or “Partial Match.”
+
+If the contract isn’t verified yet, you’ll see a **“Verify”** label instead — which links to the verification page for that platform. This way, users can quickly take action without needing to search for the address manually.
+
+Here’s a quick visual reference:
+
+![Verification badges in Named Contracts](named.png)  
+![Verification badges in Unnamed Contracts](unnamed.png)
+
+## The Trust Layer: ENS + Verification
+
+We’ve also introduced a **green shield check icon** next to any contract that has:
+
+- A Primary ENS name
+- And Verified source code on at least one supported platform
+
+This badge signals that the contract is both named and transparent — giving dApps, wallets, and end users a stronger trust signal.
+
+## Why This Matters
+
+Verification builds credibility. Naming adds discoverability. When paired together, they create a safer and more intuitive experience for Web3 users.
+
+With the latest update, Enscribe now helps you:
+
+- Easily confirm if your contracts are verified  
+- View verified source code with one click  
+- Quickly navigate to the platform if you still need to verify  
+
+It’s all about making security and trust more accessible — without disrupting your workflow.
+
+
+## Try It Out
+
+Visit the updated [My Contracts](https://app.enscribe.xyz/history/) page and explore the verification status of your deployed contracts. If any of them are missing verification, take a moment to complete it — and get one step closer to making your contracts trusted and verifiable.
+
+As always, we’d love your feedback on this feature. We’re just getting started with trust layers in Enscribe, and your input helps shape what comes next.
+
+For more details, visit our [site](https://www.enscribe.xyz/), and don't hesitate to join our [Discord community](https://discord.gg/8QUMMdS5GY) and [Telegram group](https://t.me/enscribers) to share your feedback and experiences.
+
+Happy Naming! 🚀
