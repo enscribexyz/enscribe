@@ -58,7 +58,7 @@ export default function NameContract() {
     const [modalSubtitle, setModalSubtitle] = useState('');
 
     const corelationId = uuid()
-    const opType = "deployandname"
+    const opType = "nameexisting"
 
     const getParentNode = (name: string) => {
         try {
