@@ -1,18 +1,17 @@
-import React, {useState, useEffect, useId} from 'react'
-import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
+import React, {useEffect, useState} from 'react'
+import {ethers, namehash} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
 import {useAccount, useWalletClient,} from 'wagmi'
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea"
-import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {useToast} from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import {CHAINS, CONTRACTS, METRICS_URL, SUPABASE_URL, TOPIC0} from '../utils/constants';
-import publicResolverABI from "@/contracts/PublicResolver";
+import {CHAINS, CONTRACTS, NAME_GEN_URL, TOPIC0} from '../utils/constants';
 import SetNameStepsModal, {Step} from './SetNameStepsModal';
 import {CheckCircleIcon} from "@heroicons/react/24/outline";
 import Link from "next/link";
@@ -125,6 +124,19 @@ export default function DeployForm() {
 
     const addArg = () =>
         setArgs([...args, {type: "string", value: "", isCustom: false}])
+
+    const fetchGeneratedName = async (): Promise<String | null> => {
+        try {
+            let res = await fetch(NAME_GEN_URL, {method: 'GET'});
+            if (res.ok) {
+                setLabel(await res.text())
+            }
+        } catch (err) {
+            console.error('Sourcify fetch failed:', err);
+            return null
+        }
+    }
+
 
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
         const newArgs = [...args]
@@ -1053,7 +1065,17 @@ export default function DeployForm() {
                     + Add Argument
                 </Button>
 
-                <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
+                <div className={"flex items-center space-x-2"}>
+                    <label className="text-gray-700 dark:text-gray-300">Label Name OR </label>
+                    <Button
+                        type="button"
+                        onClick={fetchGeneratedName}
+                        className="bg-gray-900 text-white ml-3"
+                    >
+                        I am too lazy to think of a name
+                    </Button>
+                </div>
+
                 <Input
                     type="text"
                     value={label}

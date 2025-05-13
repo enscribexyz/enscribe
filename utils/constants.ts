@@ -130,3 +130,4 @@ export enum CHAINS {
 }
 
 export const METRICS_URL = '/api/v1/metrics'
+export const NAME_GEN_URL = '/api/v1/name'
