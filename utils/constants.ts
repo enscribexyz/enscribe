@@ -117,6 +117,9 @@ export const ETHERSCAN_API = process.env.NEXT_PUBLIC_ETHERSCAN_API;
 export const SOURCIFY_API = process.env.NEXT_PUBLIC_SOURCIFY_API;
 export const SOURCIFY_URL = process.env.NEXT_PUBLIC_SOURCIFY_URL;
 
+export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+export const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_KEY || "";
+
 export enum CHAINS {
     MAINNET = 1,
     SEPOLIA = 11155111,
@@ -125,3 +128,5 @@ export enum CHAINS {
     BASE = 8453,
     BASE_SEPOLIA = 84532
 }
+
+export const METRICS_URL = '/api/v1/metrics'
