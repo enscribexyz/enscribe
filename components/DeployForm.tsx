@@ -125,7 +125,7 @@ export default function DeployForm() {
     const addArg = () =>
         setArgs([...args, {type: "string", value: "", isCustom: false}])
 
-    const fetchGeneratedName = async (): Promise<String | null> => {
+    const fetchGeneratedName = async () => {
         try {
             let res = await fetch(NAME_GEN_URL, {method: 'GET'});
             if (res.ok) {
@@ -133,7 +133,6 @@ export default function DeployForm() {
             }
         } catch (err) {
             console.error('Sourcify fetch failed:', err);
-            return null
         }
     }
 
@@ -1066,7 +1065,7 @@ export default function DeployForm() {
                 </Button>
 
                 <div className={"flex items-center space-x-2"}>
-                    <label className="text-gray-700 dark:text-gray-300">Label Name OR </label>
+                    <label className="text-gray-700 dark:text-gray-300">Give a name OR </label>
                     <Button
                         type="button"
                         onClick={fetchGeneratedName}
