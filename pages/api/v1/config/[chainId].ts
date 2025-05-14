@@ -2,11 +2,13 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import {CONTRACTS} from "@/utils/constants";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    const { chainId } = req.query;
+    const { chainIdQuery } = req.query;
 
-    if (typeof chainId !== 'string') {
+    if (typeof chainIdQuery !== 'string') {
         return res.status(400).json({ error: 'Invalid chainId parameter' });
     }
+
+    const chainId = parseInt(chainIdQuery, 10)
 
     const chainConfig = {
         reverse_registrar_addr: CONTRACTS[chainId].REVERSE_REGISTRAR,
