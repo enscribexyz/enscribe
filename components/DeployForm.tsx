@@ -13,10 +13,11 @@ import {useToast} from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
 import {CHAINS, CONTRACTS, NAME_GEN_URL, TOPIC0} from '../utils/constants';
 import SetNameStepsModal, {Step} from './SetNameStepsModal';
-import {CheckCircleIcon} from "@heroicons/react/24/outline";
+import {CheckCircleIcon, ArrowPathIcon} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import {v4 as uuid} from 'uuid'
-import {logMetric} from "@/components/componentUtils";
+import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
+import {string} from "postcss-selector-parser";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -122,19 +123,19 @@ export default function DeployForm() {
         }
     }, [bytecode])
 
+    const populateName = async() => {
+        const name = await fetchGeneratedName();
+        setLabel(name)
+    }
+
+    // set label when component mounts
+    useEffect(() => {
+        populateName()
+    }, []);
+
     const addArg = () =>
         setArgs([...args, {type: "string", value: "", isCustom: false}])
 
-    const fetchGeneratedName = async () => {
-        try {
-            let res = await fetch(NAME_GEN_URL, {method: 'GET'});
-            if (res.ok) {
-                setLabel(await res.text())
-            }
-        } catch (err) {
-            console.error('Sourcify fetch failed:', err);
-        }
-    }
 
 
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
@@ -1064,28 +1065,25 @@ export default function DeployForm() {
                     + Add Argument
                 </Button>
 
+                <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
+
                 <div className={"flex items-center space-x-2"}>
-                    <label className="text-gray-700 dark:text-gray-300">Give a name OR </label>
+                    <Input
+                        type="text"
+                        value={label}
+                        onChange={(e) => {
+                            setLabel(e.target.value)
+                            setError("")
+                        }}
+                        onBlur={checkENSReverseResolution}
+                        placeholder="my-label"
+                        className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                    />
                     <Button
-                        type="button"
-                        onClick={fetchGeneratedName}
-                        className="bg-gray-900 text-white ml-3"
-                    >
-                        I am too lazy to think of a name
+                    onClick={populateName}>
+                        <ArrowPathIcon />
                     </Button>
                 </div>
-
-                <Input
-                    type="text"
-                    value={label}
-                    onChange={(e) => {
-                        setLabel(e.target.value)
-                        setError("")
-                    }}
-                    onBlur={checkENSReverseResolution}
-                    placeholder="my-label"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                />
 
                 <label className="block text-gray-700 dark:text-gray-300">ENS Parent</label>
                 <Select
