@@ -1,0 +1,64 @@
+---
+slug: beyond-naming-contracts
+title: Beyond Naming Smart Contracts
+authors: [conor]
+tags: [ens]
+---
+
+### What's Next After Naming Smart Contracts?
+
+Over the past few months, we've been working hard to make it as easy as possible for developers to name their smart contracts using ENS. With support now live on [Ethereum, Base, and Linea](mainnet-announcement), we're starting to see steady adoption through the Enscribe app. But naming is just the first step in improving Ethereum's user experience.
+
+### Trust Through Transparency: Contract Verification
+
+Once developers start giving their smart contracts ENS names, the next logical move is to help users assess how trustworthy a contract is. Our first focus here is verification.
+
+We're surfacing contract verification data directly in the Enscribe app by pulling it from trusted sources like:
+
+* [Etherscan](https://etherscan.io)
+* [Blockscout](https://blockscout.com)
+* [Sourcify](https://sourcify.dev)
+
+These verifications don't guarantee a contract is safe — after all, anyone can verify code—but they do indicate a baseline level of developer diligence. They also enable wallets and explorers to decode method signatures and provide users with more context about their transactions.
+
+![My Contracts view in Enscribe App](my-contracts.jpeg)
+
+We've launched our initial support for verifications already. Here's a quick [overview of the release](contracts-verification), and you can see it live in the Enscribe App's "[My Contracts](https://app.enscribe.xyz/history)" view.
+
+### On the Horizon: Audit Support
+
+We're also turning our attention to audits. Smart contract audits are a key signal of trust, but surfacing audit data in a decentralised and verifiable way is still an open problem.
+
+We're exploring how Enscribe can support this through:
+
+* Structured attestations for on-chain audit claims (e.g. [EIP-7512](https://eips.ethereum.org/EIPS/eip-7512))
+* Aggregation of verification and audit signals into a public API
+* Visual indicators in the Enscribe UI to make trust cues clearer
+
+Imagine something like a TLS padlock for Web3 — a visual cue that gives users confidence they’re interacting with a verified, trustworthy contract, performed in a way that doesn’t require trusting any single service provider, including ourselves.
+
+![TLS padlock for enscribe.xyz site](tls-padlock.png)
+
+### A Trust Score for Contracts?
+
+We're thinking through what a decentralized trust framework might look like. Some early metrics we're exploring include:
+
+1. **ENS name assigned** (via Enscribe or manually)
+2. **Contract verified** (Sourcify, Etherscan, Blockscout)
+3. **Audits available** (verifiable, on-chain attestations)
+
+What else should be on that list? We're keen to hear your suggestions.
+
+### Beyond Devtool Integrations
+
+You may have seen our recent updates on ecosystem calls with ENS DAO—we're making great progress toward integrating Enscribe directly into dev workflows (like Foundry). This will let developers name contracts automatically at deploy time, with zero extra steps.
+
+But we're not stopping there.
+
+We know many developers will continue using the Enscribe app directly to name existing contracts. So we're investing heavily in improving that experience too. Our aim is to reduce friction even further and make it delightful to manage your named contracts with Enscribe.
+
+We'll be sharing more UX improvements and feature ideas very soon. In the meantime, if you're using Enscribe and have thoughts on what would make your experience better, [drop into our Discord](https://discord.gg/8QUMMdS5GY) or tag us [@enscribe\_ on X](https://x.com/enscribe_).
+
+We're just getting started.
+
+In the meantime, keep naming those contracts!
