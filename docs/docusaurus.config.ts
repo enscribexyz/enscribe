@@ -78,7 +78,41 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       // Replace with your project's social card
-      image: "img/social-card.jpg",
+      image: "img/social-card.png",
+
+      metadata: [
+        { name: 'keywords', content: 'web3, blockchain, ens, Ethereum Name Service, Ethereum, smart contracts, Enscribe, UX, smart contract deployment' },
+        { name: 'description', content: 'Improve Ethereum UX and replace meaningless hex contract addresses with ENS names using Enscribe.' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:image', content: 'https://www.enscribe.xyz/img/social-card.png' },
+        { property: 'og:image', content: 'https://www.enscribe.xyz/img/social-card.png' },
+        { property: 'og:title', content: 'Enscribe – Name your smart contracts' },
+        { property: 'og:description', content: 'Easily name your Ethereum smart contracts with ENS names. Now live on Ethereum, Linea, and Base.' },
+      ],
+
+      headTags: [
+        {
+          tagName: 'link',
+          attributes: {
+            rel: 'preconnect',
+            href: 'https://www.enscribe.xyz/',
+          },
+        },
+        {
+          tagName: 'script',
+          attributes: {
+            type: 'application/ld+json',
+          },
+          innerHTML: JSON.stringify({
+            '@context': 'https://schema.org/',
+            '@type': 'Organization',
+            name: 'Enscribe',
+            url: 'https://www.enscribe.xyz/',
+            logo: 'https://www.enscribe.xyz/img/logo.svg',
+          }),
+        },
+      ],
+
       navbar: {
         title: "Enscribe",
         logo: {
