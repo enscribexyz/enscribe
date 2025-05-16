@@ -16,9 +16,9 @@ import { useToast } from "@/hooks/use-toast"
 import {CONTRACTS, CHAINS, METRICS_URL} from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import {ArrowPathIcon, CheckCircleIcon} from "@heroicons/react/24/outline";
 import {v4 as uuid} from "uuid";
-import {logMetric} from "@/components/componentUtils";
+import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
 
 export default function NameContract() {
     const router = useRouter();
@@ -91,6 +91,16 @@ export default function NameContract() {
             setParentName(config.ENSCRIBE_DOMAIN)
         }
     }, [config, parentType])
+
+    const populateName = async() => {
+        const name = await fetchGeneratedName();
+        setLabel(name)
+    }
+
+    // set label when component mounts
+    useEffect(() => {
+        populateName()
+    }, []);
 
     const fetchPrimaryENS = async () => {
         if (!signer || !address) return
@@ -535,7 +545,7 @@ export default function NameContract() {
                     // onBlur={ checkIfOwnable}
                     placeholder="0xa56..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isOwnable ? 'border-red-500' : ''
-                        }`}
+                    }`}
                 />
 
                 {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
@@ -543,44 +553,52 @@ export default function NameContract() {
                     <p className="text-yellow-600">Contract address does not extend <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline">Ownable</Link> or <Link
-                            href="https://eips.ethereum.org/EIPS/eip-173"
-                            className="text-blue-600 hover:underline">ERC-173</Link> or <Link
-                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                className="text-blue-600 hover:underline">ReverseClaimable</Link>. You can only <Link
-                                    href="https://docs.ens.domains/learn/resolution#forward-resolution" className="text-blue-600 hover:underline">forward resolve</Link> this
-                        name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why is this?</Link></p>
+                        href="https://eips.ethereum.org/EIPS/eip-173"
+                        className="text-blue-600 hover:underline">ERC-173</Link> or <Link
+                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                        className="text-blue-600 hover:underline">ReverseClaimable</Link>. You can only <Link
+                        href="https://docs.ens.domains/learn/resolution#forward-resolution"
+                        className="text-blue-600 hover:underline">forward resolve</Link> this
+                        name. <Link href="https://www.enscribe.xyz/docs/" className="text-blue-600 hover:underline">Why
+                            is this?</Link></p>
 
                 )}
                 {
                     <>
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
-                                    className="text-gray-700 inline">Contract implements <Link
-                                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="text-gray-700 inline">Contract implements <Link
+                                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && !isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
-                                    className="text-gray-700 inline">Contract is <Link
-                                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                        className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
+                                className="text-gray-700 inline">Contract is <Link
+                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
                         </div>
                     </>
                 }
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
-                <Input
-                    type="text"
-                    required
-                    value={label}
-                    onChange={(e) => {
-                        setLabel(e.target.value)
-                        setError("")
-                    }}
-                    onBlur={checkENSReverseResolution}
-                    placeholder="my-label"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                />
+                <div className={"flex items-center space-x-2"}>
+                    <Input
+                        type="text"
+                        required
+                        value={label}
+                        onChange={(e) => {
+                            setLabel(e.target.value)
+                            setError("")
+                        }}
+                        onBlur={checkENSReverseResolution}
+                        placeholder="my-label"
+                        className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                    />
+                    <Button
+                        onClick={populateName}>
+                        <ArrowPathIcon/>
+                    </Button>
+                </div>
 
                 <label className="block text-gray-700 dark:text-gray-300">ENS Parent</label>
                 <Select
@@ -598,7 +616,7 @@ export default function NameContract() {
                 >
                     <SelectTrigger
                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900" />
+                        <SelectValue className="text-gray-900"/>
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>

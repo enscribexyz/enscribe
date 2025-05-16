@@ -1,4 +1,4 @@
-import {METRICS_URL} from "@/utils/constants";
+import {METRICS_URL, NAME_GEN_URL} from "@/utils/constants";
 
 export async function logMetric(
     corelationId: String,
@@ -31,4 +31,16 @@ export async function logMetric(
             source: "enscribe"
         }),
     });
+}
+
+export const fetchGeneratedName = async () => {
+    try {
+        let res = await fetch(NAME_GEN_URL);
+        if (res.ok) {
+            return await res.text()
+        }
+    } catch (err) {
+        console.error('Sourcify fetch failed:', err);
+    }
+    return ''
 }

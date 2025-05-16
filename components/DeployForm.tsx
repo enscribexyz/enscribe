@@ -1,23 +1,23 @@
-import React, {useState, useEffect, useId} from 'react'
-import {ethers, namehash, keccak256, getCreateAddress, ContractFactory} from 'ethers'
+import React, {useEffect, useState} from 'react'
+import {ethers, namehash} from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
 import {useAccount, useWalletClient,} from 'wagmi'
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea"
-import {Select, SelectItem, SelectContent, SelectTrigger, SelectValue} from "@/components/ui/select";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import {useToast} from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import {CHAINS, CONTRACTS, METRICS_URL, SUPABASE_URL, TOPIC0} from '../utils/constants';
-import publicResolverABI from "@/contracts/PublicResolver";
+import {CHAINS, CONTRACTS, NAME_GEN_URL, TOPIC0} from '../utils/constants';
 import SetNameStepsModal, {Step} from './SetNameStepsModal';
-import {CheckCircleIcon} from "@heroicons/react/24/outline";
+import {CheckCircleIcon, ArrowPathIcon} from "@heroicons/react/24/outline";
 import Link from "next/link";
 import {v4 as uuid} from 'uuid'
-import {logMetric} from "@/components/componentUtils";
+import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
+import {string} from "postcss-selector-parser";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -122,6 +122,16 @@ export default function DeployForm() {
             setIsValidBytecode(checkIfOwnable(bytecode) || checkIfReverseClaimable(bytecode))
         }
     }, [bytecode])
+
+    const populateName = async() => {
+        const name = await fetchGeneratedName();
+        setLabel(name)
+    }
+
+    // set label when component mounts
+    useEffect(() => {
+        populateName()
+    }, []);
 
     const addArg = () =>
         setArgs([...args, {type: "string", value: "", isCustom: false}])
@@ -1054,17 +1064,24 @@ export default function DeployForm() {
                 </Button>
 
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
-                <Input
-                    type="text"
-                    value={label}
-                    onChange={(e) => {
-                        setLabel(e.target.value)
-                        setError("")
-                    }}
-                    onBlur={checkENSReverseResolution}
-                    placeholder="my-label"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                />
+
+                <div className={"flex items-center space-x-2"}>
+                    <Input
+                        type="text"
+                        value={label}
+                        onChange={(e) => {
+                            setLabel(e.target.value)
+                            setError("")
+                        }}
+                        onBlur={checkENSReverseResolution}
+                        placeholder="my-label"
+                        className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                    />
+                    <Button
+                    onClick={populateName}>
+                        <ArrowPathIcon />
+                    </Button>
+                </div>
 
                 <label className="block text-gray-700 dark:text-gray-300">ENS Parent</label>
                 <Select
