@@ -136,8 +136,6 @@ export default function DeployForm() {
     const addArg = () =>
         setArgs([...args, {type: "string", value: "", isCustom: false}])
 
-
-
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
         const newArgs = [...args]
         newArgs[index] = {...newArgs[index], ...updated}
