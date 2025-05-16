@@ -14,12 +14,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         }
 
         const chainConfig = {
-            reverse_registrar_addr: CONTRACTS[chainId].REVERSE_REGISTRAR,
-            ens_registry_addr: CONTRACTS[chainId].ENS_REGISTRY,
-            public_resolver_addr: CONTRACTS[chainId].PUBLIC_RESOLVER,
-            name_wrapper_addr: CONTRACTS[chainId].NAME_WRAPPER,
-            enscribe_addr: CONTRACTS[chainId].ENSCRIBE_CONTRACT,
-            parent_name: CONTRACTS[chainId].ENSCRIBE_DOMAIN,
+            reverse_registrar_addr: CONTRACTS[chainIdNum].REVERSE_REGISTRAR,
+            ens_registry_addr: CONTRACTS[chainIdNum].ENS_REGISTRY,
+            public_resolver_addr: CONTRACTS[chainIdNum].PUBLIC_RESOLVER,
+            name_wrapper_addr: CONTRACTS[chainIdNum].NAME_WRAPPER,
+            enscribe_addr: CONTRACTS[chainIdNum].ENSCRIBE_CONTRACT,
+            parent_name: CONTRACTS[chainIdNum].ENSCRIBE_DOMAIN,
         }
 
         if (!chainConfig) {
