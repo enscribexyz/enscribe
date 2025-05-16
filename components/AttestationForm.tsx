@@ -4,24 +4,32 @@ import { Conf, VeraxSdk } from "@verax-attestation-registry/verax-sdk";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CHAINS } from "@/utils/constants";
-import { ethers } from 'ethers'
-import { Hex, isAddress } from "viem";
+import { Client, createPublicClient, custom, Hex, isAddress } from "viem";
+import { waitForTransactionReceipt } from "viem/actions";
 
-const schemaId = "0x011199aa3fbc28f8aeaf05a60df42c819103830e00dc0a4631d4b4e4f4792b5c";
+const schemaId = "0x21F071977E3C1BA143D43ADBE5085F284A562BF91789CFE9EE3AAD710B6A3CDC";
 const portalId = "0xdc333373693370F4C3BF731Be8F35535D9E424e4";
 
 export default function AttestationForm() {
     const { address, isConnected, chain } = useAccount();
     const { data: walletClient } = useWalletClient();
 
-    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
-
-
     const [loading, setLoading] = useState(false);
     const [veraxSdk, setVeraxSdk] = useState<VeraxSdk>();
     const [txHash, setTxHash] = useState<Hex>();
     const [attestationId, setAttestationId] = useState<Hex>();
 
+    let client: Client
+
+    useEffect(() => {
+        if (isConnected && walletClient) {
+            console.log("walletClient ready:", walletClient);
+            client = createPublicClient({
+                chain: chain,
+                transport: custom(walletClient.transport)
+            })
+        }
+    }, [walletClient, isConnected]);
 
     useEffect(() => {
         if (chain?.id && address) {
@@ -59,7 +67,6 @@ export default function AttestationForm() {
         ercs: "20,721",
         chainId: "0x0000000000000000000000000000000000014a34",
         deployment: "0x1234567890abcdef1234567890abcdef12345678",
-        ensName: "v0.app.enscribe.basetest.eth",
         auditHash: "0xa5e8f3ab3ef8b4acb9e12780f745cc70ddf6c44b1c2d6f5f0c02cb7fdddb3cc8",
         auditUri: "ipfs://QmExampleAuditHash"
     });
@@ -103,7 +110,6 @@ export default function AttestationForm() {
                                 auditedContract: {
                                     chainId: paddedChainId,
                                     deployment: "0x3b854b093A4F60aB7C9635c2b84d015BC2359B2a",
-                                    ensName: "v0.app.enscribe.basetest.eth",
                                 },
                                 auditHash: "0xa5e8f3ab3ef8b4acb9e12780f745cc70ddf6c44b1c2d6f5f0c02cb7fdddb3cc8",
                                 auditUri: "ipfs://QmExampleAuditHash",
@@ -115,8 +121,9 @@ export default function AttestationForm() {
 
                 if (tx.transactionHash) {
                     setTxHash(tx.transactionHash)
-                    const receipt = await (await signer)?.provider!.waitForTransaction(tx.transactionHash!);
-
+                    const receipt = await waitForTransactionReceipt(client, {
+                        hash: tx.transactionHash,
+                    });
                     setAttestationId(receipt!.logs?.[0].topics[1] as `0x${string}`)
                     console.log("attestationID - ", attestationId)
 
@@ -165,11 +172,6 @@ export default function AttestationForm() {
                 <div>
                     <label htmlFor="deployment" className="block font-medium mb-1">Contract Address</label>
                     <Input id="deployment" name="deployment" value={form.deployment} onChange={handleChange} className="text-black" />
-                </div>
-
-                <div>
-                    <label htmlFor="ensName" className="block font-medium mb-1">ENS Name</label>
-                    <Input id="ensName" name="ensName" value={form.ensName} onChange={handleChange} className="text-black" />
                 </div>
 
                 <div>
