@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
-const wagmiClient = getDefaultConfig({
+export const wagmiConfig = getDefaultConfig({
   appName: 'Enscribe',
   projectId: '1106',
   chains: [
@@ -24,7 +24,7 @@ const queryClient = new QueryClient();
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <WagmiProvider config={wagmiClient}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
           <Component {...pageProps} />
