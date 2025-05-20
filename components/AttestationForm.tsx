@@ -116,7 +116,35 @@ export default function AttestationForm() {
                     });
 
                     const attId = receipt!.logs?.[0].topics[1] as Hex;
-                    setAttestationId(attId)
+                    setAttestationId(attId);
+                    
+                    // Call the API to record the audit attestation
+                    try {
+                        const response = await fetch(`/api/v1/audit/${chain?.id}/${form.deployment}`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                attestationId: attId,
+                                formDetails: {
+                                    auditorName: form.auditorName,
+                                    auditUri: form.auditUri,
+                                    auditHash: form.auditHash,
+                                    ercs: form.ercs.split(',').map(e => e.trim())
+                                }
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            console.error('Failed to record audit attestation:', errorData);
+                            // Optionally show an error message to the user
+                        }
+                    } catch (error) {
+                        console.error('Error calling audit API:', error);
+                        // Optionally show an error message to the user
+                    }
                 } else {
                     alert(`Oops, something went wrong!`);
                 }

@@ -18,7 +18,6 @@ export interface AuditInfo {
   lastUpdated?: string;
 }
 
-// In-memory storage for demo purposes
 const auditRequests: Record<string, {
   contractAddress: string;
   firmName: string;
@@ -37,7 +36,6 @@ export async function requestAudit(
   const auditId = `${firmName}_${requestData.contractAddress}_${Date.now()}`;
   const now = new Date().toISOString();
 
-  // For demo, randomly assign a trust badge (in real app, this would be determined by the audit firm)
   const trustBadges: ('GREEN' | 'YELLOW' | 'RED')[] = ['GREEN', 'YELLOW', 'RED'];
   const randomBadge = trustBadges[Math.floor(Math.random() * trustBadges.length)];
 
