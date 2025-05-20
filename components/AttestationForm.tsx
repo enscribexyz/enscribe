@@ -7,8 +7,9 @@ import { CHAINS } from "@/utils/constants";
 import { Client, createPublicClient, custom, Hex, isAddress } from "viem";
 import { waitForTransactionReceipt } from "viem/actions";
 
-const schemaId = "0x21F071977E3C1BA143D43ADBE5085F284A562BF91789CFE9EE3AAD710B6A3CDC";
+const SCHEMA_ID = "0x21F071977E3C1BA143D43ADBE5085F284A562BF91789CFE9EE3AAD710B6A3CDC";
 const portalId = "0xdc333373693370F4C3BF731Be8F35535D9E424e4";
+const SCHEMA = "((string name, string uri, string[] authors) auditor, uint256 issuedAt, uint256[] ercs, (bytes32 chainId, address deployment) auditedContract, bytes32 auditHash, string auditUri)"
 
 export default function AttestationForm() {
     const { address, isConnected, chain } = useAccount();
@@ -71,7 +72,6 @@ export default function AttestationForm() {
         auditUri: "ipfs://QmExampleAuditHash"
     });
 
-
     const handleChange = (e: any) => {
         setForm({ ...form, [e.target.name]: e.target.value });
     };
@@ -86,7 +86,10 @@ export default function AttestationForm() {
 
             console.log("verax config - ", veraxSdk)
 
-            const alreadyExists = (await veraxSdk.schema.getSchema(schemaId)) as boolean;
+            const schemaId = (await veraxSdk.schema.getIdFromSchemaString(SCHEMA)) as Hex;
+            console.log("schema ID got - ", schemaId)
+
+            const alreadyExists = (await veraxSdk.schema.getSchema(SCHEMA_ID)) as boolean;
             console.log("schema - ", schemaId, " exists - ", alreadyExists)
 
             try {
@@ -146,9 +149,9 @@ export default function AttestationForm() {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow space-y-4 max-w-2xl">
+        <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
             <h1 className="text-2xl font-bold text-black dark:text-white">Submit EIP-7512 Audit Attestation</h1>
-            <div className="space-y-4 text-black">
+            <div className="space-y-6 mt-6 text-black">
                 <div>
                     <label htmlFor="auditorName" className="block font-medium mb-1">Auditor Name</label>
                     <Input id="auditorName" name="auditorName" value={form.auditorName} onChange={handleChange} className="text-black" />
@@ -184,7 +187,8 @@ export default function AttestationForm() {
                     <Input id="auditUri" name="auditUri" value={form.auditUri} onChange={handleChange} className="text-black" />
                 </div>
             </div>
-            <Button onClick={handleSubmit} disabled={loading} className="w-full">
+
+            <Button onClick={handleSubmit} disabled={loading} className="w-full mt-6">
                 {loading ? "Submitting..." : "Submit Attestation"}
             </Button>
 
