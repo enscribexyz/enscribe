@@ -10,6 +10,7 @@ import {wagmiConfig} from "@/pages/_app";
 
 const schemaId = "0x21F071977E3C1BA143D43ADBE5085F284A562BF91789CFE9EE3AAD710B6A3CDC".toLowerCase() as Hex;
 const portalId = "0xdc333373693370F4C3BF731Be8F35535D9E424e4".toLowerCase() as Address;
+const SCHEMA = "((string name, string uri, string[] authors) auditor, uint256 issuedAt, uint256[] ercs, (bytes32 chainId, address deployment) auditedContract, bytes32 auditHash, string auditUri)"
 
 export default function AttestationForm() {
     const {address, chain} = useAccount();
@@ -71,6 +72,8 @@ export default function AttestationForm() {
         if (!address) return alert("Wallet not connected");
 
         setLoading(true);
+        setTxHash(undefined);
+        setAttestationId(undefined);
 
         if (address && veraxSdk) {
             try {
@@ -129,9 +132,9 @@ export default function AttestationForm() {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow space-y-4 max-w-2xl">
+        <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
             <h1 className="text-2xl font-bold text-black dark:text-white">Submit EIP-7512 Audit Attestation</h1>
-            <div className="space-y-4 text-black">
+            <div className="space-y-6 mt-6 text-black">
                 <div>
                     <label htmlFor="auditorName" className="block font-medium mb-1">Auditor Name</label>
                     <Input id="auditorName" name="auditorName" value={form.auditorName} onChange={handleChange}
@@ -173,7 +176,8 @@ export default function AttestationForm() {
                            className="text-black"/>
                 </div>
             </div>
-            <Button onClick={handleSubmit} disabled={loading} className="w-full">
+
+            <Button onClick={handleSubmit} disabled={loading} className="w-full mt-6">
                 {loading ? "Submitting..." : "Submit Attestation"}
             </Button>
 

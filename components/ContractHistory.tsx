@@ -20,7 +20,7 @@ import { CONTRACTS, TOPIC0, CHAINS, SOURCIFY_URL, ETHERSCAN_API } from '../utils
 import ensRegistryABI from '../contracts/ENSRegistry'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '../contracts/PublicResolver'
-import { BadgeCheckIcon, CheckCircle2Icon, CircleAlert, Info, ShieldCheck, XCircle } from 'lucide-react'
+import { BadgeCheckIcon, CheckCircle2Icon, CircleAlert, Info, ShieldAlertIcon, ShieldCheck, XCircle } from 'lucide-react'
 
 
 interface Contract {
@@ -306,8 +306,7 @@ export default function ContractHistory() {
                                                         {c.ensName}
                                                     </Link>
                                                     <TooltipProvider>
-                                                        {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match' || c.etherscanVerification === 'verified'
-                                                            || c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match')
+                                                        {(c.sourcifyVerification === 'exact_match')
                                                             && c.attestation === 'audited' && (
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
@@ -318,6 +317,44 @@ export default function ContractHistory() {
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             )}
+                                                        {c.sourcifyVerification === 'match'
+                                                            && c.attestation === 'audited' && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <ShieldCheck className="w-5 h-5 text-amber-500 cursor-pointer" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Trusted - Named and Verified Contract</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        {c.sourcifyVerification === 'unverified' && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <ShieldAlertIcon className="w-5 h-5 text-red-500 cursor-pointer" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Trusted - Named and Verified Contract</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Button
+                                                                    asChild
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="border border-green-800 text-black hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                >
+                                                                    <Link
+                                                                        href={`/requestAudit?contract=${c.contractAddress}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="cursor-pointer"
+                                                                    >
+                                                                        Request Audit
+                                                                    </Link>
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </TooltipProvider>
                                                 </div>
                                             </TableCell>
