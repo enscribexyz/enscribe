@@ -7,7 +7,7 @@ import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 import { FaShieldAlt, FaBolt, FaGlobe, FaStar, FaGithub, FaTelegram, FaDiscord, FaUserAlt, FaLock, FaPlug } from "react-icons/fa"
 import { FaXTwitter } from "react-icons/fa6"
 import { SiFarcaster } from "react-icons/si";
-import { HiArrowDown, HiArrowRight, HiCheck, HiCode, HiChevronDown } from "react-icons/hi"
+import { HiArrowDown, HiArrowRight, HiCheck, HiCode, HiChevronDown, HiMenu, HiX } from "react-icons/hi"
 
 // FAQ Accordion component
 const FAQItem = ({ question, answer }) => {
@@ -32,7 +32,9 @@ const FAQItem = ({ question, answer }) => {
 export default function EnscribeLandingPage() {
   const {
     siteConfig: {customFields},
-  } = useDocusaurusContext();  
+  } = useDocusaurusContext();
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const faqs = [
     {
@@ -119,9 +121,35 @@ export default function EnscribeLandingPage() {
               Blog
             </Link>
           </nav>
-          <Link to={customFields.appUrl} className="button-primary rounded-md">
+          <Link to={customFields.appUrl} className="hidden md:flex button-primary rounded-md">
             Launch App
           </Link>
+          <div className="md:hidden flex items-center">
+            <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="text-slate-300 hover:text-white focus:outline-none"
+            >
+              {menuOpen ? <HiX className="h-6 w-6"/> : <HiMenu className="h-6 w-6"/>}
+            </button>
+          </div>
+          {menuOpen && (
+              <div className="absolute top-16 left-0 w-full bg-slate-900 border-t border-slate-700 px-6 py-4 space-y-4 shadow-lg z-50 md:hidden">
+                <Link to="#features"
+                      className="block text-white text-lg font-medium hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>Features</Link>
+                <Link to="#how-it-works"
+                      className="block text-white text-lg font-medium hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>How It Works</Link>
+                <Link to="#faq" className="block text-white text-lg font-medium hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>FAQ</Link>
+                <Link to="/docs"
+                      className="block text-white text-lg font-bold hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>Docs</Link>
+                <Link to="/blog"
+                      className="block text-white text-lg font-bold hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>Blog</Link>
+              </div>
+          )}
         </div>
       </header>
 
