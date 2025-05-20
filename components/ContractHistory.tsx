@@ -23,16 +23,39 @@ import publicResolverABI from '../contracts/PublicResolver'
 import { BadgeCheckIcon, CheckCircle2Icon, CircleAlert, Info, ShieldAlertIcon, ShieldCheck, XCircle } from 'lucide-react'
 
 
+interface AuditEntry {
+    auditFirm: string;
+    status: 'PENDING' | 'COMPLETED';
+    requestedAt: string;
+}
+
 interface Contract {
-    ensName: string
-    contractAddress: string
-    txHash: string
-    contractCreated: string
+    ensName: string;
+    contractAddress: string;
+    txHash: string;
+    contractCreated: string;
     isOwnable: boolean;
     sourcifyVerification?: 'exact_match' | 'match' | 'unverified';
     etherscanVerification?: 'verified' | 'unverified';
     blockscoutVerification?: 'exact_match' | 'match' | 'unverified';
     attestation?: 'audited' | 'unaudited';
+    auditStatus?: {
+        audits: AuditEntry[];
+        trustBadge: 'GREEN' | 'YELLOW' | 'RED';
+        lastUpdated?: string;
+    };
+}
+
+interface ContractHistoryProps {
+    contracts: Contract[];
+    onContractSelect: (contract: Contract) => void;
+    selectedContract: Contract | null;
+    loading: boolean;
+    loadMore: () => void;
+    hasMore: boolean;
+    isConnected: boolean;
+    isConnecting: boolean;
+    connectWallet: () => void;
 }
 
 export default function ContractHistory() {
@@ -95,16 +118,37 @@ export default function ContractHistory() {
                         isOwnable = await checkIfReverseClaimable(contractAddr)
                     }
 
-                    const result = await getContractStatus(chain?.id, contractAddr)
-                    const sourcifyVerification = result.sourcify_verification
-                    const etherscanVerification = result.etherscan_verification
-                    const blockscoutVerification = result.blockscout_verification
-                    const attestation = result.audit_status
-                    // const ensName = result.ens_name
+                    const [verificationResult, auditResult] = await Promise.all([
+                        getContractStatus(chain?.id, contractAddr),
+                        fetch(`/api/v1/audit/${chain?.id || '1'}/${contractAddr}`).then(res => res.ok ? res.json() : null).catch(() => null)
+                    ]);
+
+                    const sourcifyVerification = verificationResult.sourcify_verification
+                    const etherscanVerification = verificationResult.etherscan_verification
+                    const blockscoutVerification = verificationResult.blockscout_verification
+                    const attestation = verificationResult.audit_status
                     const ensName = await getENS(contractAddr)
 
-                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, blockscoutVerification, attestation }
-                    // const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
+                    const contract: Contract = {
+                        ensName,
+                        contractAddress: contractAddr,
+                        txHash,
+                        contractCreated,
+                        isOwnable,
+                        sourcifyVerification,
+                        etherscanVerification,
+                        blockscoutVerification,
+                        attestation,
+                        auditStatus: auditResult ? {
+                            audits: auditResult.audits || [],
+                            trustBadge: auditResult.trustBadge,
+                            lastUpdated: auditResult.lastUpdated
+                        } : {
+                            audits: [],
+                            trustBadge: 'RED'
+                        }
+                    };
+
                     console.log("contract - ", contract)
 
                     if (isMounted) {
@@ -129,15 +173,36 @@ export default function ContractHistory() {
                             isOwnable = await checkIfReverseClaimable(deployed)
                         }
 
-                        const result = await getContractStatus(chain?.id, deployed)
-                        const sourcifyVerification = result.sourcify_verification
-                        const etherscanVerification = result.etherscan_verification
-                        const blockscoutVerification = result.blockscout_verification
-                        const attestation = result.audit_status
-                        // const ensName = result.ens_name
-                        const ensName = await getENS(deployed)
+                        const [verificationResult, auditResult] = await Promise.all([
+                            getContractStatus(chain?.id, deployed),
+                            fetch(`/api/v1/audit/${chain?.id || '1'}/${deployed}`).then(res => res.ok ? res.json() : null).catch(() => null)
+                        ]);
 
-                        const contract: Contract = { ensName, contractAddress: deployed, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, blockscoutVerification, attestation }
+                        const sourcifyVerification = verificationResult.sourcify_verification;
+                        const etherscanVerification = verificationResult.etherscan_verification;
+                        const blockscoutVerification = verificationResult.blockscout_verification;
+                        const attestation = verificationResult.audit_status;
+                        const ensName = await getENS(deployed);
+
+                        const contract: Contract = {
+                            ensName,
+                            contractAddress: deployed,
+                            txHash,
+                            contractCreated,
+                            isOwnable,
+                            sourcifyVerification,
+                            etherscanVerification,
+                            blockscoutVerification,
+                            attestation,
+                            auditStatus: auditResult ? {
+                                audits: auditResult.audits || [],
+                                trustBadge: auditResult.trustBadge,
+                                lastUpdated: auditResult.lastUpdated
+                            } : {
+                                audits: [],
+                                trustBadge: 'RED'
+                            }
+                        };
 
                         console.log("contract - ", contract)
 
