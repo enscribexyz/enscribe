@@ -45,6 +45,14 @@ export default function EnscribeLandingPage() {
       answer: "We support all networks that ENS is deployed to, including Ethereum, Base and Linea",
     },
     {
+      question: "Can I name existing contracts?",
+      answer: "Yes. If you already have deployed contracts, you can assign ENS names through Enscribe using your own ENS names or one of ours."
+    },
+    {
+      question: "Can Enscribe show if a contract is verified?",
+      answer: "Yes. We pull verification data from services like Etherscan, Blockscout, and Sourcify so you and your users can see verification status at a glance."
+    },
+    {
       question: "How does Enscribe work?",
       answer:
         "When you deploy a contract using Enscribe it creates a new ENS subname you specify that resolves to the address of the newly deployed contract. Enscribe does this as an atomic transaction, so if contract deployment succeeds you will always have an ENS name you can refer to the contract with.",
@@ -124,11 +132,10 @@ export default function EnscribeLandingPage() {
             <div className="flex flex-col md:flex-row items-center gap-8">
               <div className="flex-1">
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent mb-6">
-                  Name Your Smart Contracts At Deployment
+                  Give Your Smart Contracts a Name — and a Reputation
                 </h1>
                 <p className="text-slate-300 text-xl max-w-[600px] mb-8">
-                  Enscribe's Contract Deployment Service assigns an ENS name at contract creation ensuring you can
-                  resolve it by name from day one
+                  With Enscribe, developers can easily assign ENS names to smart contracts, while providing verification data to increase user trust.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Link to={customFields.appUrl} className="button-primary rounded-md">
@@ -177,8 +184,7 @@ export default function EnscribeLandingPage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Automatic ENS Integration</h3>
                 <p className="text-slate-300">
-                  Seamlessly create ENS records for smart contracts at deploy time, eliminating manual post-deployment
-                  steps.
+                  Seamlessly create ENS records for smart contracts at deployment, or for existing contracts, eliminating manual steps.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
@@ -187,8 +193,7 @@ export default function EnscribeLandingPage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Multi-chain Support</h3>
                 <p className="text-slate-300">
-                  Deploy contracts to multiple ENS-supported chains with appropriate naming for each, expanding your
-                  reach.
+                  Name contracts on multiple ENS-supported chains including Ethereum, Base and Linea.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
@@ -204,20 +209,18 @@ export default function EnscribeLandingPage() {
                 <div className="text-cyan-400 text-3xl mb-4">
                   <FaLock />
                 </div>
-                <h3 className="text-xl font-semibold mb-4">You Own Your Contracts</h3>
+                <h3 className="text-xl font-semibold mb-4">Track and Manager Your Contracts</h3>
                 <p className="text-slate-300">
-                  Contracts deployed with Enscribe are owned by the deployment account not the service, ensuring you
-                  remain in control of your app contracts.
+                  Track your existing contracts in the Enscribe dashboard to easily find, name and verify your contracts.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
                   <FaPlug />
                 </div>
-                <h3 className="text-xl font-semibold mb-4">Third Party Integrations</h3>
+                <h3 className="text-xl font-semibold mb-4">Smart Contract Verifications</h3>
                 <p className="text-slate-300">
-                  We're going to be launching some neat third-party integrations soon to make using the Enscribe
-                  Contract Deployment Service event more seamless.
+                  View and display verification status of contracts accross a number of sources including Etherscan, Blockscout, and Sourcify.
                 </p>
               </div>
             </div>
@@ -241,7 +244,7 @@ export default function EnscribeLandingPage() {
                     </li>
                     <li className="flex items-center">
                       <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
-                      <span className="text-slate-200">Contract bytecode to be deployed</span>
+                      <span className="text-slate-200">Contract bytecode to be deployed or existing contract address</span>
                     </li>
                   </ul>
                 </div>
@@ -250,11 +253,11 @@ export default function EnscribeLandingPage() {
                   <ul className="space-y-2">
                     <li className="flex items-center">
                       <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
-                      <span className="text-slate-200">Deployed contract with ENS subname as primary name</span>
+                      <span className="text-slate-200">ENS primary name that resolves to contract address</span>
                     </li>
                     <li className="flex items-center">
                       <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
-                      <span className="text-slate-200">Optional locked ENS subname record for enhanced security</span>
+                      <span className="text-slate-200">Optional verifications for additional trust</span>
                     </li>
                   </ul>
                 </div>
@@ -378,11 +381,10 @@ export default function EnscribeLandingPage() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent mb-4">
-                Eliminate Contract Addresses For Your Users
+                ENS names are only the beginning — start building trust into every contract interaction
               </h2>
               <p className="text-slate-300 text-xl mb-8 max-w-[600px]">
-                Join the growing community of developers using Enscribe to deploy their smart contracts, enhancing trust
-                and transparency in their web3 apps.
+                Join the growing community of developers using Enscribe to name their smart contracts, enhancing trust and transparency in their web3 apps.
               </p>
               <Link to={customFields.appUrl} className="button-primary rounded-md">
                 Launch App
