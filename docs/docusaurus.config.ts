@@ -81,7 +81,7 @@ const config = {
       image: "img/social-card.png",
 
       metadata: [
-        { name: 'keywords', content: 'web3, blockchain, ens, Ethereum Name Service, Ethereum, smart contracts, Enscribe, UX, smart contract deployment' },
+        { name: 'keywords', content: 'smart, contract, naming, naming smart contracts, web3, blockchain, ens, Ethereum Name Service, Ethereum, smart contracts, Enscribe, UX, smart contract deployment' },
         { name: 'description', content: 'Improve Ethereum UX and replace meaningless hex contract addresses with ENS names using Enscribe.' },
         { name: 'twitter:card', content: 'summary_large_image' },
         { name: 'twitter:image', content: 'https://www.enscribe.xyz/img/social-card.png' },
