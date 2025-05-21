@@ -19,6 +19,22 @@ interface IENSRegistry {
     function setOwner(bytes32 node, address owner) external;
 }
 
+interface INameWrapper {
+    function ownerOf(uint256 tokenId) external view returns (address);
+
+    function isWrapped(bytes32 node) external view returns (bool);
+
+    function setSubnodeRecord(
+        bytes32 node,
+        string calldata label,
+        address owner,
+        address resolver,
+        uint64 ttl,
+        uint32 fuses,
+        uint64 expiry
+    ) external;
+}
+
 interface IReverseRegistrar {
     function setNameForAddr(
         address addr,
@@ -38,9 +54,32 @@ interface IPublicResolver {
     function setName(bytes32 node, string calldata newName) external;
 }
 
-contract EnscribeBase is Ownable {
+interface IERC165 {
+    function supportsInterface(bytes4 interfaceId) external view returns (bool);
+}
+
+interface IERC1155Receiver is IERC165 {
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external returns (bytes4);
+
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
+    ) external returns (bytes4);
+}
+
+contract EnscribeLinea is Ownable, IERC1155Receiver {
     IReverseRegistrar public reverseRegistrar;
     IENSRegistry public ensRegistry;
+    INameWrapper public nameWrapper;
 
     uint256 public pricing;
     string public defaultParent;
@@ -61,11 +100,13 @@ contract EnscribeBase is Ownable {
     constructor(
         address _reverseRegistrar,
         address _ensRegistry,
+        address _nameWrapper,
         string memory _defaultParent,
         uint256 _pricing
     ) Ownable(msg.sender) {
         reverseRegistrar = IReverseRegistrar(_reverseRegistrar);
         ensRegistry = IENSRegistry(_ensRegistry);
+        nameWrapper = INameWrapper(_nameWrapper);
         defaultParent = _defaultParent;
         pricing = _pricing;
     }
@@ -78,6 +119,10 @@ contract EnscribeBase is Ownable {
 
     function setENSRegistry(address _addr) external onlyOwner {
         ensRegistry = IENSRegistry(_addr);
+    }
+
+    function setNameWrapper(address _addr) external onlyOwner {
+        nameWrapper = INameWrapper(_addr);
     }
 
     function updatePricing(uint256 newPrice) external onlyOwner {
@@ -185,7 +230,7 @@ contract EnscribeBase is Ownable {
             "Sender is not the owner of parent node"
         );
         require(
-            _createSubname(parentNode, labelHash),
+            _createSubname(parentNode, label, labelHash),
             "Subname creation failed"
         );
         emit SubnameCreated(parentNode, label);
@@ -262,7 +307,7 @@ contract EnscribeBase is Ownable {
             "Sender is not the owner of parent node"
         );
         require(
-            _createSubname(parentNode, labelHash),
+            _createSubname(parentNode, label, labelHash),
             "Subname creation failed"
         );
         emit SubnameCreated(parentNode, label);
@@ -305,7 +350,7 @@ contract EnscribeBase is Ownable {
             "Sender is not the owner of parent node"
         );
         require(
-            _createSubname(parentNode, labelHash),
+            _createSubname(parentNode, label, labelHash),
             "Subname creation failed"
         );
         emit SubnameCreated(parentNode, label);
@@ -378,15 +423,28 @@ contract EnscribeBase is Ownable {
      */
     function _createSubname(
         bytes32 parentNode,
+        string calldata label,
         bytes32 labelHash
     ) private returns (bool) {
-        ensRegistry.setSubnodeRecord(
-            parentNode,
-            labelHash,
-            address(this),
-            address(getResolver(parentNode)),
-            0
-        );
+        if (checkWrapped(parentNode)) {
+            nameWrapper.setSubnodeRecord(
+                parentNode,
+                label,
+                address(this),
+                address(getResolver(parentNode)),
+                0,
+                0,
+                0
+            );
+        } else {
+            ensRegistry.setSubnodeRecord(
+                parentNode,
+                labelHash,
+                address(this),
+                address(getResolver(parentNode)),
+                0
+            );
+        }
         return true;
     }
 
@@ -406,10 +464,24 @@ contract EnscribeBase is Ownable {
     }
 
     /**
+     * @dev Internal: Returns whether the ENS name is wrapped.
+     */
+    function checkWrapped(bytes32 node) public view returns (bool) {
+        try nameWrapper.isWrapped(node) returns (bool wrapped) {
+            return wrapped;
+        } catch {
+            return false;
+        }
+    }
+
+    /**
      * @dev Internal: Verifies if the caller is owner of the given node.
      */
     function _isSenderOwner(bytes32 node) private view returns (bool) {
-        return ensRegistry.owner(node) == msg.sender;
+        return
+            checkWrapped(node)
+                ? nameWrapper.ownerOf(uint256(node)) == msg.sender
+                : ensRegistry.owner(node) == msg.sender;
     }
 
     /**
@@ -428,7 +500,35 @@ contract EnscribeBase is Ownable {
         return IPublicResolver(ensRegistry.resolver(node));
     }
 
-    // ------------------ Fallback ------------------
+    // ------------------ ERC1155 Receiver & Fallback ------------------
+
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return IERC1155Receiver.onERC1155Received.selector;
+    }
+
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[] calldata,
+        uint256[] calldata,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return IERC1155Receiver.onERC1155BatchReceived.selector;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure override returns (bool) {
+        return
+            interfaceId == type(IERC1155Receiver).interfaceId ||
+            interfaceId == type(IERC165).interfaceId;
+    }
 
     receive() external payable {
         emit EtherReceived(msg.sender, msg.value);

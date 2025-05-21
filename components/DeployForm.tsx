@@ -1,23 +1,24 @@
-import React, {useEffect, useState} from 'react'
-import {ethers, namehash} from 'ethers'
+import React, { useEffect, useState } from 'react'
+import { ethers, namehash } from 'ethers'
+import { wagmiConfig } from "@/pages/_app";
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
-import {useAccount, useWalletClient,} from 'wagmi'
-import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from "@/components/ui/dialog";
-import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
-import {Textarea} from "@/components/ui/textarea"
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {useToast} from "@/hooks/use-toast"
+import { useAccount, useWalletClient, } from 'wagmi'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import {CHAINS, CONTRACTS, NAME_GEN_URL, TOPIC0} from '../utils/constants';
-import SetNameStepsModal, {Step} from './SetNameStepsModal';
-import {CheckCircleIcon, ArrowPathIcon} from "@heroicons/react/24/outline";
+import { CHAINS, CONTRACTS, NAME_GEN_URL, TOPIC0 } from '../utils/constants';
+import SetNameStepsModal, { Step } from './SetNameStepsModal';
+import { CheckCircleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import {v4 as uuid} from 'uuid'
-import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
-import {string} from "postcss-selector-parser";
+import { v4 as uuid } from 'uuid'
+import { fetchGeneratedName, logMetric } from "@/components/componentUtils";
+import { string } from "postcss-selector-parser";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -59,8 +60,8 @@ const checkIfReverseClaimable = (bytecode: string): boolean => {
 };
 
 export default function DeployForm() {
-    const {address, isConnected, chain} = useAccount()
-    const {data: walletClient} = useWalletClient()
+    const { address, isConnected, chain } = useAccount()
+    const { data: walletClient } = useWalletClient()
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -70,7 +71,7 @@ export default function DeployForm() {
 
     const chainId = chain?.id!
 
-    const {toast} = useToast()
+    const { toast } = useToast()
 
     const [bytecode, setBytecode] = useState('')
     const [label, setLabel] = useState('')
@@ -123,7 +124,7 @@ export default function DeployForm() {
         }
     }, [bytecode])
 
-    const populateName = async() => {
+    const populateName = async () => {
         const name = await fetchGeneratedName();
         setLabel(name)
     }
@@ -134,11 +135,11 @@ export default function DeployForm() {
     }, []);
 
     const addArg = () =>
-        setArgs([...args, {type: "string", value: "", isCustom: false}])
+        setArgs([...args, { type: "string", value: "", isCustom: false }])
 
     const updateArg = (index: number, updated: Partial<ConstructorArg>) => {
         const newArgs = [...args]
-        newArgs[index] = {...newArgs[index], ...updated}
+        newArgs[index] = { ...newArgs[index], ...updated }
         setArgs(newArgs)
     }
 
@@ -160,7 +161,7 @@ export default function DeployForm() {
         }
 
         try {
-            const {value: parsed, error} = parseJson(text)
+            const { value: parsed, error } = parseJson(text)
 
             if (error || !parsed) {
                 console.log("Invalid ABI")
@@ -313,11 +314,16 @@ export default function DeployForm() {
             return
         }
 
+        let resolvedAddress
         try {
             const provider = (await signer).provider
             const fullEnsName = `${label}.${parentName}`
-            const resolvedAddress = await provider.resolveName(fullEnsName)
-
+            resolvedAddress = await provider.resolveName(fullEnsName)
+        } catch (err) {
+            console.error("Error checking ENS name:", err)
+            setError("")
+            setEnsNameTaken(false)
+        } finally {
             if (resolvedAddress) {
                 setEnsNameTaken(true)
                 setError("ENS name already used, please change label")
@@ -325,10 +331,6 @@ export default function DeployForm() {
                 setEnsNameTaken(false)
                 setError("")
             }
-        } catch (err) {
-            console.error("Error checking ENS name:", err)
-            setError("")
-            setEnsNameTaken(false)
         }
 
     }
@@ -445,7 +447,7 @@ export default function DeployForm() {
             })
             setOperatorAccess(false)
         } catch (err: any) {
-            toast({variant: "destructive", title: "Error", description: err?.message || "Revoke access failed"})
+            toast({ variant: "destructive", title: "Error", description: err?.message || "Revoke access failed" })
         } finally {
             setAccessLoading(false)
         }
@@ -496,10 +498,10 @@ export default function DeployForm() {
                 contractType,
                 opType);
 
-            toast({title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract`})
+            toast({ title: "Access Granted", description: `Operator role of ${parentName} given to Enscribe Contract` })
             setOperatorAccess(true)
         } catch (err: any) {
-            toast({variant: "destructive", title: "Error", description: err?.message || "Grant access failed"})
+            toast({ variant: "destructive", title: "Error", description: err?.message || "Grant access failed" })
         } finally {
             setAccessLoading(false)
         }
@@ -583,7 +585,10 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set Primary Name",
                         action: async () => {
-                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {
+                                value: txCost
+                                // gasLimit: 5000000
+                            })
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
@@ -630,7 +635,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
@@ -709,7 +714,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
                             const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
@@ -794,7 +799,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await tx.wait()
                             setTxHash(txReceipt.hash)
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -874,7 +879,7 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, {value: txCost})
+                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await tx.wait()
                             setTxHash(txReceipt.hash)
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -935,7 +940,7 @@ export default function DeployForm() {
                     }}
                     placeholder="0x60037..."
                     className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isValidBytecode ? 'border-red-500' : ''
-                    }`}
+                        }`}
                 />
 
                 {/* Error message for invalid Ownable bytecode */}
@@ -948,17 +953,17 @@ export default function DeployForm() {
                     <>
                         <div className="justify-between">
                             {isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="ml-1 text-gray-700 inline">Contract implements <Link
-                                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                                className="text-blue-600 hover:underline">Ownable</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                                    className="ml-1 text-gray-700 inline">Contract implements <Link
+                                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
                             {isReverseClaimable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
-                                className="ml-1 text-gray-700 inline">Contract is either <Link
-                                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link
-                                href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor"
-                                className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
+                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                                    className="ml-1 text-gray-700 inline">Contract is either <Link
+                                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                        className="text-blue-600 hover:underline">ReverseClaimable</Link> or <Link
+                                            href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor"
+                                            className="text-blue-600 hover:underline">ReverseSetter</Link></p></>)}
                         </div>
                     </>
                 }
@@ -967,9 +972,9 @@ export default function DeployForm() {
                     <>
                         <div className={"flex"}>
                             <Input type={"checkbox"} className={"w-4 h-4 mt-1"} checked={isReverseSetter}
-                                   onChange={(e) => {
-                                       setIsReverseSetter(!isReverseSetter)
-                                   }}/>
+                                onChange={(e) => {
+                                    setIsReverseSetter(!isReverseSetter)
+                                }} />
                             <label className="ml-1.5 text-gray-700 dark:text-gray-300">My contract is a <Link
                                 href="https://docs.ens.domains/web/naming-contracts/#set-a-name-in-the-constructor"
                                 className="text-blue-600 hover:underline">ReverseSetter</Link> (This will deploy & set
@@ -1004,15 +1009,15 @@ export default function DeployForm() {
                                     value={arg.type}
                                     onValueChange={(value) => {
                                         if (value === "custom") {
-                                            updateArg(index, {isCustom: true, type: ""})
+                                            updateArg(index, { isCustom: true, type: "" })
                                         } else {
-                                            updateArg(index, {type: value, isCustom: false})
+                                            updateArg(index, { type: value, isCustom: false })
                                         }
                                     }}
                                 >
                                     <SelectTrigger
                                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                                        <SelectValue className="text-gray-900"/>
+                                        <SelectValue className="text-gray-900" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                                         {commonTypes.map((t) => (
@@ -1025,7 +1030,7 @@ export default function DeployForm() {
                                 <Input
                                     type="text"
                                     value={arg.type}
-                                    onChange={(e) => updateArg(index, {type: e.target.value})}
+                                    onChange={(e) => updateArg(index, { type: e.target.value })}
                                     placeholder="Enter custom type (e.g. tuple(string,uint256))"
                                     className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
@@ -1034,7 +1039,7 @@ export default function DeployForm() {
                             <Input
                                 type="text"
                                 value={arg.value}
-                                onChange={(e) => updateArg(index, {value: e.target.value})}
+                                onChange={(e) => updateArg(index, { value: e.target.value })}
                                 placeholder={
                                     arg.type.includes("tuple") && arg.type.includes("[]")
                                         ? '[["name", 10, "0x..."], ["bob", 20, "0x..."]]'
@@ -1078,7 +1083,7 @@ export default function DeployForm() {
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     />
                     <Button
-                    onClick={populateName}>
+                        onClick={populateName}>
                         <ArrowPathIcon />
                     </Button>
                 </div>
@@ -1099,7 +1104,7 @@ export default function DeployForm() {
                 >
                     <SelectTrigger
                         className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                        <SelectValue className="text-gray-900"/>
+                        <SelectValue className="text-gray-900" />
                     </SelectTrigger>
                     <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
                         <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
@@ -1137,7 +1142,7 @@ export default function DeployForm() {
 
                                 {operatorAccess && recordExists && (
                                     <Button variant="destructive" disabled={accessLoading}
-                                            onClick={revokeOperatorAccess}>
+                                        onClick={revokeOperatorAccess}>
                                         {accessLoading ? "Revoking..." : "Revoke Access"}
                                     </Button>
                                 )}
@@ -1175,9 +1180,9 @@ export default function DeployForm() {
             >
                 {loading ? (
                     <svg className="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24" fill="none"
-                         xmlns="http://www.w3.org/2000/svg">
+                        xmlns="http://www.w3.org/2000/svg">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                strokeWidth="4"></circle>
+                            strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
                     </svg>
                 ) : 'Deploy'}
