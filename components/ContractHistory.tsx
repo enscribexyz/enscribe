@@ -35,11 +35,16 @@ interface Contract {
     attestation?: 'audited' | 'unaudited';
 }
 
-export default function ContractHistory() {
-    const { address, isConnected, chain } = useAccount()
+interface ContractHistoryProps {
+    addressToQuery?: string;
+}
+
+export default function ContractHistory({ addressToQuery }: ContractHistoryProps) {
+    const { address: connectedAddress, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+    const address = addressToQuery || connectedAddress
 
     const [withENS, setWithENS] = useState<Contract[]>([])
     const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -59,11 +64,20 @@ export default function ContractHistory() {
     const topic0 = TOPIC0
 
     useEffect(() => {
-        if (!isConnected || !address || !walletClient) return
-        fetchTxs()
-    }, [address, isConnected, walletClient])
+        if (!chain || !config || (!isConnected && !addressToQuery)) {
+            setProcessing(false)
+            return
+        }
 
-    const fetchTxs = async () => {
+        fetchContractHistory()
+    }, [isConnected, chain, config, address, addressToQuery])
+
+    const fetchContractHistory = async () => {
+        if (!address || !config) {
+            setProcessing(false)
+            return
+        }
+
         setLoading(true)
         setError(null)
         setWithENS([])
@@ -72,9 +86,6 @@ export default function ContractHistory() {
         let isMounted = true
 
         try {
-            // const url = `${etherscanApi}&action=txlist&address=${address}`
-
-            console.log("etherscan api - ", etherscanApi)
             const res = await fetch(etherscanApi)
             const data = await res.json()
 
