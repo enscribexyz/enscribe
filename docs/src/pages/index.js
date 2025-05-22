@@ -9,22 +9,7 @@ export default function Home() {
 
   return (
     // Note: We're not using the Layout component at all here
-    <>
-      <Head>
-        <title>{siteConfig.title} - ENS for Smart Contracts</title>
-        <meta
-          name="description"
-          content="Automatically create ENS names for your smart contracts at deploy time, enhancing trust and transparency in web3."
-        />
-        <meta property="og:title" content={`${siteConfig.title} - ENS for Smart Contracts`} />
-        <meta
-          property="og:description"
-          content="Automatically create ENS names for your smart contracts at deploy time, enhancing trust and transparency in web3."
-        />
-        <link rel="icon" href={useBaseUrl("/img/favicon.ico")} />
-      </Head>
       <EnscribeLandingPage />
-    </>
   )
 }
 
