@@ -195,25 +195,61 @@ export default function ContractHistory({ addressToQuery }: ContractHistoryProps
 
 
     const getENS = async (addr: string): Promise<string> => {
-        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
-            try {
-                return (await (await signer)?.provider.lookupAddress(addr)) || ''
-            } catch {
-                return ''
+    try {
+        const lowercaseAddr = addr.toLowerCase();
+        const subgraphUrl = chain?.id === CHAINS.MAINNET
+            ? 'https://api.thegraph.com/subgraphs/name/ensdomains/ens'
+            : chain?.id === CHAINS.SEPOLIA
+                ? 'https://api.studio.thegraph.com/query/49574/enssepolia/version/latest'
+                : null;
+
+        if (!subgraphUrl) return '';
+
+        // Query to get the primary name for an address
+        const query = `
+            query GetPrimaryName($id: String!) {
+                account(id: $id) {
+                    domains(first: 1, where: { isPrimaryName: true }) {
+                        name
+                    }
+                }
             }
-        } else {
-            try {
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
-                const reversedNode = await reverseRegistrarContract.node(addr)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
-                const name = await resolverContract.name(reversedNode)
-                return name || '';
-            } catch (error) {
-                return ''
-            }
+        `;
+
+        const variables = {
+            id: lowercaseAddr,
+        };
+
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        };
+
+        // Add API key if it exists in environment variables
+        if (process.env.NEXT_PUBLIC_GRAPH_API_KEY) {
+            headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY}`;
         }
 
+        const response = await fetch(subgraphUrl, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                query,
+                variables,
+            }),
+        });
+
+        const { data } = await response.json();
+        
+        if (data?.account?.domains?.length > 0) {
+            return data.account.domains[0].name;
+        }
+        
+        return '';
+    } catch (error) {
+        console.error('Error fetching ENS name:', error);
+        return '';
     }
+}
 
 
     const checkIfOwnable = async (address: string): Promise<boolean> => {
