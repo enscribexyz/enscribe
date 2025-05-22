@@ -1,0 +1,64 @@
+---
+slug: auto-naming
+title: Be like Heroku: Introducing Auto-Generated ENS Names for Your Smart Contracts in Enscribe
+authors: [abhi]
+tags: [ens]
+---
+
+At Enscribe, our mission is to make naming smart contracts with ENS as easy as possible.
+
+Giving your contracts clear ENS names like alpha-vault.mainnet.eth or governance-proxy-123.mainnet.eth makes things easier to follow and remember.
+
+However, there are times where you may want to do the naming yourself. Especially when you’re in the earlier phases of development. When you're deploying a bunch of contracts, the last thing you want is to pause and think of a unique name for each one.
+
+That’s why we’ve added a fun new feature where Enscribe suggests a unique name for your smart contract for you.
+
+## Why Auto-Generated Names?
+Some of the older team members remember the first time they used Heroku to deploy web applications (remember them?). In Heroku, once your web application was live, it would give you a randomly generated DNS name for your app.
+
+For the nostalgic among us, we thought it would be fun to do this in Enscribe!
+
+Of course a lot has changed since Heroku, especially in today’s world of generative AI, which we could have used for name generation. However, we like the simplicity of mirroring the Heroku approach. After all, we’re here to simplify naming smart contracts for our users, and this fits nicely with that goal.
+
+With our new auto name generation feature, Enscribe can create ENS-compatible names for your contracts on the fly. These names are:
+
+✅ Unique (per deployment context)
+
+✅ Memorable (generated from a curated dictionary of words)
+
+✅ Compliant with ENS standards
+
+✅ Directly assignable in one click during contract deployment or naming an already deployed contract
+
+Best of all, you don’t even need an ENS name of your own to name your contract. If you don’t have one, Enscribe can name your contract with a unique name under deploy.eth on Ethereum, Base (deployd.base.eth) or Linea (deployd.linea.eth)!
+
+## How It Works
+On the Deploy Contract page, you’ll now see that a name has been auto-generated for your contract.
+
+![Label](label.png)
+
+Next to it, you have a refresh button which you can use to generate a new name. Alternatively, you can simply put your own one in there.
+
+![Deploy_contract](deploy_contract.png)
+
+If you do click on the name generation button it will propose a name such as:
+
+arrogant-baseball-6055
+
+weekly-heart-7993
+
+linear-garden-3758
+
+You can then assign this name to your deployed contract immediately.
+
+We’ve also enabled this feature on the Name Contract page so that you can set a name for your deployed contract.
+
+![Name_contract](name_contract.png)
+
+Whilst this is a small new feature, we believe it's important that we make it as easy as possible for our users to name their contracts. This now extends to supporting them with generating names and providing an ENS name if they don’t have one already.
+
+You can try out the name generator by heading to the [Enscribe App](https://app.enscribe.xyz/).
+
+We'd love to hear your feedback on this feature — join our [Discord community](https://discord.gg/8QUMMdS5GY) or [Telegram](https://t.me/enscribers) communities and let’s eliminate hex smart contract addresses for users.
+
+Happy naming! 🚀
