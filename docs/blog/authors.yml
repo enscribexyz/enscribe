@@ -1,6 +1,6 @@
 conor:
   name: Conor Svensson
-  title: Founder
+  title: Founder of Enscribe and Web3 Labs
   url: https://github.com/conor10
   image_url: https://avatars.githubusercontent.com/u/2148266?v=4
   page: true
@@ -12,18 +12,19 @@ conor:
 
 nischal:
   name: Nischal Sharma
-  title: Enscribe Lead
+  title: Enscribe Lead Engineer
   url: https://github.com/NickSneo
   image_url: https://avatars.githubusercontent.com/u/32759145?v=4
   page: true
   socials:
     linkedin: nischal--sharma
-    github: https://github.com/NickSneo
+    github: NickSneo
 
 abhi:
   name: Abhijeet Bhagat
-  title: Enscribe dev
+  title: Enscribe Senior Engineer
   url: https://github.com/abhijeetbhagat
+  image_url: https://avatars.githubusercontent.com/u/9682848?v=4
   page: true
   socials:
-    github: https://github.com/abhijeetbhagat
+    github: abhijeetbhagat

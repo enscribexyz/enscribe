@@ -57,5 +57,5 @@ export default async function handler(
     }
 
     res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ error: 'foo not allowed' });
+    return res.status(405).json({ error: 'GET not allowed' });
 }
