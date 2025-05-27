@@ -20,19 +20,42 @@ import { CONTRACTS, TOPIC0, CHAINS, SOURCIFY_URL, ETHERSCAN_API } from '../utils
 import ensRegistryABI from '../contracts/ENSRegistry'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '../contracts/PublicResolver'
-import { BadgeCheckIcon, CheckCircle2Icon, CircleAlert, Info, ShieldCheck, XCircle } from 'lucide-react'
+import { BadgeCheckIcon, CheckCircle2Icon, CircleAlert, Info, ShieldAlertIcon, ShieldCheck, XCircle } from 'lucide-react'
 
+
+interface AuditEntry {
+    auditFirm: string;
+    status: 'PENDING' | 'COMPLETED';
+    requestedAt: string;
+}
 
 interface Contract {
-    ensName: string
-    contractAddress: string
-    txHash: string
-    contractCreated: string
+    ensName: string;
+    contractAddress: string;
+    txHash: string;
+    contractCreated: string;
     isOwnable: boolean;
     sourcifyVerification?: 'exact_match' | 'match' | 'unverified';
     etherscanVerification?: 'verified' | 'unverified';
     blockscoutVerification?: 'exact_match' | 'match' | 'unverified';
     attestation?: 'audited' | 'unaudited';
+    auditStatus?: {
+        audits: AuditEntry[];
+        trustBadge: 'GREEN' | 'YELLOW' | 'RED';
+        lastUpdated?: string;
+    };
+}
+
+interface ContractHistoryProps {
+    contracts: Contract[];
+    onContractSelect: (contract: Contract) => void;
+    selectedContract: Contract | null;
+    loading: boolean;
+    loadMore: () => void;
+    hasMore: boolean;
+    isConnected: boolean;
+    isConnecting: boolean;
+    connectWallet: () => void;
 }
 
 export default function ContractHistory() {
@@ -95,16 +118,37 @@ export default function ContractHistory() {
                         isOwnable = await checkIfReverseClaimable(contractAddr)
                     }
 
-                    const result = await getContractStatus(chain?.id, contractAddr)
-                    const sourcifyVerification = result.sourcify_verification
-                    const etherscanVerification = result.etherscan_verification
-                    const blockscoutVerification = result.blockscout_verification
-                    const attestation = result.audit_status
-                    // const ensName = result.ens_name
+                    const [verificationResult, auditResult] = await Promise.all([
+                        getContractStatus(chain?.id, contractAddr),
+                        fetch(`/api/v1/audit/${chain?.id || '1'}/${contractAddr}`).then(res => res.ok ? res.json() : null).catch(() => null)
+                    ]);
+
+                    const sourcifyVerification = verificationResult.sourcify_verification
+                    const etherscanVerification = verificationResult.etherscan_verification
+                    const blockscoutVerification = verificationResult.blockscout_verification
+                    const attestation = verificationResult.audit_status
                     const ensName = await getENS(contractAddr)
 
-                    const contract: Contract = { ensName, contractAddress: contractAddr, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, blockscoutVerification, attestation }
-                    // const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
+                    const contract: Contract = {
+                        ensName,
+                        contractAddress: contractAddr,
+                        txHash,
+                        contractCreated,
+                        isOwnable,
+                        sourcifyVerification,
+                        etherscanVerification,
+                        blockscoutVerification,
+                        attestation,
+                        auditStatus: auditResult ? {
+                            audits: auditResult.audits || [],
+                            trustBadge: auditResult.trustBadge,
+                            lastUpdated: auditResult.lastUpdated
+                        } : {
+                            audits: [],
+                            trustBadge: 'RED'
+                        }
+                    };
+
                     console.log("contract - ", contract)
 
                     if (isMounted) {
@@ -129,15 +173,36 @@ export default function ContractHistory() {
                             isOwnable = await checkIfReverseClaimable(deployed)
                         }
 
-                        const result = await getContractStatus(chain?.id, deployed)
-                        const sourcifyVerification = result.sourcify_verification
-                        const etherscanVerification = result.etherscan_verification
-                        const blockscoutVerification = result.blockscout_verification
-                        const attestation = result.audit_status
-                        // const ensName = result.ens_name
-                        const ensName = await getENS(deployed)
+                        const [verificationResult, auditResult] = await Promise.all([
+                            getContractStatus(chain?.id, deployed),
+                            fetch(`/api/v1/audit/${chain?.id || '1'}/${deployed}`).then(res => res.ok ? res.json() : null).catch(() => null)
+                        ]);
 
-                        const contract: Contract = { ensName, contractAddress: deployed, txHash, contractCreated, isOwnable, sourcifyVerification, etherscanVerification, blockscoutVerification, attestation }
+                        const sourcifyVerification = verificationResult.sourcify_verification;
+                        const etherscanVerification = verificationResult.etherscan_verification;
+                        const blockscoutVerification = verificationResult.blockscout_verification;
+                        const attestation = verificationResult.audit_status;
+                        const ensName = await getENS(deployed);
+
+                        const contract: Contract = {
+                            ensName,
+                            contractAddress: deployed,
+                            txHash,
+                            contractCreated,
+                            isOwnable,
+                            sourcifyVerification,
+                            etherscanVerification,
+                            blockscoutVerification,
+                            attestation,
+                            auditStatus: auditResult ? {
+                                audits: auditResult.audits || [],
+                                trustBadge: auditResult.trustBadge,
+                                lastUpdated: auditResult.lastUpdated
+                            } : {
+                                audits: [],
+                                trustBadge: 'RED'
+                            }
+                        };
 
                         console.log("contract - ", contract)
 
@@ -306,8 +371,7 @@ export default function ContractHistory() {
                                                         {c.ensName}
                                                     </Link>
                                                     <TooltipProvider>
-                                                        {(c.sourcifyVerification === 'exact_match' || c.sourcifyVerification === 'match' || c.etherscanVerification === 'verified'
-                                                            || c.blockscoutVerification === 'exact_match' || c.blockscoutVerification === 'match')
+                                                        {(c.sourcifyVerification === 'exact_match')
                                                             && c.attestation === 'audited' && (
                                                                 <Tooltip>
                                                                     <TooltipTrigger asChild>
@@ -318,6 +382,44 @@ export default function ContractHistory() {
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             )}
+                                                        {c.sourcifyVerification === 'match'
+                                                            && c.attestation === 'audited' && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <ShieldCheck className="w-5 h-5 text-amber-500 cursor-pointer" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Trusted - Named and Verified Contract</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                        {c.sourcifyVerification === 'unverified' && (
+                                                            <div className="flex items-center gap-2">
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <ShieldAlertIcon className="w-5 h-5 text-red-500 cursor-pointer" />
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>Trusted - Named and Verified Contract</p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                                <Button
+                                                                    asChild
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    className="border border-green-800 text-black hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                                                >
+                                                                    <Link
+                                                                        href={`/requestAudit?contract=${c.contractAddress}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="cursor-pointer"
+                                                                    >
+                                                                        Request Audit
+                                                                    </Link>
+                                                                </Button>
+                                                            </div>
+                                                        )}
                                                     </TooltipProvider>
                                                 </div>
                                             </TableCell>
