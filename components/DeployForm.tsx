@@ -100,6 +100,9 @@ export default function DeployForm() {
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
 
+    const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([]);
+    const [showENSModal, setShowENSModal] = useState(false);
+
     const corelationId = uuid()
 
     const getParentNode = (name: string) => {
@@ -123,6 +126,12 @@ export default function DeployForm() {
             setIsValidBytecode(checkIfOwnable(bytecode) || checkIfReverseClaimable(bytecode))
         }
     }, [bytecode])
+
+    // useEffect(() => {
+    //     if (parentType === 'own' && address) {
+    //         fetchUserOwnedDomains()
+    //     }
+    // }, [parentType, address])
 
     const populateName = async () => {
         const name = await fetchGeneratedName();
@@ -293,6 +302,89 @@ export default function DeployForm() {
 
     }
 
+    const fetchUserOwnedDomains = async () => {
+        if (!address) return;
+
+        try {
+            setFetchingENS(true)
+            const response = await fetch('https://gateway.thegraph.com/api/subgraphs/id/DmMXLtMZnGbQXASJ7p1jfzLUbBYnYUD9zNBTxpkjHYXV', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || '2ce31199c7efada2526c52a1764b1d4c'}`
+                },
+                body: JSON.stringify({
+                    query: `query getDomainsForAccount { domains(where: { owner: "${address.toLowerCase()}" }) { name } }`
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.data && data.data.domains) {
+                const domains = data.data.domains.map((domain: { name: string }) => domain.name);
+
+                // Filter out .addr.reverse names
+                const filteredDomains = domains.filter(domain => !domain.endsWith('.addr.reverse'));
+
+                // Process domains with labelhashes
+                const processedDomains = await Promise.all(filteredDomains.map(async (domain) => {
+                    // Check if any part of the domain name contains a labelhash (looks like a hex string)
+                    const parts = domain.split('.');
+                    const processedParts = await Promise.all(parts.map(async (part) => {
+                        // Check if the part looks like a labelhash in square brackets [hexstring]
+                        const bracketMatch = part.match(/^\[([0-9a-f]{64})\]$/i);
+                        if (bracketMatch) {
+                            const labelHash = bracketMatch[1];
+                            try {
+                                // Call the ENS Rainbow API to heal the labelhash (adding 0x prefix)
+                                const healResponse = await fetch(`https://api.ensrainbow.io/v1/heal/0x${labelHash}`);
+                                const healData = await healResponse.json();
+
+                                if (healData.status === 'success' && healData.label) {
+                                    return healData.label;
+                                }
+                            } catch (error) {
+                                console.error(`Error healing labelhash ${labelHash}:`, error);
+                            }
+                        }
+                        return part;
+                    }));
+                    return processedParts.join('.');
+
+                }));
+
+                // Sort domains by level depth (2LDs first, then 3LDs, etc.) and put domains with labelhashes at the end
+                const sortedDomains = processedDomains.sort((a, b) => {
+                    // Check if domain contains a labelhash (unresolved)
+                    const aHasLabelhash = a.includes('[') && a.includes(']');
+                    const bHasLabelhash = b.includes('[') && b.includes(']');
+
+                    // If one has a labelhash and the other doesn't, the one with labelhash goes last
+                    if (aHasLabelhash && !bHasLabelhash) return 1;
+                    if (!aHasLabelhash && bHasLabelhash) return -1;
+
+                    // If both have or don't have labelhashes, sort by domain level depth
+                    const aDepth = a.split('.').length;
+                    const bDepth = b.split('.').length;
+
+                    return aDepth - bDepth; // Sort by ascending depth (2LDs first, then 3LDs, etc.)
+                });
+
+                setUserOwnedDomains(sortedDomains);
+                console.log("Fetched and processed user owned domains:", sortedDomains);
+            }
+        } catch (error) {
+            console.error("Error fetching user's owned ENS domains:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to fetch your owned ENS domains"
+            });
+        } finally {
+            setFetchingENS(false)
+        }
+    }
+
     const checkENSReverseResolution = async () => {
         if (!signer) return
 
@@ -363,33 +455,32 @@ export default function DeployForm() {
         if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return false;
 
         try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
-
-            if (!recordExist) return false
+            // First check if the record exists
+            if (!(await ensRegistryContract.recordExists(parentNode))) return false;
 
             var nameWrapperContract: ethers.Contract | null = null;
             if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
-                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+                nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER!, nameWrapperABI, await signer)
             }
 
+            let approved = false;
             if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-                return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                approved = await ensRegistryContract.isApprovedForAll(address, config.ENSCRIBE_CONTRACT);
             } else {
-                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-                let approved = false
-
+                const isWrapped = await nameWrapperContract?.isWrapped(parentNode);
                 if (isWrapped) {
                     // Wrapped Names
                     console.log(`Wrapped detected.`);
-                    approved = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    approved = await nameWrapperContract?.isApprovedForAll(address, config.ENSCRIBE_CONTRACT!);
                 } else {
                     //Unwrapped Names
                     console.log(`Unwrapped detected.`);
-                    approved = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    approved = await ensRegistryContract.isApprovedForAll(address, config.ENSCRIBE_CONTRACT!);
                 }
-                return approved
             }
+            return approved;
         } catch (err) {
             console.error("Approval check failed:", err)
             return false
@@ -1097,8 +1188,8 @@ export default function DeployForm() {
                         if (selected === 'web3labs') {
                             setParentName(enscribeDomain)
                         } else {
-                            setParentName('')
-                            fetchPrimaryENS()
+                            fetchUserOwnedDomains()
+                            setShowENSModal(true)
                         }
                     }}
                 >
@@ -1114,47 +1205,48 @@ export default function DeployForm() {
                 {parentType === 'own' && (
                     <>
                         <label className="block text-gray-700 dark:text-gray-300">Parent Name</label>
-                        {fetchingENS ? (
-                            <p className="text-gray-500 dark:text-gray-400">Fetching primary ENS name...</p>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    type="text"
-                                    value={parentName}
-                                    onChange={(e) => {
-                                        setParentName(e.target.value)
-                                        setOperatorAccess(false)
-                                        setRecordExists(false)
-                                    }}
-                                    onBlur={async () => {
-                                        const exist = await recordExist()
-                                        setRecordExists(exist)
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="text"
+                                value={parentName}
+                                onChange={(e) => {
+                                    setParentName(e.target.value)
+                                    setOperatorAccess(false)
+                                    setRecordExists(false)
+                                }}
+                                onBlur={async () => {
+                                    const exist = await recordExist()
+                                    setRecordExists(exist)
 
-                                        const approved = await checkOperatorAccess()
-                                        console.log("Operator check for ", parentName, " is ", approved)
-                                        setOperatorAccess(approved)
+                                    const approved = await checkOperatorAccess()
+                                    console.log("Operator check for ", parentName, " is ", approved)
+                                    setOperatorAccess(approved)
+                                }}
+                                placeholder="mydomain.eth"
+                                className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            />
+                            <Button
+                                onClick={() => setShowENSModal(true)}
+                                className="bg-gray-900 text-white"
+                            >
+                                Select ENS
+                            </Button>
+                            {/* <div className="flex justify-end mt-2"> */}
+                            {operatorAccess && recordExists && (
+                                <Button variant="destructive" disabled={accessLoading}
+                                    onClick={revokeOperatorAccess}>
+                                    {accessLoading ? "Revoking..." : "Revoke Access"}
+                                </Button>
+                            )}
 
+                            {!operatorAccess && recordExists && (
+                                <Button disabled={accessLoading} onClick={grantOperatorAccess}>
+                                    {accessLoading ? "Granting..." : "Grant Access"}
+                                </Button>
+                            )}
+                            {/* </div> */}
+                        </div>
 
-                                    }}
-                                    placeholder="mydomain.eth"
-                                    className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                                />
-
-                                {operatorAccess && recordExists && (
-                                    <Button variant="destructive" disabled={accessLoading}
-                                        onClick={revokeOperatorAccess}>
-                                        {accessLoading ? "Revoking..." : "Revoke Access"}
-                                    </Button>
-                                )}
-
-                                {!operatorAccess && recordExists && (
-                                    <Button disabled={accessLoading} onClick={grantOperatorAccess}>
-                                        {accessLoading ? "Granting..." : "Grant Access"}
-                                    </Button>
-                                )}
-
-                            </div>
-                        )}
                         {/* Access Info Message */}
                         {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
                             <p className="text-sm text-yellow-600 mt-2">
@@ -1172,6 +1264,83 @@ export default function DeployForm() {
                     </>
                 )}
             </div>
+
+            {/* Add ENS Selection Modal */}
+            <Dialog open={showENSModal} onOpenChange={setShowENSModal}>
+                <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Select Your ENS Domain</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                            Choose one of your owned ENS domains or select "None" to enter manually.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {fetchingENS ? (
+                        <div className="flex justify-center items-center p-6">
+                            <svg className="animate-spin h-5 w-5 mr-3 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <p className="text-gray-700 dark:text-gray-300">Fetching your ENS domains...</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 px-1">
+                            {userOwnedDomains.length > 0 ? (
+                                <div className="max-h-60 overflow-y-auto pr-1">
+                                    {userOwnedDomains.map((domain) => (
+                                        <div
+                                            key={domain}
+                                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-md mb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
+                                            onClick={async () => {
+                                                setParentName(domain);
+                                                setShowENSModal(false);
+
+                                                const exist = await recordExist()
+                                                setRecordExists(exist)
+
+                                                const approved = await checkOperatorAccess()
+                                                console.log("Operator check for ", parentName, " is ", approved)
+                                                setOperatorAccess(approved)
+
+                                            }}
+                                        >
+                                            <span className="text-gray-800 dark:text-gray-200 font-medium">{domain}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                    <p className="text-gray-500 dark:text-gray-400">No ENS domains found for your address.</p>
+                                </div>
+                            )}
+
+                            <div
+                                className="p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
+                                onClick={() => {
+                                    setParentName('');
+                                    setShowENSModal(false);
+                                }}
+                            >
+                                <span className="text-gray-800 dark:text-gray-200 font-medium">None - I'll enter manually</span>
+                            </div>
+
+                            <div className="flex justify-end mt-6">
+                                <Button
+                                    onClick={() => {
+                                        setShowENSModal(false)
+                                        setParentName('');
+                                    }}
+                                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <Button
                 onClick={deployContract}

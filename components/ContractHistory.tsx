@@ -1,4 +1,3 @@
-// ContractHistory.tsx (with incremental loading and improved UX)
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAccount, useWalletClient } from 'wagmi'
@@ -35,16 +34,11 @@ interface Contract {
     attestation?: 'audited' | 'unaudited';
 }
 
-interface ContractHistoryProps {
-    addressToQuery?: string;
-}
-
-export default function ContractHistory({ addressToQuery }: ContractHistoryProps) {
-    const { address: connectedAddress, isConnected, chain } = useAccount()
+export default function ContractHistory() {
+    const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
-    const address = addressToQuery || connectedAddress
 
     const [withENS, setWithENS] = useState<Contract[]>([])
     const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -64,20 +58,11 @@ export default function ContractHistory({ addressToQuery }: ContractHistoryProps
     const topic0 = TOPIC0
 
     useEffect(() => {
-        if (!chain || !config || (!isConnected && !addressToQuery)) {
-            setProcessing(false)
-            return
-        }
+        if (!isConnected || !address || !walletClient) return
+        fetchTxs()
+    }, [address, isConnected, walletClient])
 
-        fetchContractHistory()
-    }, [isConnected, chain, config, address, addressToQuery])
-
-    const fetchContractHistory = async () => {
-        if (!address || !config) {
-            setProcessing(false)
-            return
-        }
-
+    const fetchTxs = async () => {
         setLoading(true)
         setError(null)
         setWithENS([])
@@ -86,6 +71,9 @@ export default function ContractHistory({ addressToQuery }: ContractHistoryProps
         let isMounted = true
 
         try {
+            // const url = `${etherscanApi}&action=txlist&address=${address}`
+
+            console.log("etherscan api - ", etherscanApi)
             const res = await fetch(etherscanApi)
             const data = await res.json()
 
@@ -195,61 +183,25 @@ export default function ContractHistory({ addressToQuery }: ContractHistoryProps
 
 
     const getENS = async (addr: string): Promise<string> => {
-    try {
-        const lowercaseAddr = addr.toLowerCase();
-        const subgraphUrl = chain?.id === CHAINS.MAINNET
-            ? 'https://api.thegraph.com/subgraphs/name/ensdomains/ens'
-            : chain?.id === CHAINS.SEPOLIA
-                ? 'https://api.studio.thegraph.com/query/49574/enssepolia/version/latest'
-                : null;
-
-        if (!subgraphUrl) return '';
-
-        // Query to get the primary name for an address
-        const query = `
-            query GetPrimaryName($id: String!) {
-                account(id: $id) {
-                    domains(first: 1, where: { isPrimaryName: true }) {
-                        name
-                    }
-                }
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+            try {
+                return (await (await signer)?.provider.lookupAddress(addr)) || ''
+            } catch {
+                return ''
             }
-        `;
-
-        const variables = {
-            id: lowercaseAddr,
-        };
-
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json',
-        };
-
-        // Add API key if it exists in environment variables
-        if (process.env.NEXT_PUBLIC_GRAPH_API_KEY) {
-            headers['Authorization'] = `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY}`;
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
+                const reversedNode = await reverseRegistrarContract.node(addr)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
+                const name = await resolverContract.name(reversedNode)
+                return name || '';
+            } catch (error) {
+                return ''
+            }
         }
 
-        const response = await fetch(subgraphUrl, {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-                query,
-                variables,
-            }),
-        });
-
-        const { data } = await response.json();
-        
-        if (data?.account?.domains?.length > 0) {
-            return data.account.domains[0].name;
-        }
-        
-        return '';
-    } catch (error) {
-        console.error('Error fetching ENS name:', error);
-        return '';
     }
-}
 
 
     const checkIfOwnable = async (address: string): Promise<boolean> => {
