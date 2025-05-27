@@ -127,12 +127,6 @@ export default function DeployForm() {
         }
     }, [bytecode])
 
-    // useEffect(() => {
-    //     if (parentType === 'own' && address) {
-    //         fetchUserOwnedDomains()
-    //     }
-    // }, [parentType, address])
-
     const populateName = async () => {
         const name = await fetchGeneratedName();
         setLabel(name)
@@ -311,7 +305,7 @@ export default function DeployForm() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || '2ce31199c7efada2526c52a1764b1d4c'}`
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
                 },
                 body: JSON.stringify({
                     query: `query getDomainsForAccount { domains(where: { owner: "${address.toLowerCase()}" }) { name } }`
@@ -1231,7 +1225,7 @@ export default function DeployForm() {
                             >
                                 Select ENS
                             </Button>
-                            {/* <div className="flex justify-end mt-2"> */}
+
                             {operatorAccess && recordExists && (
                                 <Button variant="destructive" disabled={accessLoading}
                                     onClick={revokeOperatorAccess}>
@@ -1244,7 +1238,6 @@ export default function DeployForm() {
                                     {accessLoading ? "Granting..." : "Grant Access"}
                                 </Button>
                             )}
-                            {/* </div> */}
                         </div>
 
                         {/* Access Info Message */}
