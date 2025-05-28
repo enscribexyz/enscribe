@@ -820,7 +820,7 @@ export default function DeployForm() {
                 }
 
                 setModalTitle("Deploy Contract and set Primary Name")
-                setModalSubtitle("Complete each step to finish naming this contract")
+                setModalSubtitle("Running each step to finish naming this contract")
                 setModalSteps(steps)
                 setModalOpen(true)
             } else if (isReverseClaimable) {
@@ -1372,7 +1372,13 @@ export default function DeployForm() {
                     if (result && result !== "INCOMPLETE") {
                         setTxHash(result)
                         processResult(result)
-                        setShowPopup(true)
+                        // Reset form after successful deployment
+                        setBytecode('');
+                        setLabel('');
+                        setParentType('web3labs');
+                        setParentName(enscribeDomain);
+                        setArgs([])
+                        setAbiText('')
                     } else if (result === "INCOMPLETE") {
                         setError("Steps not completed. Please complete all steps before closing.")
                         return
@@ -1385,79 +1391,9 @@ export default function DeployForm() {
                 title={modalTitle}
                 subtitle={modalSubtitle}
                 steps={modalSteps}
+                contractAddress={deployedAddress}
+                ensName={`${label}.${parentName}`}
             />
-
-            {showPopup && (
-                <Dialog open={showPopup} onOpenChange={setShowPopup}>
-                    <DialogContent className="max-w-lg bg-white dark:bg-gray-900 shadow-lg rounded-lg">
-                        <DialogHeader>
-                            <DialogTitle className="text-gray-900 dark:text-white">Deployment Successful!</DialogTitle>
-                            <DialogDescription className="text-gray-600 dark:text-gray-300">
-                                Your contract has been successfully deployed.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        {/* Transaction Hash */}
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Transaction Hash:</p>
-                            <div
-                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                {txHash}
-                            </div>
-                        </div>
-
-                        {/* Contract Address */}
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
-                            <div
-                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                {deployedAddress}
-                            </div>
-                        </div>
-
-                        {/* ENS Name */}
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">ENS Name:</p>
-                            <div
-                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                {`${label}.${parentName}`}
-                            </div>
-                        </div>
-
-                        {/* View on Etherscan */}
-                        <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                            <a href={`${etherscanUrl}tx/${txHash}`} target="_blank" rel="noopener noreferrer">
-                                View Transaction on Etherscan
-                            </a>
-                        </Button>
-
-                        {/* View on ENS App */}
-                        {ensAppUrl && <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
-                            <a href={`${ensAppUrl}${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
-                                View Name in ENS App
-                            </a>
-                        </Button>}
-
-
-                        {/* Close Button */}
-                        <Button
-                            onClick={() => {
-                                setShowPopup(false);
-                                setBytecode('');
-                                setLabel('');
-                                setParentType('web3labs');
-                                setParentName(enscribeDomain);
-                                setArgs([])
-                                setAbiText('')
-                            }}
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                        >
-                            Close
-                        </Button>
-                    </DialogContent>
-                </Dialog>
-            )
-            }
         </div>
     )
 }

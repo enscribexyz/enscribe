@@ -23,6 +23,9 @@ export interface SetNameStepsModalProps {
     title: string;
     subtitle: string;
     steps: Step[];
+    contractAddress?: string;
+    ensName?: string;
+    isPrimaryNameSet?: boolean;
 }
 
 
@@ -31,7 +34,10 @@ export default function SetNameStepsModal({
     onClose,
     title,
     subtitle,
-    steps
+    steps,
+    contractAddress,
+    ensName,
+    isPrimaryNameSet
 }: SetNameStepsModalProps) {
     const [currentStep, setCurrentStep] = useState(0)
     const [executing, setExecuting] = useState(false)
@@ -49,20 +55,45 @@ export default function SetNameStepsModal({
     const { chain } = useAccount()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
 
+    // Reset state when modal opens or closes
     useEffect(() => {
-        if (!open || !steps || steps.length === 0) return
+        console.log("Modal state changed", { open });
 
-        setCurrentStep(0)
-        setExecuting(false)
-        setStepStatuses(Array(steps.length).fill("pending"))
-        setStepTxHashes(Array(steps.length).fill(null))
-        setLastTxHash(null)
-        setAllStepsCompleted(false)
-        setErrorMessage("")
+        // Reset all state when modal opens
+        if (open && steps && steps.length > 0) {
+            console.log("Resetting modal state");
+            setCurrentStep(0);
+            setExecuting(false);
+            setStepStatuses(Array(steps.length).fill("pending"));
+            setStepTxHashes(Array(steps.length).fill(null));
+            setLastTxHash(null);
+            setAllStepsCompleted(false);
+            setErrorMessage("");
+        }
+
+        // Also reset when modal closes to ensure fresh state next time
+        if (!open) {
+            console.log("Modal closed, cleaning up state");
+            setCurrentStep(0);
+            setExecuting(false);
+            setAllStepsCompleted(false);
+        }
     }, [open, steps])
 
-    // Auto-proceed to next step when current step completes
-    // Only applies to steps after the first one
+    // Auto-start the first step when modal opens
+    useEffect(() => {
+        console.log("Auto-start effect triggered", { open, stepsLength: steps?.length, executing, currentStep });
+
+        // Only run this effect when the modal first opens
+        if (open && steps && steps.length > 0 && currentStep === 0 && !executing) {
+            console.log("Starting first step automatically");
+            // Use a small timeout to ensure the modal is fully rendered
+            setTimeout(() => {
+                runStep(0);
+            }, 100);
+        }
+    }, [open]); // Only depend on open to prevent re-running
+
     useEffect(() => {
         if (open && steps && steps.length > 0 && currentStep > 0 && currentStep < steps.length &&
             !executing && !errorMessage && stepStatuses[currentStep - 1] === "completed") {
@@ -104,7 +135,6 @@ export default function SetNameStepsModal({
 
             if (index + 1 < steps.length) {
                 setCurrentStep(index + 1);
-                // No need to call runStep here as the useEffect will handle it
             } else {
                 setCurrentStep(steps.length);
                 setAllStepsCompleted(true);
@@ -156,9 +186,17 @@ export default function SetNameStepsModal({
         <Dialog open={open} onOpenChange={handleDialogChange}>
             <DialogContent className="bg-white dark:bg-gray-900 rounded-lg max-w-lg">
                 <DialogHeader>
-                    <DialogTitle className="text-xl text-gray-900 dark:text-white">{title}</DialogTitle>
+                    <DialogTitle className="text-xl text-gray-900 dark:text-white">
+                        {allStepsCompleted
+                            ? (title.includes("Deploy") ? "Deployment Successful!" : "Naming Contract Successful!")
+                            : title}
+                    </DialogTitle>
                     <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">
-                        {subtitle}
+                        {allStepsCompleted
+                            ? (title.includes("Deploy")
+                                ? "Your contract has been successfully deployed."
+                                : "Your contract has been named successfully.")
+                            : subtitle}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -196,42 +234,76 @@ export default function SetNameStepsModal({
                     )}
                 </div>
 
-                <div className="mt-6 space-y-2">
-                    {errorMessage ? (
-                        <>
-                            <Button
-                                onClick={() => onClose(`ERROR: ${errorMessage}`)}
-                                className="w-full bg-red-600 hover:bg-red-700 text-white"
-                            >
-                                Close
+                {/* Show success content when steps are completed */}
+                {allStepsCompleted && (
+                    <div className="mt-6 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+                        {/* Contract Address */}
+                        {contractAddress && (
+                            <div>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
+                                <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                                    {contractAddress}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ENS Name */}
+                        {ensName && (
+                            <div>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">ENS Name:</p>
+                                <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
+                                    {ensName}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ENS Resolution Message */}
+                        {isPrimaryNameSet !== undefined && (
+                            <div className="text-red-500 dark:text-white font-semibold text-sm mt-4">
+                                {isPrimaryNameSet
+                                    ? "Primary ENS Name set for the contract Address"
+                                    : "Only Forward Resolution of ENS name set for the contract address"}
+                            </div>
+                        )}
+
+                        {/* View on Etherscan */}
+                        {contractAddress && (
+                            <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
+                                <a href={`${config?.ETHERSCAN_URL}address/${contractAddress}`} target="_blank" rel="noopener noreferrer">
+                                    View Contract on Etherscan
+                                </a>
                             </Button>
+                        )}
 
+                        {/* View on ENS App */}
+                        {config?.ENS_APP_URL && ensName && (
+                            <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
+                                <a href={`${config.ENS_APP_URL}${ensName}`} target="_blank" rel="noopener noreferrer">
+                                    View Name in ENS App
+                                </a>
+                            </Button>
+                        )}
+                    </div>
+                )}
 
-                        </>
-                    ) : currentStep === 0 ? (
+                {/* Show error message if there's an error */}
+                {errorMessage ? (
+                    <div className="mt-6 space-y-2">
                         <Button
-                            onClick={() => runStep(currentStep)}
-                            disabled={executing}
-                            className="w-full"
+                            onClick={() => onClose(`ERROR: ${errorMessage}`)}
+                            className="w-full bg-red-600 hover:bg-red-700 text-white"
                         >
-                            {executing ? "Processing..." : "Start"}
+                            Close
                         </Button>
-                    ) : currentStep < steps.length ? (
-                        <Button
-                            disabled
-                            className="w-full"
-                        >
-                            Processing...
-                        </Button>
-                    ) : (
-                        <Button
-                            onClick={() => onClose(lastTxHash)}
-                            className="w-full"
-                        >
-                            Done
-                        </Button>
-                    )}
-                </div>
+                    </div>
+                ) : <div className="mt-6 space-y-2">
+                    <Button
+                        onClick={() => onClose()}
+                        className="w-full"
+                    >
+                        Done
+                    </Button>
+                </div>}
             </DialogContent>
         </Dialog>
     )
