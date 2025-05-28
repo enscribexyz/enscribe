@@ -431,11 +431,11 @@ export default function DeployForm() {
         }
     }
 
-    const recordExist = async (): Promise<boolean> => {
-        if (!signer || !getParentNode(parentName)) return false
+    const recordExist = async (name: string): Promise<boolean> => {
+        if (!signer) return false
         try {
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const parentNode = getParentNode(parentName)
+            const parentNode = getParentNode(name)
 
             if (!(await ensRegistryContract.recordExists(parentNode))) return false
 
@@ -445,12 +445,12 @@ export default function DeployForm() {
         }
     }
 
-    const checkOperatorAccess = async (): Promise<boolean> => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return false;
+    const checkOperatorAccess = async (name: string): Promise<boolean> => {
+        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !name) return false;
 
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
-            const parentNode = getParentNode(parentName)
+            const parentNode = getParentNode(name)
             // First check if the record exists
             if (!(await ensRegistryContract.recordExists(parentNode))) return false;
 
@@ -489,7 +489,7 @@ export default function DeployForm() {
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
-            if (!(await recordExist())) return;
+            if (!(await recordExist(parentName))) return;
 
             let tx;
 
@@ -546,7 +546,7 @@ export default function DeployForm() {
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
-            if (!(await recordExist())) return;
+            if (!(await recordExist(parentName))) return;
 
             let tx;
 
@@ -1182,6 +1182,7 @@ export default function DeployForm() {
                         if (selected === 'web3labs') {
                             setParentName(enscribeDomain)
                         } else {
+                            setParentName('')
                             fetchUserOwnedDomains()
                             setShowENSModal(true)
                         }
@@ -1209,10 +1210,10 @@ export default function DeployForm() {
                                     setRecordExists(false)
                                 }}
                                 onBlur={async () => {
-                                    const exist = await recordExist()
+                                    const exist = await recordExist(parentName)
                                     setRecordExists(exist)
 
-                                    const approved = await checkOperatorAccess()
+                                    const approved = await checkOperatorAccess(parentName)
                                     console.log("Operator check for ", parentName, " is ", approved)
                                     setOperatorAccess(approved)
                                 }}
@@ -1223,7 +1224,7 @@ export default function DeployForm() {
                                 onClick={() => setShowENSModal(true)}
                                 className="bg-gray-900 text-white"
                             >
-                                Select ENS
+                                Choose ENS
                             </Button>
 
                             {operatorAccess && recordExists && (
@@ -1262,7 +1263,7 @@ export default function DeployForm() {
             <Dialog open={showENSModal} onOpenChange={setShowENSModal}>
                 <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
                     <DialogHeader className="mb-4">
-                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Select Your ENS Domain</DialogTitle>
+                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Choose Your ENS Parent</DialogTitle>
                         <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                             Choose one of your owned ENS domains or select "None" to enter manually.
                         </DialogDescription>
@@ -1282,26 +1283,27 @@ export default function DeployForm() {
                         <div className="space-y-4 px-1">
                             {userOwnedDomains.length > 0 ? (
                                 <div className="max-h-60 overflow-y-auto pr-1">
-                                    {userOwnedDomains.map((domain) => (
-                                        <div
-                                            key={domain}
-                                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-md mb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
-                                            onClick={async () => {
-                                                setParentName(domain);
-                                                setShowENSModal(false);
+                                    <div className="flex flex-wrap gap-2">
+                                        {userOwnedDomains.map((domain) => (
+                                            <div
+                                                key={domain}
+                                                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                                onClick={async () => {
+                                                    setParentName(domain);
+                                                    setShowENSModal(false);
+                                                    const exist = await recordExist(domain)
+                                                    setRecordExists(exist)
 
-                                                const exist = await recordExist()
-                                                setRecordExists(exist)
+                                                    const approved = await checkOperatorAccess(domain)
+                                                    console.log("Operator check for ", domain, " is ", approved)
+                                                    setOperatorAccess(approved)
 
-                                                const approved = await checkOperatorAccess()
-                                                console.log("Operator check for ", parentName, " is ", approved)
-                                                setOperatorAccess(approved)
-
-                                            }}
-                                        >
-                                            <span className="text-gray-800 dark:text-gray-200 font-medium">{domain}</span>
-                                        </div>
-                                    ))}
+                                                }}
+                                            >
+                                                <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
@@ -1309,21 +1311,22 @@ export default function DeployForm() {
                                 </div>
                             )}
 
-                            <div
-                                className="p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
-                                onClick={() => {
-                                    setParentName('');
-                                    setShowENSModal(false);
-                                }}
-                            >
-                                <span className="text-gray-800 dark:text-gray-200 font-medium">None - I'll enter manually</span>
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                <div
+                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                    onClick={() => {
+                                        setParentName('');
+                                        setShowENSModal(false);
+                                    }}
+                                >
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">None, I will type manually</span>
+                                </div>
                             </div>
 
                             <div className="flex justify-end mt-6">
                                 <Button
                                     onClick={() => {
                                         setShowENSModal(false)
-                                        setParentName('');
                                     }}
                                     className="bg-gray-900 hover:bg-gray-800 text-white"
                                 >

@@ -731,10 +731,14 @@ export default function NameContract() {
                                     className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                                 />
                                 <Button
-                                    onClick={() => setShowENSModal(true)}
+                                    onClick={() => {
+                                        setParentName('');
+                                        setShowENSModal(true)
+                                    }
+                                    }
                                     className="bg-gray-900 text-white"
                                 >
-                                    Select ENS
+                                    Choose ENS
                                 </Button>
                             </div>
                         )}
@@ -746,7 +750,7 @@ export default function NameContract() {
             <Dialog open={showENSModal} onOpenChange={setShowENSModal}>
                 <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
                     <DialogHeader className="mb-4">
-                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Select Your ENS Domain</DialogTitle>
+                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Choose Your ENS Parent</DialogTitle>
                         <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                             Choose one of your owned ENS domains or select "None" to enter manually.
                         </DialogDescription>
@@ -766,18 +770,20 @@ export default function NameContract() {
                         <div className="space-y-4 px-1">
                             {userOwnedDomains.length > 0 ? (
                                 <div className="max-h-60 overflow-y-auto pr-1">
-                                    {userOwnedDomains.map((domain) => (
-                                        <div
-                                            key={domain}
-                                            className="p-3 border border-gray-200 dark:border-gray-700 rounded-md mb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
-                                            onClick={() => {
-                                                setParentName(domain);
-                                                setShowENSModal(false);
-                                            }}
-                                        >
-                                            <span className="text-gray-800 dark:text-gray-200 font-medium">{domain}</span>
-                                        </div>
-                                    ))}
+                                    <div className="flex flex-wrap gap-2">
+                                        {userOwnedDomains.map((domain) => (
+                                            <div
+                                                key={domain}
+                                                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                                onClick={() => {
+                                                    setParentName(domain);
+                                                    setShowENSModal(false);
+                                                }}
+                                            >
+                                                <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             ) : (
                                 <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
@@ -785,21 +791,23 @@ export default function NameContract() {
                                 </div>
                             )}
 
-                            <div
-                                className="p-3 border border-gray-200 dark:border-gray-700 rounded-md cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center"
-                                onClick={() => {
-                                    setParentName('');
-                                    setShowENSModal(false);
-                                }}
-                            >
-                                <span className="text-gray-800 dark:text-gray-200 font-medium">None - I'll enter manually</span>
+                            <div className="flex flex-wrap gap-2 mt-4">
+                                <div
+                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                    onClick={() => {
+                                        setParentName('');
+                                        setShowENSModal(false);
+                                    }}
+                                >
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">None, I will type manually</span>
+                                </div>
                             </div>
 
                             <div className="flex justify-end mt-6">
                                 <Button
                                     onClick={() => {
                                         setShowENSModal(false)
-                                        setParentName('');
+
                                     }}
                                     className="bg-gray-900 hover:bg-gray-800 text-white"
                                 >

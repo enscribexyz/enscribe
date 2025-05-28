@@ -61,6 +61,15 @@ export default function SetNameStepsModal({
         setErrorMessage("")
     }, [open, steps])
 
+    // Auto-proceed to next step when current step completes
+    // Only applies to steps after the first one
+    useEffect(() => {
+        if (open && steps && steps.length > 0 && currentStep > 0 && currentStep < steps.length &&
+            !executing && !errorMessage && stepStatuses[currentStep - 1] === "completed") {
+            runStep(currentStep);
+        }
+    }, [currentStep, executing, errorMessage, stepStatuses]);
+
     const runStep = async (index: number) => {
         let tx = null;
         let errorMain = null;
@@ -95,6 +104,7 @@ export default function SetNameStepsModal({
 
             if (index + 1 < steps.length) {
                 setCurrentStep(index + 1);
+                // No need to call runStep here as the useEffect will handle it
             } else {
                 setCurrentStep(steps.length);
                 setAllStepsCompleted(true);
@@ -198,20 +208,27 @@ export default function SetNameStepsModal({
 
 
                         </>
-                    ) : currentStep < steps.length ? (
+                    ) : currentStep === 0 ? (
                         <Button
                             onClick={() => runStep(currentStep)}
                             disabled={executing}
                             className="w-full"
                         >
-                            {executing ? "Processing..." : currentStep === 0 ? "Start" : "Next Step"}
+                            {executing ? "Processing..." : "Start"}
+                        </Button>
+                    ) : currentStep < steps.length ? (
+                        <Button
+                            disabled
+                            className="w-full"
+                        >
+                            Processing...
                         </Button>
                     ) : (
                         <Button
                             onClick={() => onClose(lastTxHash)}
                             className="w-full"
                         >
-                            Close
+                            Done
                         </Button>
                     )}
                 </div>
