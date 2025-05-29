@@ -187,14 +187,14 @@ export default function AddressSearch() {
         selectedChain={selectedChain}
         onChainChange={handleChainChange}
       />
-      <div className="relative flex-1">
+      <div className="flex-1">
         <Input
           type="text"
           placeholder="Search address"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`pr-10 text-black ${error ? 'border-red-500' : ''}`}
+          className={`pr-3 text-black ${error ? 'border-red-500' : ''}`}
         />
         {error && (
           <p className="text-xs text-red-500 mt-1 absolute">{error}</p>
