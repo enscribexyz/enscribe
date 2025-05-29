@@ -6,32 +6,24 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { CONTRACTS } from '@/utils/constants';
-import { useAccount as useWagmiAccount } from 'wagmi'; // Alias to avoid conflict
+import { useAccount as useWagmiAccount } from 'wagmi';
 
 export default function AddressSearch() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedChain, setSelectedChain] = useState<number>(1); // Default to Ethereum mainnet
-  const [manuallyChanged, setManuallyChanged] = useState(false); // New state to track manual changes
+  const [selectedChain, setSelectedChain] = useState<number>(1);
+  const [manuallyChanged, setManuallyChanged] = useState(false);
 
   const router = useRouter();
-  const publicClient = usePublicClient();
-  const { chain, isConnected } = useWagmiAccount(); // Use aliased hook
+  const { chain } = useWagmiAccount();
 
-  // Set the selected chain to the connected wallet's chain when available, unless manually changed
   useEffect(() => {
     if (chain?.id && !manuallyChanged) {
       console.log('Wallet connected to chain:', chain.id, chain.name);
       setSelectedChain(chain.id);
     }
   }, [chain?.id, manuallyChanged]);
-
-  // Function to get the appropriate provider based on the selected chain
-  const handleChainChange = (chainId: number) => {
-    setSelectedChain(chainId);
-    setManuallyChanged(true); // Mark as manually changed
-  };
 
   const getProvider = (chainId: number) => {
     const config = CONTRACTS[chainId];
@@ -63,7 +55,6 @@ export default function AddressSearch() {
       rpcEndpoint += infuraApiKey;
     }
 
-    // Fallback to config.RPC_ENDPOINT if no specific endpoint found
     const finalEndpoint = rpcEndpoint || config.RPC_ENDPOINT;
     console.log(`Using RPC endpoint for chain ${chainId}:`, finalEndpoint);
 
@@ -80,7 +71,6 @@ export default function AddressSearch() {
     setError('');
 
     try {
-      // First, check if it's a valid Ethereum address
       const cleanedQuery = searchQuery.trim();
       const isValidAddress = isAddress(cleanedQuery);
       console.log('Search query:', cleanedQuery);
@@ -93,13 +83,11 @@ export default function AddressSearch() {
         // Not a valid Ethereum address, try to resolve it as an ENS name
         try {
           console.log('Not a valid address, trying to resolve as ENS name:', cleanedQuery);
-          // For ENS resolution, we need to use the Ethereum mainnet provider
           const mainnetProvider = getProvider(1);
           const resolvedAddress = await mainnetProvider.resolveName(cleanedQuery);
           console.log('Resolved ENS address:', resolvedAddress);
 
           if (resolvedAddress) {
-            // Successfully resolved ENS name, redirect to explore page
             router.push(`/explore/${selectedChain}/${resolvedAddress}`);
           } else {
             setError("Couldn't resolve ENS name / Address");

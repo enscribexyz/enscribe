@@ -220,7 +220,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             <Card className="w-full max-w-5xl bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 mt-6">
                 <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                     <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                        Contract Details
+                        ENS Information
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">

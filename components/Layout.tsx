@@ -23,8 +23,10 @@ const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL;
 export default function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { isConnected, chain, connector } = useAccount();
-    const [selectedChain, setSelectedChain] = useState<number>(1); // Default to Ethereum mainnet
-    const [manuallyChanged, setManuallyChanged] = useState(false); // Track if user manually changed chain
+    const [selectedChain, setSelectedChain] = useState<number>(1);
+    const [manuallyChanged, setManuallyChanged] = useState(false);
+    const [prevConnected, setPrevConnected] = useState(false);
+    const [prevChain, setPrevChain] = useState<number | undefined>();
     const router = useRouter();
 
     // Initialize selectedChain from URL on first load only
@@ -34,17 +36,46 @@ export default function Layout({ children }: LayoutProps) {
             if (!isNaN(chainIdFromUrl)) {
                 console.log(`Initial sync with URL chainId: ${chainIdFromUrl}`);
                 setSelectedChain(chainIdFromUrl);
-
-                // If wallet is connected and chain doesn't match URL, try to switch wallet chain
-                if (isConnected && chain && chain.id !== chainIdFromUrl && connector?.switchChain) {
-                    console.log(`Attempting to switch wallet chain to: ${chainIdFromUrl}`);
-                    connector.switchChain({ chainId: chainIdFromUrl }).catch(err => {
-                        console.error('Failed to switch chain:', err);
-                    });
-                }
             }
         }
-    }, [router.isReady, router.query.chainId, isConnected, chain, connector, manuallyChanged]);
+    }, [router.isReady, router.query.chainId, manuallyChanged]);
+
+    useEffect(() => {
+        const isExplorePage = router.pathname.startsWith('/explore');
+        if (!isExplorePage) return;
+
+        const urlChainId = router.query.chainId && typeof router.query.chainId === 'string'
+            ? parseInt(router.query.chainId)
+            : undefined;
+
+        // Handle wallet connection (wallet just connected)
+        if (isConnected && !prevConnected && urlChainId && connector?.switchChain) {
+            // User just connected wallet on explore page, switch wallet to match URL chain
+            console.log(`Wallet connected on explore page. Switching wallet to chain ${urlChainId}`);
+            connector.switchChain({ chainId: urlChainId }).catch(err => {
+                console.error('Failed to switch chain on wallet connect:', err);
+            });
+        }
+
+        // Handle wallet disconnection
+        if (!isConnected && prevConnected) {
+            // User just disconnected wallet on explore page, redirect to root
+            console.log('Wallet disconnected on explore page. Redirecting to /');
+            router.push('/');
+        }
+
+        // Handle wallet chain change (chain changed while connected)
+        if (isConnected && chain?.id && prevChain !== undefined && chain.id !== prevChain && router.query.address) {
+            // User changed wallet chain while on explore page, update URL
+            const address = router.query.address as string;
+            console.log(`Wallet chain changed from ${prevChain} to ${chain.id}. Updating URL.`);
+            router.push(`/explore/${chain.id}/${address}`);
+        }
+
+        // Update previous states for next comparison
+        setPrevConnected(isConnected);
+        setPrevChain(chain?.id);
+    }, [isConnected, chain?.id, router.pathname, router.query.chainId, router.query.address, connector, prevConnected, prevChain]);
 
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">

@@ -23,7 +23,6 @@ export default function ExploreAddressPage() {
     // Reset state when URL parameters change
     useEffect(() => {
         if (router.isReady) {
-            // Reset state when URL changes
             setIsValidAddress(false);
             setIsContract(false);
             setClient(null);
@@ -36,7 +35,7 @@ export default function ExploreAddressPage() {
     // Initialize viem client based on chainId
     useEffect(() => {
         if (!router.isReady || !chainId || typeof chainId !== 'string') return;
-        
+
         const chainIdNumber = parseInt(chainId);
         if (isNaN(chainIdNumber)) {
             setIsValidChain(false);
@@ -44,7 +43,7 @@ export default function ExploreAddressPage() {
             setIsLoading(false);
             return;
         }
-        
+
         const config = CONTRACTS[chainIdNumber];
         if (!config) {
             setIsValidChain(false);
@@ -52,15 +51,14 @@ export default function ExploreAddressPage() {
             setIsLoading(false);
             return;
         }
-        
-        // Valid chain ID and config found
+
         setIsValidChain(true);
-        
+
         try {
             // Use the chain-specific RPC endpoint
             let rpcEndpoint = config.RPC_ENDPOINT;
             console.log(`Using RPC endpoint for chain ${chainIdNumber}:`, rpcEndpoint);
-            
+
             // Create a new viem client
             const viemClient = createPublicClient({
                 chain: {
@@ -71,18 +69,16 @@ export default function ExploreAddressPage() {
                 },
                 transport: http(rpcEndpoint)
             });
-            
+
             setClient(viemClient);
         } catch (err) {
             console.error('Error initializing viem client:', err);
             setError('Failed to initialize provider for the selected chain');
             setIsLoading(false);
         }
-        
-        // No need for cleanup as we're creating a new client each time
+
     }, [router.isReady, chainId]);
 
-    // Validate address and check if it's a contract using viem
     useEffect(() => {
         const validateAddress = async () => {
             if (!address || typeof address !== 'string' || !client) {
@@ -95,7 +91,6 @@ export default function ExploreAddressPage() {
                 if (isAddress(address)) {
                     setIsValidAddress(true);
 
-                    // Check if it's a contract using viem
                     try {
                         const bytecode = await client.getBytecode({ address: address as `0x${string}` });
                         console.log('Bytecode for address:', address, 'is:', bytecode);
@@ -157,14 +152,6 @@ export default function ExploreAddressPage() {
                 </div>
             )}
 
-            {isValidAddress && isValidChain && (
-                <ENSDetails
-                    address={address as string}
-                    chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
-                    isContract={isContract}
-                />
-            )}
-
             {/* Display a message if the wallet chain differs from the URL chain */}
             {walletChain && chainId && parseInt(chainId as string) !== walletChain.id && (
                 <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -172,6 +159,14 @@ export default function ExploreAddressPage() {
                         Note: You are viewing data for chain ID {chainId}, but your wallet is connected to {walletChain.name} (chain ID {walletChain.id}).
                     </p>
                 </div>
+            )}
+
+            {isValidAddress && isValidChain && (
+                <ENSDetails
+                    address={address as string}
+                    chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
+                    isContract={isContract}
+                />
             )}
         </Layout>
     );
