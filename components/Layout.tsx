@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Toaster } from "@/components/ui/toaster"
 import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon, InformationCircleIcon, DocumentIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import AddressSearch from './AddressSearch';
+import ChainSelector from './ChainSelector';
+import { useAccount } from 'wagmi';
+import { useRouter } from 'next/router';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -19,6 +22,9 @@ const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL;
 
 export default function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { isConnected, chain } = useAccount();
+    const [selectedChain, setSelectedChain] = useState<number>(1); // Default to Ethereum mainnet
+    const router = useRouter();
 
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -170,6 +176,24 @@ export default function Layout({ children }: LayoutProps) {
                     </div>
 
                     <div className="flex-1"></div>
+
+                    {/* Chain Selector - only visible when wallet is not connected */}
+                    {!isConnected && (
+                        <div className="mr-2">
+                            <ChainSelector 
+                                selectedChain={selectedChain} 
+                                onChainChange={(chainId) => {
+                                    setSelectedChain(chainId);
+                                    // If there's a chainId in the URL, update it
+                                    if (router.query.chainId) {
+                                        const currentPath = router.asPath;
+                                        const newPath = currentPath.replace(/\/[0-9]+\//, `/${chainId}/`);
+                                        router.push(newPath);
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* WalletConnect Button */}
                     <ConnectButton accountStatus={{

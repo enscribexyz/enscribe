@@ -5,8 +5,8 @@ import { isAddress, ethers } from 'ethers';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import ChainSelector from './ChainSelector';
 import { CONTRACTS } from '@/utils/constants';
+import { useAccount as useWagmiAccount } from 'wagmi'; // Alias to avoid conflict
 
 export default function AddressSearch() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -16,7 +16,7 @@ export default function AddressSearch() {
 
   const router = useRouter();
   const publicClient = usePublicClient();
-  const { chain } = useAccount();
+  const { chain, isConnected } = useWagmiAccount(); // Use aliased hook
 
   // Track if the user has manually changed the chain
   const [manuallyChanged, setManuallyChanged] = useState(false);
@@ -182,11 +182,7 @@ export default function AddressSearch() {
   };
 
   return (
-    <div className="flex items-center max-w-md gap-2">
-      <ChainSelector
-        selectedChain={selectedChain}
-        onChainChange={handleChainChange}
-      />
+    <div className="flex w-full items-center space-x-2">
       <div className="flex-1">
         <Input
           type="text"
