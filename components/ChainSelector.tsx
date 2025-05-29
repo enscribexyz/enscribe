@@ -35,14 +35,14 @@ export default function ChainSelector({ selectedChain, onChainChange }: ChainSel
   const router = useRouter();
 
   // Sync with chainId from URL query parameter if present
-  useEffect(() => {
-    if (router.query.chainId && typeof router.query.chainId === 'string') {
-      const chainId = parseInt(router.query.chainId);
-      if (!isNaN(chainId) && CHAIN_OPTIONS.some(chain => chain.id === chainId) && chainId !== selectedChain) {
-        onChainChange(chainId);
-      }
-    }
-  }, [router.query.chainId, selectedChain, onChainChange]);
+  // useEffect(() => {
+  //   if (router.query.chainId && typeof router.query.chainId === 'string') {
+  //     const chainId = parseInt(router.query.chainId);
+  //     if (!isNaN(chainId) && CHAIN_OPTIONS.some(chain => chain.id === chainId) && chainId !== selectedChain) {
+  //       onChainChange(chainId);
+  //     }
+  //   }
+  // }, [router.query.chainId, selectedChain, onChainChange]);
 
   // Check if screen is mobile size
   useEffect(() => {

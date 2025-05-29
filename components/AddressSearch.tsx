@@ -13,42 +13,26 @@ export default function AddressSearch() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedChain, setSelectedChain] = useState<number>(1); // Default to Ethereum mainnet
+  const [manuallyChanged, setManuallyChanged] = useState(false); // New state to track manual changes
 
   const router = useRouter();
   const publicClient = usePublicClient();
   const { chain, isConnected } = useWagmiAccount(); // Use aliased hook
 
-  // Track if the user has manually changed the chain
-  const [manuallyChanged, setManuallyChanged] = useState(false);
-
-  // Set the selected chain to the connected wallet's chain when available
+  // Set the selected chain to the connected wallet's chain when available, unless manually changed
   useEffect(() => {
     if (chain?.id && !manuallyChanged) {
       console.log('Wallet connected to chain:', chain.id, chain.name);
-      console.log('Syncing chain selector with wallet chain:', chain.id);
       setSelectedChain(chain.id);
     }
   }, [chain?.id, manuallyChanged]);
 
-  // Log when the selected chain changes
-  useEffect(() => {
-    console.log('Selected chain changed to:', selectedChain);
-  }, [selectedChain]);
-
+  // Function to get the appropriate provider based on the selected chain
   const handleChainChange = (chainId: number) => {
-    if (chainId !== chain?.id) {
-      // If selecting a different chain than the wallet, mark as manually changed
-      console.log('Manual chain selection different from wallet chain');
-      setManuallyChanged(true);
-    } else {
-      // If selecting the same chain as the wallet, reset the manual flag
-      console.log('Selected chain matches wallet chain');
-      setManuallyChanged(false);
-    }
     setSelectedChain(chainId);
+    setManuallyChanged(true); // Mark as manually changed
   };
 
-  // Function to get the appropriate provider based on the selected chain
   const getProvider = (chainId: number) => {
     const config = CONTRACTS[chainId];
     if (!config) {
@@ -102,32 +86,9 @@ export default function AddressSearch() {
       console.log('Search query:', cleanedQuery);
       console.log('Is valid address:', isValidAddress);
 
-      // Get a provider for the selected chain
-      const provider = getProvider(selectedChain);
-
       if (isValidAddress) {
-        // It's a valid Ethereum address, now check if it's a contract or EOA
-        try {
-          console.log('Checking code for address:', cleanedQuery);
-          const code = await provider.getCode(cleanedQuery);
-          console.log('Code result:', code);
-
-          if (code && code !== '0x') {
-            // It's a contract - redirect to contract details page with chainId
-            console.log('Detected as CONTRACT, redirecting to:', `/contracts/${selectedChain}/${cleanedQuery}`);
-            router.push(`/contracts/${selectedChain}/${cleanedQuery}`);
-          } else {
-            // It's an EOA - redirect to history/[address] page with chainId
-            console.log('Detected as EOA, redirecting to:', `/history/${selectedChain}/${cleanedQuery}`);
-            router.push(`/history/${selectedChain}/${cleanedQuery}`);
-          }
-        } catch (error) {
-          console.error('Error checking code:', error);
-          // Even if we can't check the code, we can still redirect to the history page
-          // since it's a valid address (assume it's an EOA)
-          console.log('Error occurred, redirecting valid address to history page');
-          router.push(`/history/${selectedChain}/${cleanedQuery}`);
-        }
+        // It's a valid Ethereum address, redirect to explore page
+        router.push(`/explore/${selectedChain}/${cleanedQuery}`);
       } else {
         // Not a valid Ethereum address, try to resolve it as an ENS name
         try {
@@ -138,29 +99,10 @@ export default function AddressSearch() {
           console.log('Resolved ENS address:', resolvedAddress);
 
           if (resolvedAddress) {
-            // Successfully resolved ENS name
-            try {
-              console.log('Checking code for resolved address:', resolvedAddress);
-              const code = await provider.getCode(resolvedAddress);
-              console.log('Code result for resolved address:', code);
-
-              if (code && code !== '0x') {
-                // It's a contract
-                console.log('Resolved address is a CONTRACT, redirecting to:', `/contracts/${selectedChain}/${resolvedAddress}`);
-                router.push(`/contracts/${selectedChain}/${resolvedAddress}`);
-              } else {
-                // It's an EOA
-                console.log('Resolved address is an EOA, redirecting to:', `/history/${selectedChain}/${resolvedAddress}`);
-                router.push(`/history/${selectedChain}/${resolvedAddress}`);
-              }
-            } catch (codeError) {
-              console.error('Error checking code for resolved address:', codeError);
-              // Default to history page if we can't determine the type
-              router.push(`/history/${selectedChain}/${resolvedAddress}`);
-            }
+            // Successfully resolved ENS name, redirect to explore page
+            router.push(`/explore/${selectedChain}/${resolvedAddress}`);
           } else {
-            console.error('Could not resolve ENS name');
-            setError('Could not resolve ENS name');
+            setError("Couldn't resolve ENS name / Address");
           }
         } catch (ensError) {
           console.error('Error resolving ENS name:', ensError);

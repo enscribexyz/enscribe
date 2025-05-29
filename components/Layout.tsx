@@ -22,9 +22,29 @@ const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL;
 
 export default function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
-    const { isConnected, chain } = useAccount();
+    const { isConnected, chain, connector } = useAccount();
     const [selectedChain, setSelectedChain] = useState<number>(1); // Default to Ethereum mainnet
+    const [manuallyChanged, setManuallyChanged] = useState(false); // Track if user manually changed chain
     const router = useRouter();
+
+    // Initialize selectedChain from URL on first load only
+    useEffect(() => {
+        if (router.isReady && router.query.chainId && typeof router.query.chainId === 'string' && !manuallyChanged) {
+            const chainIdFromUrl = parseInt(router.query.chainId);
+            if (!isNaN(chainIdFromUrl)) {
+                console.log(`Initial sync with URL chainId: ${chainIdFromUrl}`);
+                setSelectedChain(chainIdFromUrl);
+
+                // If wallet is connected and chain doesn't match URL, try to switch wallet chain
+                if (isConnected && chain && chain.id !== chainIdFromUrl && connector?.switchChain) {
+                    console.log(`Attempting to switch wallet chain to: ${chainIdFromUrl}`);
+                    connector.switchChain({ chainId: chainIdFromUrl }).catch(err => {
+                        console.error('Failed to switch chain:', err);
+                    });
+                }
+            }
+        }
+    }, [router.isReady, router.query.chainId, isConnected, chain, connector, manuallyChanged]);
 
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -180,15 +200,18 @@ export default function Layout({ children }: LayoutProps) {
                     {/* Chain Selector - only visible when wallet is not connected */}
                     {!isConnected && (
                         <div className="mr-2">
-                            <ChainSelector 
-                                selectedChain={selectedChain} 
+                            <ChainSelector
+                                selectedChain={selectedChain}
                                 onChainChange={(chainId) => {
+                                    // Mark as manually changed to prevent auto-sync with URL
+                                    setManuallyChanged(true);
                                     setSelectedChain(chainId);
-                                    // If there's a chainId in the URL, update it
-                                    if (router.query.chainId) {
-                                        const currentPath = router.asPath;
-                                        const newPath = currentPath.replace(/\/[0-9]+\//, `/${chainId}/`);
-                                        router.push(newPath);
+
+                                    // If there's a chainId in the URL, redirect to new chain URL
+                                    if (router.query.chainId && router.query.address) {
+                                        const address = router.query.address as string;
+                                        console.log(`Redirecting to chain ${chainId} for address ${address}`);
+                                        router.push(`/explore/${chainId}/${address}`);
                                     }
                                 }}
                             />

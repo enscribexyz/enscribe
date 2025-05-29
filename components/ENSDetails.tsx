@@ -11,9 +11,10 @@ import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
 import publicResolverABI from '@/contracts/PublicResolver';
 import { createPublicClient, http } from 'viem';
 
-interface ContractDetailsProps {
+interface ENSDetailsProps {
     address: string;
     chainId?: number;
+    isContract: boolean;
 }
 
 interface ENSDomain {
@@ -21,7 +22,7 @@ interface ENSDomain {
     isPrimary?: boolean;
 }
 
-export default function ContractDetails({ address, chainId }: ContractDetailsProps) {
+export default function ENSDetails({ address, chainId, isContract }: ENSDetailsProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [ensNames, setEnsNames] = useState<ENSDomain[]>([]);
@@ -39,7 +40,7 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
     // Determine if we should use the wallet client or a custom provider
     const shouldUseWalletClient = isConnected && chainId === chain?.id;
 
-    console.log('[ContractDetails] Wallet connection status:', {
+    console.log('[ENSDetails] Wallet connection status:', {
         isConnected,
         walletChainId: chain?.id,
         providedChainId: chainId,
@@ -233,13 +234,13 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
         <Card className="w-full max-w-5xl bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 mt-6">
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                 <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                    Contract Details
+                    {isContract ? 'Contract Details' : 'Account Details'}
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
                 <div className="space-y-4">
                     <div>
-                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Contract Address</h3>
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{isContract ? 'Contract Address' : 'Account Address'}</h3>
                         <div className="flex items-center mt-1">
                             <p className="text-gray-900 dark:text-white font-mono text-sm break-all">{address}</p>
                             <Button
@@ -291,7 +292,7 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
 
                     {ensNames.length === 0 && (
                         <div className="text-gray-500 dark:text-gray-400 italic">
-                            No ENS names found for this contract address
+                            No ENS names found for this address
                         </div>
                     )}
                 </div>
