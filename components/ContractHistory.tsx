@@ -34,19 +34,10 @@ interface Contract {
     attestation?: 'audited' | 'unaudited';
 }
 
-interface ContractHistoryProps {
-    addressToQuery?: string;
-    chainIdToQuery?: number;
-}
-
-export default function ContractHistory({ addressToQuery, chainIdToQuery }: ContractHistoryProps = {}) {
+export default function ContractHistory() {
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
-    const [customProvider, setCustomProvider] = useState<ethers.JsonRpcProvider | null>(null)
-
-    // Use provided chainId if available, otherwise use connected wallet's chain
-    const effectiveChainId = chainIdToQuery || chain?.id || 1 // Default to Ethereum mainnet if no chain is provided
-    const config = effectiveChainId ? CONTRACTS[effectiveChainId] : CONTRACTS[1] // Default to Ethereum mainnet config
+    const config = chain?.id ? CONTRACTS[chain.id] : undefined
     const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const [withENS, setWithENS] = useState<Contract[]>([])
@@ -59,71 +50,19 @@ export default function ContractHistory({ addressToQuery, chainIdToQuery }: Cont
     const [pageWithout, setPageWithout] = useState(1)
     const itemsPerPage = 10
 
-    const etherscanApi = `${ETHERSCAN_API}&chainid=${effectiveChainId}&module=account&action=txlist&address=${addressToQuery || address}&startblock=0&endblock=999999999999&sort=asc`
+    const etherscanApi = `${ETHERSCAN_API}&chainid=${chain?.id}&module=account&action=txlist&address=${address}&startblock=0&endblock=999999999999&sort=asc`
     const etherscanUrl = config!.ETHERSCAN_URL
     const blockscoutUrl = config!.BLOCKSCOUT_URL
     const chainlensUrl = config!.CHAINLENS_URL
     const ensAppUrl = config!.ENS_APP_URL
     const topic0 = TOPIC0
 
-    // Initialize custom provider when chainId changes
     useEffect(() => {
-        if (effectiveChainId && config) {
-            try {
-                // Get the appropriate Infura RPC endpoint based on the chain
-                let rpcEndpoint = '';
+        if (!isConnected || !address || !walletClient) return
+        fetchTxs()
+    }, [address, isConnected, walletClient])
 
-                // Use the chain-specific RPC endpoint from .env
-                if (effectiveChainId === 1) { // Ethereum Mainnet
-                    rpcEndpoint = process.env.NEXT_PUBLIC_RPC || config.RPC_ENDPOINT;
-                } else if (effectiveChainId === 11155111) { // Sepolia
-                    rpcEndpoint = process.env.NEXT_PUBLIC_RPC_SEPOLIA || config.RPC_ENDPOINT;
-                } else if (effectiveChainId === 59144) { // Linea Mainnet
-                    rpcEndpoint = process.env.NEXT_PUBLIC_RPC_LINEA || config.RPC_ENDPOINT;
-                } else if (effectiveChainId === 59141) { // Linea Sepolia - Fixed chain ID
-                    rpcEndpoint = process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || config.RPC_ENDPOINT;
-                } else if (effectiveChainId === 8453) { // Base Mainnet
-                    rpcEndpoint = process.env.NEXT_PUBLIC_RPC_BASE || config.RPC_ENDPOINT;
-                } else if (effectiveChainId === 84532) { // Base Sepolia
-                    rpcEndpoint = process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || config.RPC_ENDPOINT;
-                } else {
-                    // Default to the config's RPC endpoint
-                    rpcEndpoint = config.RPC_ENDPOINT;
-                }
-
-                console.log(`Using RPC endpoint for chain ${effectiveChainId}:`, rpcEndpoint);
-                const provider = new ethers.JsonRpcProvider(rpcEndpoint);
-                setCustomProvider(provider);
-            } catch (err) {
-                console.error('Error initializing provider:', err);
-                setError('Failed to initialize provider for the selected chain');
-            }
-        }
-    }, [effectiveChainId, config]);
-
-    useEffect(() => {
-        // If addressToQuery is provided, use that instead of the connected wallet address
-        if (addressToQuery && customProvider) {
-            console.log('Fetching transactions for provided address:', addressToQuery);
-            fetchTxs(addressToQuery);
-            return;
-        }
-
-        // Otherwise use the connected wallet address if connected
-        if (isConnected && address && customProvider) {
-            console.log('Fetching transactions for connected wallet address:', address);
-            fetchTxs(address);
-        } else if (!addressToQuery && !isConnected) {
-            // Clear data when no address is provided and wallet is not connected
-            console.log('No address provided and wallet not connected, clearing data');
-            setWithENS([]);
-            setWithoutENS([]);
-            setProcessing(false);
-            setLoading(false);
-        }
-    }, [address, addressToQuery, isConnected, customProvider, effectiveChainId])
-
-    const fetchTxs = async (queryAddress: string) => {
+    const fetchTxs = async () => {
         setLoading(true)
         setError(null)
         setWithENS([])
@@ -131,25 +70,11 @@ export default function ContractHistory({ addressToQuery, chainIdToQuery }: Cont
 
         let isMounted = true
 
-        // Check if we have a valid chain ID and configuration
-        if (!effectiveChainId || !config) {
-            setError('Invalid or unsupported chain ID');
-            setLoading(false);
-            return;
-        }
-
-        // Check if we have a valid provider
-        if (!customProvider) {
-            setError('Provider not initialized. Please try again.');
-            setLoading(false);
-            return;
-        }
-
         try {
-            // Create API URL with the provided address and chain ID
-            const apiUrl = `${ETHERSCAN_API}&chainid=${effectiveChainId}&module=account&action=txlist&address=${queryAddress}&startblock=0&endblock=999999999999&sort=asc`
-            console.log("etherscan api - ", apiUrl)
-            const res = await fetch(apiUrl)
+            // const url = `${etherscanApi}&action=txlist&address=${address}`
+
+            console.log("etherscan api - ", etherscanApi)
+            const res = await fetch(etherscanApi)
             const data = await res.json()
 
             setProcessing(true);
@@ -340,7 +265,9 @@ export default function ContractHistory({ addressToQuery, chainIdToQuery }: Cont
 
     return (
         <div className="flex flex-col space-y-2 max-h-[calc(100vh-160px)] overflow-y-auto pr-1">
-            {error ? (
+            {!isConnected ? (
+                <p className="text-red-500 text-lg text-center">Please connect your wallet</p>
+            ) : error ? (
                 <p className="text-red-500">{error}</p>
             ) : (
                 <Tabs defaultValue="with-ens" >
