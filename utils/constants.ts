@@ -12,6 +12,7 @@ export type NetworkConfig = {
     CHAINLENS_URL: string;
     BLOCKSCOUT_URL: string;
     RPC_ENDPOINT: string;
+    SUBGRAPH_API: string;
 };
 
 export const CONTRACTS: Record<number, NetworkConfig> = {
@@ -30,6 +31,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT || "",
         RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC || "",
+        SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API || "",
     },
     // Sepolia Testnet
     11155111: {
@@ -46,6 +48,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_SEPOLIA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA || "",
         RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SEPOLIA || "",
+        SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SEPOLIA || "",
     },
 
     // Linea mainnet
@@ -63,6 +66,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_LINEA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA || "",
         RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA || "",
+        SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_LINEA || "",
     },
 
     // Linea Sepolia Testnet
@@ -80,6 +84,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_LINEA_SEPOLIA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA_SEPOLIA || "",
         RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || "",
+        SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_LINEA_SEPOLIA || "",
     },
 
     // BASE mainnet
@@ -97,6 +102,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_BASE || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE || "",
         RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE || "",
+        SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_BASE || "",
     },
 
     // BASE Sepolia Testnet
@@ -114,6 +120,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
         CHAINLENS_URL: process.env.NEXT_PUBLIC_CHAINLENS_BASE_SEPOLIA || "",
         BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE_SEPOLIA || "",
         RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || "",
+        SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_BASE_SEPOLIA || "",
     },
 };
 

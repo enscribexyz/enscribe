@@ -8,16 +8,31 @@ import { Search } from 'lucide-react';
 import { CONTRACTS } from '@/utils/constants';
 import { useAccount as useWagmiAccount } from 'wagmi';
 
-export default function AddressSearch() {
+interface AddressSearchProps {
+  selectedChain?: number;
+  setManuallyChanged?: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export default function AddressSearch({ selectedChain: propSelectedChain, setManuallyChanged: propSetManuallyChanged }: AddressSearchProps = {}) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedChain, setSelectedChain] = useState<number>(1);
+  // Use the prop value if provided, otherwise default to 1 (Ethereum mainnet)
+  const [selectedChain, setSelectedChain] = useState<number>(propSelectedChain || 1);
   const [manuallyChanged, setManuallyChanged] = useState(false);
 
   const router = useRouter();
   const { chain } = useWagmiAccount();
+  
+  // Update local state when prop changes
+  useEffect(() => {
+    if (propSelectedChain !== undefined) {
+      console.log('Using chain from Layout:', propSelectedChain);
+      setSelectedChain(propSelectedChain);
+    }
+  }, [propSelectedChain]);
 
+  // Sync with wallet chain if connected and not manually changed
   useEffect(() => {
     if (chain?.id && !manuallyChanged) {
       console.log('Wallet connected to chain:', chain.id, chain.name);
@@ -75,6 +90,13 @@ export default function AddressSearch() {
       const isValidAddress = isAddress(cleanedQuery);
       console.log('Search query:', cleanedQuery);
       console.log('Is valid address:', isValidAddress);
+      console.log('Using chain for search:', selectedChain);
+      
+      // Make sure Layout knows this chain selection is intentional
+      if (propSetManuallyChanged) {
+        propSetManuallyChanged(true);
+      }
+      setManuallyChanged(true);
 
       if (isValidAddress) {
         // It's a valid Ethereum address, redirect to explore page
@@ -83,11 +105,13 @@ export default function AddressSearch() {
         // Not a valid Ethereum address, try to resolve it as an ENS name
         try {
           console.log('Not a valid address, trying to resolve as ENS name:', cleanedQuery);
+          // Always use mainnet provider for ENS resolution
           const mainnetProvider = getProvider(1);
           const resolvedAddress = await mainnetProvider.resolveName(cleanedQuery);
-          console.log('Resolved ENS address:', resolvedAddress);
+          console.log('Resolved ENS address:', resolvedAddress, 'using selected chain for redirect:', selectedChain);
 
           if (resolvedAddress) {
+            // Use the selected chain for the redirect, not mainnet
             router.push(`/explore/${selectedChain}/${resolvedAddress}`);
           } else {
             setError("Couldn't resolve ENS name / Address");

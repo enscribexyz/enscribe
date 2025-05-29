@@ -128,12 +128,13 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     setPrimaryName(primaryENS);
                 }
 
-                // 2. Fetch all ENS names resolving to this address using subgraph
-                const subgraphEndpoint = chain?.id === 11155111
-                    ? 'https://api.sepolia.ensnode.io/subgraph'
-                    : 'https://gateway.thegraph.com/api/subgraphs/id/DmMXLtMZnGbQXASJ7p1jfzLUbBYnYUD9zNBTxpkjHYXV';
+                // 2. Fetch all ENS names resolving to this address using subgraph from config
+                if (!config?.SUBGRAPH_API) {
+                    console.warn('No subgraph API endpoint configured for this chain');
+                    return;
+                }
 
-                const response = await fetch(subgraphEndpoint, {
+                const response = await fetch(config.SUBGRAPH_API, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -200,10 +201,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
     if (isLoading) {
         return (
-            <Card className="w-full max-w-5xl bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 mt-6">
+            <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
                 <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                     <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                        Contract Details
+                        ENS Information
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-4">
@@ -217,7 +218,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
     if (error) {
         return (
-            <Card className="w-full max-w-5xl bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 mt-6">
+            <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
                 <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                     <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                         ENS Information
@@ -231,10 +232,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     }
 
     return (
-        <Card className="w-full max-w-5xl bg-white dark:bg-gray-800 shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 mt-6">
+        <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                 <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                    {isContract ? 'Contract Details' : 'Account Details'}
+                    ENS Information
                 </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
@@ -259,7 +260,19 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     {primaryName && (
                         <div>
                             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Primary ENS Name</h3>
-                            <p className="text-gray-900 dark:text-white mt-1">{primaryName}</p>
+                            <div className="flex items-center mt-1">
+                                <p className="text-gray-900 dark:text-white">{primaryName}</p>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-2"
+                                    asChild
+                                >
+                                    <a href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`} target="_blank" rel="noopener noreferrer">
+                                        <ExternalLink className="h-4 w-4" />
+                                    </a>
+                                </Button>
+                            </div>
                         </div>
                     )}
 
@@ -268,7 +281,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                                 Associated ENS Names ({ensNames.length})
                             </h3>
-                            <div className="mt-2 space-y-2">
+                            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto pr-2">
                                 {ensNames.map((domain, index) => (
                                     <div
                                         key={index}

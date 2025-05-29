@@ -134,11 +134,7 @@ export default function ExploreAddressPage() {
 
     return (
         <Layout>
-            <div className="flex items-center mb-6">
-                <Button variant="ghost" onClick={() => router.back()} className="mr-4">
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Back
-                </Button>
+            <div className="flex items-center mb-6 w-full max-w-5xl mx-auto">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                     {isValidAddress && isValidChain
                         ? (isContract ? 'Contract Details' : 'Account Details')
@@ -161,6 +157,7 @@ export default function ExploreAddressPage() {
                 </div>
             )}
 
+
             {isValidAddress && isValidChain && (
                 <ENSDetails
                     address={address as string}
@@ -168,6 +165,7 @@ export default function ExploreAddressPage() {
                     isContract={isContract}
                 />
             )}
+
         </Layout>
     );
 }

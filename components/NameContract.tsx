@@ -141,11 +141,19 @@ export default function NameContract() {
     }
 
     const fetchUserOwnedDomains = async () => {
-        if (!address) return;
+        if (!address || !config) {
+            console.warn('Address or chain configuration is missing');
+            return;
+        }
+
+        if (!config.SUBGRAPH_API) {
+            console.warn('No subgraph API endpoint configured for this chain');
+            return;
+        }
 
         try {
-            setFetchingENS(true)
-            const response = await fetch('https://gateway.thegraph.com/api/subgraphs/id/DmMXLtMZnGbQXASJ7p1jfzLUbBYnYUD9zNBTxpkjHYXV', {
+            setFetchingENS(true);
+            const response = await fetch(config.SUBGRAPH_API, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

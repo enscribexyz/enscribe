@@ -87,12 +87,11 @@ export default function SetNameStepsModal({
         // Only run this effect when the modal first opens
         if (open && steps && steps.length > 0 && currentStep === 0 && !executing) {
             console.log("Starting first step automatically");
-            // Use a small timeout to ensure the modal is fully rendered
             setTimeout(() => {
                 runStep(0);
             }, 100);
         }
-    }, [open]); // Only depend on open to prevent re-running
+    }, [open]);
 
     useEffect(() => {
         if (open && steps && steps.length > 0 && currentStep > 0 && currentStep < steps.length &&

@@ -256,52 +256,60 @@ export default function DeployForm() {
         }
     }
 
-    const fetchPrimaryENS = async () => {
-        if (!signer || !address) return
+    // const fetchPrimaryENS = async () => {
+    //     if (!signer || !address) return
 
-        const provider = (await signer).provider
-        setFetchingENS(true)
-        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
-            try {
-                const ensName = await provider.lookupAddress(address)
-                if (ensName) {
-                    setParentName(ensName)
-                } else {
-                    setParentName("")
-                }
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName("")
-            }
-        } else {
-            try {
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
-                const reversedNode = await reverseRegistrarContract.node(address)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
-                const ensName = await resolverContract.name(reversedNode)
-                if (ensName) {
-                    setParentName(ensName)
-                } else {
-                    setParentName("")
-                }
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName("")
-            }
-        }
+    //     const provider = (await signer).provider
+    //     setFetchingENS(true)
+    //     if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+    //         try {
+    //             const ensName = await provider.lookupAddress(address)
+    //             if (ensName) {
+    //                 setParentName(ensName)
+    //             } else {
+    //                 setParentName("")
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching ENS name:", error)
+    //             setParentName("")
+    //         }
+    //     } else {
+    //         try {
+    //             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+    //             const reversedNode = await reverseRegistrarContract.node(address)
+    //             const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+    //             const ensName = await resolverContract.name(reversedNode)
+    //             if (ensName) {
+    //                 setParentName(ensName)
+    //             } else {
+    //                 setParentName("")
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching ENS name:", error)
+    //             setParentName("")
+    //         }
+    //     }
 
-        setFetchingENS(false)
-        const approved = await checkOperatorAccess()
-        setOperatorAccess(approved)
+    //     setFetchingENS(false)
+    //     const approved = await checkOperatorAccess()
+    //     setOperatorAccess(approved)
 
-    }
+    // }
 
     const fetchUserOwnedDomains = async () => {
-        if (!address) return;
+        if (!address || !config) {
+            console.warn('Address or chain configuration is missing');
+            return;
+        }
+
+        if (!config.SUBGRAPH_API) {
+            console.warn('No subgraph API endpoint configured for this chain');
+            return;
+        }
 
         try {
-            setFetchingENS(true)
-            const response = await fetch('https://gateway.thegraph.com/api/subgraphs/id/DmMXLtMZnGbQXASJ7p1jfzLUbBYnYUD9zNBTxpkjHYXV', {
+            setFetchingENS(true);
+            const response = await fetch(config.SUBGRAPH_API, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
