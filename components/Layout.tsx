@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Toaster } from "@/components/ui/toaster"
-import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon, InformationCircleIcon, DocumentIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon, InformationCircleIcon, DocumentIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import AddressSearch from './AddressSearch';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -99,6 +100,8 @@ export default function Layout({ children }: LayoutProps) {
                     </button>
                 </div>
 
+
+
                 {/* Navigation Links */}
                 <nav className="px-4 py-6 flex-grow">
                     <ul className="space-y-2">
@@ -145,6 +148,25 @@ export default function Layout({ children }: LayoutProps) {
                         <button onClick={() => setSidebarOpen(true)}>
                             <Bars3Icon className="w-6 h-6 text-gray-900 dark:text-white" />
                         </button>
+                    </div>
+
+                    {/* Logo for medium screens */}
+                    <div className="hidden md:flex lg:hidden items-center ml-2 mr-4">
+                        <Link href="/" legacyBehavior>
+                            <a className="flex items-center">
+                                <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="32" height="32" rx="4" fill="#151A2D" />
+                                    <path d="M10 12L6 16L10 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M22 12L26 16L22 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M18 10L14 22" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </a>
+                        </Link>
+                    </div>
+
+                    {/* Address Search Component - Top Navbar (visible on all screens) */}
+                    <div className="flex-1 max-w-md">
+                        <AddressSearch />
                     </div>
 
                     <div className="flex-1"></div>

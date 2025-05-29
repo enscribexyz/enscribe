@@ -6,9 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExternalLink } from 'lucide-react';
 import { CONTRACTS } from '@/utils/constants';
+import { CHAINS } from '@/utils/constants';
+import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
+import publicResolverABI from '@/contracts/PublicResolver';
 
 interface ContractDetailsProps {
     address: string;
+    chainId?: number;
 }
 
 interface ENSDomain {
@@ -16,16 +20,32 @@ interface ENSDomain {
     isPrimary?: boolean;
 }
 
-export default function ContractDetails({ address }: ContractDetailsProps) {
+export default function ContractDetails({ address, chainId }: ContractDetailsProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [ensNames, setEnsNames] = useState<ENSDomain[]>([]);
     const [primaryName, setPrimaryName] = useState<string | null>(null);
     const { chain } = useAccount();
     const publicClient = usePublicClient();
+    const [customProvider, setCustomProvider] = useState<ethers.JsonRpcProvider | null>(null);
 
-    const config = chain?.id ? CONTRACTS[chain.id] : undefined;
+    // Use provided chainId if available, otherwise use connected wallet's chain
+    const effectiveChainId = chainId || chain?.id;
+    const config = effectiveChainId ? CONTRACTS[effectiveChainId] : undefined;
     const etherscanUrl = config?.ETHERSCAN_URL || 'https://etherscan.io/';
+
+    // Initialize custom provider when chainId changes
+    useEffect(() => {
+        if (effectiveChainId && config?.RPC_ENDPOINT) {
+            try {
+                const provider = new ethers.JsonRpcProvider(config.RPC_ENDPOINT);
+                setCustomProvider(provider);
+            } catch (err) {
+                console.error('Error initializing provider:', err);
+                setError('Failed to initialize provider for the selected chain');
+            }
+        }
+    }, [effectiveChainId, config]);
 
     useEffect(() => {
         const fetchContractDetails = async () => {
@@ -38,7 +58,7 @@ export default function ContractDetails({ address }: ContractDetailsProps) {
                 // 1. Try to get the primary name for this address
                 // Create an ethers provider from the publicClient
                 const provider = new ethers.JsonRpcProvider(publicClient!.transport.url);
-                const primaryENS = await provider.lookupAddress(address);
+                const primaryENS = await getENS(address, provider)
                 if (primaryENS) {
                     setPrimaryName(primaryENS);
                 }
@@ -86,6 +106,27 @@ export default function ContractDetails({ address }: ContractDetailsProps) {
 
         fetchContractDetails();
     }, [address, publicClient, chain?.id]);
+
+    const getENS = async (addr: string, provider: ethers.JsonRpcProvider): Promise<string> => {
+        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+            try {
+                return (await provider.lookupAddress(addr)) || ''
+            } catch {
+                return ''
+            }
+        } else {
+            try {
+                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, provider);
+                const reversedNode = await reverseRegistrarContract.node(addr)
+                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, provider);
+                const name = await resolverContract.name(reversedNode)
+                return name || '';
+            } catch (error) {
+                return ''
+            }
+        }
+
+    }
 
     if (isLoading) {
         return (
