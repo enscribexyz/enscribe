@@ -1,4 +1,5 @@
 export type NetworkConfig = {
+    name: string;
     ENSCRIBE_CONTRACT: string;
     ENS_REGISTRY: string;
     BASE_REGISTRAR: string;
@@ -16,6 +17,7 @@ export type NetworkConfig = {
 export const CONTRACTS: Record<number, NetworkConfig> = {
     // mainnet
     1: {
+        name: "Ethereum Mainnet",
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT || "",
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY || "",
         BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION || "",
@@ -31,6 +33,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     },
     // Sepolia Testnet
     11155111: {
+        name: "Sepolia Testnet",
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_SEPOLIA || "",
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_SEPOLIA || "",
         BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_SEPOLIA || "",
@@ -47,6 +50,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
 
     // Linea mainnet
     59144: {
+        name: "Linea Mainnet",
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA || "",
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_LINEA || "",
         BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_LINEA || "",
@@ -63,6 +67,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
 
     // Linea Sepolia Testnet
     59141: {
+        name: "Linea Sepolia Testnet",
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA_SEPOLIA || "",
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_LINEA_SEPOLIA || "",
         BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_LINEA_SEPOLIA || "",
@@ -79,6 +84,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
 
     // BASE mainnet
     8453: {
+        name: "Base Mainnet",
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE || "",
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_BASE || "",
         BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_BASE || "",
@@ -95,6 +101,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
 
     // BASE Sepolia Testnet
     84532: {
+        name: "Base Sepolia Testnet",
         ENSCRIBE_CONTRACT: process.env.NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE_SEPOLIA || "",
         ENS_REGISTRY: process.env.NEXT_PUBLIC_ENS_REGISTRY_BASE_SEPOLIA || "",
         BASE_REGISTRAR: process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_BASE_SEPOLIA || "",

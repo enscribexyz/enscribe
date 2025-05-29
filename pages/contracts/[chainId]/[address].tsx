@@ -1,6 +1,7 @@
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-import { isAddress, ethers } from 'ethers';
+import { isAddress } from 'viem/utils';
+import { createPublicClient, http } from 'viem';
 import Layout from '@/components/Layout';
 import ContractDetails from '@/components/ContractDetails';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,9 @@ export default function ContractDetailsPage() {
     const [isValidChain, setIsValidChain] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [provider, setProvider] = useState<ethers.JsonRpcProvider | null>(null);
+    const [client, setClient] = useState<any>(null);
 
-    // Initialize provider based on chainId
+    // Initialize viem client based on chainId
     useEffect(() => {
         if (chainId && typeof chainId === 'string') {
             const chainIdNumber = parseInt(chainId);
@@ -24,47 +25,37 @@ export default function ContractDetailsPage() {
 
             if (config) {
                 setIsValidChain(true);
-
                 try {
-                    // Get the appropriate Infura RPC endpoint based on the chain
-                    let rpcEndpoint = '';
-
-                    // Use the chain-specific RPC endpoint from .env
-                    if (chainIdNumber === 1) { // Ethereum Mainnet
-                        rpcEndpoint = process.env.NEXT_PUBLIC_RPC || config.RPC_ENDPOINT;
-                    } else if (chainIdNumber === 11155111) { // Sepolia
-                        rpcEndpoint = process.env.NEXT_PUBLIC_RPC_SEPOLIA || config.RPC_ENDPOINT;
-                    } else if (chainIdNumber === 59144) { // Linea Mainnet
-                        rpcEndpoint = process.env.NEXT_PUBLIC_RPC_LENIA || config.RPC_ENDPOINT;
-                    } else if (chainIdNumber === 59140) { // Linea Sepolia
-                        rpcEndpoint = process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || config.RPC_ENDPOINT;
-                    } else if (chainIdNumber === 8453) { // Base Mainnet
-                        rpcEndpoint = process.env.NEXT_PUBLIC_RPC_BASE || config.RPC_ENDPOINT;
-                    } else if (chainIdNumber === 84532) { // Base Sepolia
-                        rpcEndpoint = process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || config.RPC_ENDPOINT;
-                    } else {
-                        // Default to the config's RPC endpoint
-                        rpcEndpoint = config.RPC_ENDPOINT;
-                    }
-
+                    // Use the chain-specific RPC endpoint from .env/config
+                    let rpcEndpoint = config.RPC_ENDPOINT;
+                    // (You can add additional logic for custom endpoints if needed)
                     console.log(`Using RPC endpoint for chain ${chainIdNumber}:`, rpcEndpoint);
-                    const newProvider = new ethers.JsonRpcProvider(rpcEndpoint);
-                    setProvider(newProvider);
+                    const viemClient = createPublicClient({
+                        chain: {
+                            id: chainIdNumber,
+                            name: config.name,
+                            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                            rpcUrls: { default: { http: [rpcEndpoint] }, public: { http: [rpcEndpoint] } },
+                        },
+                        transport: http(rpcEndpoint)
+                    });
+                    setClient(viemClient);
                 } catch (err) {
-                    console.error('Error initializing provider:', err);
+                    console.error('Error initializing viem client:', err);
                     setError('Failed to initialize provider for the selected chain');
                 }
             } else {
                 setIsValidChain(false);
                 setError(`Chain ID ${chainId} is not supported`);
+                setIsLoading(false);
             }
         }
     }, [chainId]);
 
-    // Validate address and check if it's a contract
+    // Validate address and check if it's a contract using viem
     useEffect(() => {
         const validateAddress = async () => {
-            if (!address || typeof address !== 'string' || !provider) {
+            if (!address || typeof address !== 'string' || !client) {
                 setIsLoading(false);
                 return;
             }
@@ -72,25 +63,20 @@ export default function ContractDetailsPage() {
             try {
                 // Check if it's a valid Ethereum address
                 if (isAddress(address)) {
-                    // Check if it's a contract
+                    // Check if it's a contract using viem
                     try {
-                        const code = await provider.getCode(address);
-                        console.log('Code for address:', address, 'is:', code);
-
-                        if (code) {
-                            // It's a contract, so set isValidAddress to true and don't redirect
+                        const bytecode = await client.getBytecode({ address: address as `0x${string}` });
+                        console.log('Bytecode for address:', address, 'is:', bytecode);
+                        if (bytecode && bytecode !== '0x') {
                             setIsValidAddress(true);
                         } else {
-                            // It's an EOA, so redirect to history page
-                            console.log('Address is an EOA, redirecting to history page');
                             setError('This address is an Externally Owned Account (EOA), not a contract');
-                            // Redirect to history page for EOAs
                             if (chainId) {
                                 router.push(`/history/${chainId}/${address}`);
                             }
                         }
                     } catch (err) {
-                        console.error('Error getting code:', err);
+                        console.error('Error getting bytecode:', err);
                         setError('Failed to verify if the address is a contract');
                     }
                 } else {
@@ -104,10 +90,10 @@ export default function ContractDetailsPage() {
             }
         };
 
-        if (router.isReady && provider) {
+        if (router.isReady && client) {
             validateAddress();
         }
-    }, [router.isReady, address, provider, chainId, router]);
+    }, [router.isReady, address, client, chainId, router]);
 
     if (isLoading) {
         return (
@@ -122,12 +108,12 @@ export default function ContractDetailsPage() {
     return (
         <Layout>
             <div className="flex items-center mb-6">
-                <Button variant="ghost" onClick={() => router.back()} className="mr-4">
+                {/* <Button variant="ghost" onClick={() => router.back()} className="mr-4">
                     <ArrowLeft className="h-4 w-4 mr-2" />
                     Back
-                </Button>
+                </Button> */}
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {isValidAddress ? `Contract Details (Chain ID: ${chainId})` : 'Invalid Address'}
+                    {isValidAddress && isValidChain ? `Contract Details (Chain ID: ${chainId})` : 'Invalid Chain ID or Address'}
                 </h1>
             </div>
 
@@ -137,24 +123,13 @@ export default function ContractDetailsPage() {
                 </div>
             )}
 
-            {!isValidAddress ? (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <div className="text-red-700 dark:text-red-400">
-                        Invalid Ethereum address format
-                    </div>
-                </div>
-            ) : !isValidChain ? (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <div className="text-red-700 dark:text-red-400">
-                        Invalid or unsupported chain ID
-                    </div>
-                </div>
-            ) : (
+            {isValidAddress && isValidChain && (
                 <ContractDetails
                     address={address as string}
                     chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
                 />
             )}
+
         </Layout>
     );
 }

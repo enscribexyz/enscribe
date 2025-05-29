@@ -9,6 +9,7 @@ import { CONTRACTS } from '@/utils/constants';
 import { CHAINS } from '@/utils/constants';
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
 import publicResolverABI from '@/contracts/PublicResolver';
+import { createPublicClient, http } from 'viem';
 
 interface ContractDetailsProps {
     address: string;
@@ -25,21 +26,54 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
     const [error, setError] = useState<string | null>(null);
     const [ensNames, setEnsNames] = useState<ENSDomain[]>([]);
     const [primaryName, setPrimaryName] = useState<string | null>(null);
-    const { chain } = useAccount();
-    const publicClient = usePublicClient();
+    const { chain, isConnected } = useAccount();
+    const walletPublicClient = usePublicClient();
     const [customProvider, setCustomProvider] = useState<ethers.JsonRpcProvider | null>(null);
+    const [viemClient, setViemClient] = useState<any>(null);
 
     // Use provided chainId if available, otherwise use connected wallet's chain
     const effectiveChainId = chainId || chain?.id;
     const config = effectiveChainId ? CONTRACTS[effectiveChainId] : undefined;
     const etherscanUrl = config?.ETHERSCAN_URL || 'https://etherscan.io/';
 
-    // Initialize custom provider when chainId changes
+    // Determine if we should use the wallet client or a custom provider
+    const shouldUseWalletClient = isConnected && chainId === chain?.id;
+
+    console.log('[ContractDetails] Wallet connection status:', {
+        isConnected,
+        walletChainId: chain?.id,
+        providedChainId: chainId,
+        shouldUseWalletClient
+    });
+
+    // Initialize custom provider and viem client when chainId changes
     useEffect(() => {
         if (effectiveChainId && config?.RPC_ENDPOINT) {
             try {
+                // Initialize ethers provider
                 const provider = new ethers.JsonRpcProvider(config.RPC_ENDPOINT);
                 setCustomProvider(provider);
+
+                // Initialize viem client
+                const client = createPublicClient({
+                    transport: http(config.RPC_ENDPOINT),
+                    chain: {
+                        id: effectiveChainId,
+                        name: config.name || 'Unknown Chain',
+                        nativeCurrency: {
+                            name: 'Ether',
+                            symbol: 'ETH',
+                            decimals: 18
+                        },
+                        rpcUrls: {
+                            default: { http: [config.RPC_ENDPOINT] },
+                            public: { http: [config.RPC_ENDPOINT] }
+                        }
+                    }
+                });
+                setViemClient(client);
+
+                console.log(`[ContractDetails] Initialized custom provider for chain ${effectiveChainId}`);
             } catch (err) {
                 console.error('Error initializing provider:', err);
                 setError('Failed to initialize provider for the selected chain');
@@ -48,6 +82,24 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
     }, [effectiveChainId, config]);
 
     useEffect(() => {
+        // Always clear error on dependency change
+        setError(null);
+
+        // Only fetch when a provider is available
+        if (!address) return;
+        if (!config) {
+            setError('Chain ID is not supported.');
+            setIsLoading(false);
+            return;
+        }
+        if (!(shouldUseWalletClient && walletPublicClient) && !customProvider) {
+            console.log('[ContractDetails] Waiting for provider to be ready', {
+                shouldUseWalletClient,
+                walletPublicClient,
+                customProvider
+            });
+            return;
+        }
         const fetchContractDetails = async () => {
             if (!address) return;
 
@@ -56,9 +108,21 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
 
             try {
                 // 1. Try to get the primary name for this address
-                // Create an ethers provider from the publicClient
-                const provider = new ethers.JsonRpcProvider(publicClient!.transport.url);
-                const primaryENS = await getENS(address, provider)
+                let provider;
+
+                if (shouldUseWalletClient && walletPublicClient) {
+                    // Use wallet provider if wallet is connected and chain matches
+                    console.log('[ContractDetails] Using wallet provider for ENS lookup');
+                    provider = new ethers.JsonRpcProvider(walletPublicClient.transport.url);
+                } else if (customProvider) {
+                    // Use custom provider with Infura/RPC endpoint
+                    console.log('[ContractDetails] Using custom provider for ENS lookup');
+                    provider = customProvider;
+                } else {
+                    throw new Error('No provider available');
+                }
+
+                const primaryENS = await getENS(address, provider);
                 if (primaryENS) {
                     setPrimaryName(primaryENS);
                 }
@@ -105,27 +169,32 @@ export default function ContractDetails({ address, chainId }: ContractDetailsPro
         };
 
         fetchContractDetails();
-    }, [address, publicClient, chain?.id]);
+    }, [address, walletPublicClient, customProvider, chain?.id, shouldUseWalletClient]);
 
     const getENS = async (addr: string, provider: ethers.JsonRpcProvider): Promise<string> => {
-        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+        // Use the effectiveChainId instead of chain?.id to ensure we're using the correct chain
+        // for ENS lookups even when the wallet is not connected
+        if (effectiveChainId === CHAINS.MAINNET || effectiveChainId === CHAINS.SEPOLIA) {
             try {
+                console.log(`[ContractDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId}`);
                 return (await provider.lookupAddress(addr)) || ''
-            } catch {
+            } catch (error) {
+                console.error('[ContractDetails] Error looking up ENS name:', error);
                 return ''
             }
         } else {
             try {
+                console.log(`[ContractDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId} using reverse registrar`);
                 const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, provider);
                 const reversedNode = await reverseRegistrarContract.node(addr)
                 const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, provider);
                 const name = await resolverContract.name(reversedNode)
                 return name || '';
             } catch (error) {
+                console.error('[ContractDetails] Error looking up ENS name using reverse registrar:', error);
                 return ''
             }
         }
-
     }
 
     if (isLoading) {
