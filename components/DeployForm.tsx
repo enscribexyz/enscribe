@@ -135,6 +135,13 @@ export default function DeployForm() {
         setModalSubtitle('')
         setUserOwnedDomains([])
         setShowENSModal(false)
+        setIsOwnable(false)
+        setIsReverseClaimable(false)
+        setRecordExists(false)
+        setArgs([])
+        setOperatorAccess(false)
+        setEnsNameTaken(false)
+        populateName()
     }, [chain?.id, isConnected]);
 
     useEffect(() => {
@@ -687,7 +694,8 @@ export default function DeployForm() {
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
 
-            const txCost = 100000000000000n
+            const txCost = await namingContract.pricing();
+            console.log("txCost - ", txCost);
             let senderAddress = (await signer).address
             let name = `${label}.${parentName}`
 
@@ -698,7 +706,6 @@ export default function DeployForm() {
                         action: async () => {
                             const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {
                                 value: txCost
-                                // gasLimit: 5000000
                             })
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -1405,6 +1412,7 @@ export default function DeployForm() {
                         setParentName(enscribeDomain);
                         setArgs([])
                         setAbiText('')
+                        populateName()
                     } else if (result === "INCOMPLETE") {
                         setError("Steps not completed. Please complete all steps before closing.")
                         return

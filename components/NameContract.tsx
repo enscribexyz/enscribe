@@ -77,6 +77,7 @@ export default function NameContract() {
         setError('')
         setLoading(false)
         setDeployedAddress('')
+        setExistingContractAddress('')
         setTxHash('')
         setModalOpen(false)
         setModalSteps([])
@@ -84,6 +85,11 @@ export default function NameContract() {
         setModalSubtitle('')
         setUserOwnedDomains([])
         setShowENSModal(false)
+        populateName()
+        setIsOwnable(false)
+        setIsReverseClaimable(false)
+        setIsAddressEmpty(true);
+        setIsAddressInvalid(false);
     }, [chain?.id, isConnected]);
 
     useEffect(() => {
@@ -455,7 +461,8 @@ export default function NameContract() {
             console.log("parentNode - ", parentNode)
             console.log("name node - ", node)
 
-            const txCost = 100000000000000n
+            const txCost = await namingContract.pricing();
+            console.log("txCost - ", txCost);
 
             const titleFirst = parentType === 'web3labs' ? "Set forward resolution" : "Create subname"
 
@@ -466,7 +473,7 @@ export default function NameContract() {
                     if (parentType === 'web3labs') {
                         const currentAddr = await publicResolverContract.addr(node)
                         if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
-                            const txn = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: 100000000000000n })
+                            const txn = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
                             const txReceipt = await txn.wait()
                             await logMetric(
                                 corelationId,
@@ -653,8 +660,7 @@ export default function NameContract() {
                     }}
                     // onBlur={ checkIfOwnable}
                     placeholder="0xa56..."
-                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 ${!isOwnable ? 'border-red-500' : ''
-                        }`}
+                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200}`}
                 />
 
                 {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
@@ -900,6 +906,7 @@ export default function NameContract() {
                         setParentType('web3labs');
                         setParentName(enscribeDomain);
                         setIsPrimaryNameSet(false);
+                        populateName()
                     } else if (result === "INCOMPLETE") {
                         setError("Steps not completed. Please complete all steps before closing.")
                     }
