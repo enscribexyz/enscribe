@@ -26,7 +26,7 @@ NEXT_PUBLIC_ENS_APP_SEPOLIA='https://sepolia.app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_SEPOLIA=''
 NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA='https://eth-sepolia.blockscout.com/'
 NEXT_PUBLIC_RPC_SEPOLIA='https://sepolia.infura.io/v3/'
-NEXT_PUBLIC_SUBGRAPH_API_SEPOLIA='https://gateway.thegraph.com/api/subgraphs/id/DmMXLtMZnGbQXASJ7p1jfzLUbBYnYUD9zNBTxpkjHYXV'
+NEXT_PUBLIC_SUBGRAPH_API_SEPOLIA='https://gateway.thegraph.com/api/subgraphs/id/G1SxZs317YUb9nQX3CC98hDyvxfMJNZH5pPRGpNrtvwN'
 
 # LINEA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA='0x6d8Ac46BFC1bD0b6022f997108e9800Fd84fdD44'

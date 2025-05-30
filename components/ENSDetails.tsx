@@ -21,6 +21,7 @@ interface ENSDetailsProps {
 interface ENSDomain {
     name: string;
     isPrimary?: boolean;
+    expiryDate?: number;
 }
 
 interface VerificationStatus {
@@ -175,33 +176,93 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     return;
                 }
 
-                const response = await fetch(config.SUBGRAPH_API, {
+                // First, fetch all domains for the address
+                const domainsResponse = await fetch(config.SUBGRAPH_API, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
                     },
                     body: JSON.stringify({
-                        query: `query GetENSNames { domains(where: { resolvedAddress: "${address.toLowerCase()}" }) { name } }`
+                        query: `
+                            query GetENSNames($address: String!) {
+                                domains(where: { resolvedAddress: $address }) { 
+                                    name 
+                                }
+                            }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
+                        }
                     })
                 });
 
-                const data = await response.json();
+                const domainsData = await domainsResponse.json();
 
-                if (data.data && data.data.domains) {
-                    const domains = data.data.domains.map((domain: { name: string }) => ({
+                if (domainsData.data && domainsData.data.domains) {
+                    // Create initial domains array
+                    const domains = domainsData.data.domains.map((domain: { name: string }) => ({
                         name: domain.name,
-                        isPrimary: domain.name === primaryENS
+                        isPrimary: domain.name === primaryENS,
+                        expiryDate: undefined // Will be populated later
                     }));
 
-                    // Sort domains: primary first, then by length (shorter first)
+                    // Sort domains: primary first, then by name length
                     const sortedDomains = domains.sort((a, b) => {
                         if (a.isPrimary) return -1;
                         if (b.isPrimary) return 1;
                         return a.name.length - b.name.length;
                     });
 
+                    // Set initial domains (without expiry dates)
                     setEnsNames(sortedDomains);
+
+
+                    // Now fetch expiry dates for each domain
+                    const domainsWithExpiry = await Promise.all(
+                        sortedDomains.map(async (domain: ENSDomain) => {
+                            try {
+                                const expiryResponse = await fetch(config.SUBGRAPH_API, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                                    },
+                                    body: JSON.stringify({
+                                        query: `
+                                            query GetExpiry($name: String!) {
+                                                registrations(
+                                                    where: { domain_: { name: $name } },
+                                                    orderBy: expiryDate,
+                                                    orderDirection: desc,
+                                                    first: 1
+                                                ) {
+                                                    expiryDate
+                                                }
+                                            }
+                                        `,
+                                        variables: {
+                                            name: domain.name
+                                        }
+                                    })
+                                });
+
+                                const expiryData = await expiryResponse.json();
+                                const expiryDate = expiryData?.data?.registrations?.[0]?.expiryDate;
+                                
+                                return {
+                                    ...domain,
+                                    expiryDate: expiryDate ? Number(expiryDate) : undefined
+                                };
+                            } catch (error) {
+                                console.error(`Error fetching expiry for ${domain.name}:`, error);
+                                return domain; // Return domain without expiry date if there's an error
+                            }
+                        })
+                    );
+
+                    // Update with domains that now have expiry dates
+                    setEnsNames(domainsWithExpiry);
                 }
 
                 // 3. If this is a contract, fetch verification status
@@ -464,11 +525,18 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                     >
                                         <div className="flex items-center justify-between">
                                             <span className="text-gray-900 dark:text-white">{domain.name}</span>
-                                            {domain.isPrimary && (
-                                                <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
-                                                    Primary
-                                                </span>
-                                            )}
+                                            <div className="flex items-center gap-2">
+                                                {domain.expiryDate && (
+                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                        Expires: {new Date(domain.expiryDate * 1000).toLocaleDateString()}
+                                                    </span>
+                                                )}
+                                                {domain.isPrimary && (
+                                                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
+                                                        Primary
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 ))}
