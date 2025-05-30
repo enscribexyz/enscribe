@@ -10,6 +10,7 @@ import { CHAINS } from '@/utils/constants';
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
 import publicResolverABI from '@/contracts/PublicResolver';
 import { createPublicClient, http } from 'viem';
+import Link from 'next/link';
 
 interface ENSDetailsProps {
     address: string;
@@ -22,11 +23,21 @@ interface ENSDomain {
     isPrimary?: boolean;
 }
 
+interface VerificationStatus {
+    sourcify_verification: string;
+    etherscan_verification: string;
+    blockscout_verification: string;
+    audit_status: string;
+    attestation_tx_hash: string;
+    ens_name: string;
+}
+
 export default function ENSDetails({ address, chainId, isContract }: ENSDetailsProps) {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [ensNames, setEnsNames] = useState<ENSDomain[]>([]);
     const [primaryName, setPrimaryName] = useState<string | null>(null);
+    const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
     const { chain, isConnected } = useAccount();
     const walletPublicClient = usePublicClient();
     const [customProvider, setCustomProvider] = useState<ethers.JsonRpcProvider | null>(null);
@@ -36,6 +47,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     const effectiveChainId = chainId || chain?.id;
     const config = effectiveChainId ? CONTRACTS[effectiveChainId] : undefined;
     const etherscanUrl = config?.ETHERSCAN_URL || 'https://etherscan.io/';
+    const SOURCIFY_URL = 'https://sourcify.dev/#/lookup/';
 
     // Determine if we should use the wallet client or a custom provider
     const shouldUseWalletClient = isConnected && chainId === chain?.id;
@@ -81,6 +93,35 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             }
         }
     }, [effectiveChainId, config]);
+
+    // Function to get contract verification status
+    const getContractStatus = async (chainId: number | undefined, address: string) => {
+        const defaultStatus = {
+            sourcify_verification: "unverified",
+            etherscan_verification: "unverified",
+            audit_status: "unaudited",
+            attestation_tx_hash: "0xabc123",
+            blockscout_verification: "unverified",
+            ens_name: ""
+        }
+
+        try {
+            if (!chainId) return defaultStatus;
+
+            console.log(`[ENSDetails] Fetching verification status for ${address} on chain ${chainId}`);
+            const res = await fetch(`/api/v1/verification/${chainId}/${address.toLowerCase()}`);
+            if (!res.ok) return defaultStatus;
+
+            const data = await res.json();
+            console.log(`[ENSDetails] Verification status:`, data);
+
+            if (data) return data;
+            return defaultStatus;
+        } catch (error) {
+            console.error('[ENSDetails] Error fetching verification status:', error);
+            return defaultStatus;
+        }
+    }
 
     useEffect(() => {
         // Always clear error on dependency change
@@ -162,6 +203,12 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
                     setEnsNames(sortedDomains);
                 }
+
+                // 3. If this is a contract, fetch verification status
+                if (isContract) {
+                    const status = await getContractStatus(effectiveChainId, address);
+                    setVerificationStatus(status);
+                }
             } catch (err) {
                 console.error('Error fetching contract details:', err);
                 setError('Failed to fetch contract details');
@@ -171,7 +218,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         };
 
         fetchContractDetails();
-    }, [address, walletPublicClient, customProvider, chain?.id, shouldUseWalletClient]);
+    }, [address, walletPublicClient, customProvider, chain?.id, shouldUseWalletClient, isContract]);
 
     const getENS = async (addr: string, provider: ethers.JsonRpcProvider): Promise<string> => {
         // Use the effectiveChainId instead of chain?.id to ensure we're using the correct chain
@@ -256,6 +303,132 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                             </Button>
                         </div>
                     </div>
+
+                    {/* Contract Verification Status */}
+                    {isContract && verificationStatus && (
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Contract Verification</h3>
+                            <div className="flex flex-wrap gap-2 mt-2">
+                                {(verificationStatus.sourcify_verification === 'exact_match' || verificationStatus.sourcify_verification === 'match') && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                            className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                        >
+                                            <Link
+                                                href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="cursor-pointer"
+                                            >
+                                                <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
+                                                Verified
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                                {verificationStatus.etherscan_verification === 'verified' && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                            className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                        >
+                                            <Link
+                                                href={`${etherscanUrl}address/${address}#code`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
+                                                Verified
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                                {(verificationStatus.blockscout_verification === 'exact_match' || verificationStatus.blockscout_verification === 'match') && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                            className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                        >
+                                            <Link
+                                                href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="cursor-pointer"
+                                            >
+                                                <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                Verified
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                                {verificationStatus.sourcify_verification === 'unverified' && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                            className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                        >
+                                            <Link
+                                                href={`https://sourcify.dev/#/verifier`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <img src="/sourcify.svg" alt="Sourcify" className="w-4 h-4" />
+                                                Verify
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                                {verificationStatus.etherscan_verification === 'unverified' && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                            className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                        >
+                                            <Link
+                                                href={`${etherscanUrl}address/${address}#code`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                <img src="/etherscan.svg" alt="Etherscan" className="w-4 h-4" />
+                                                Verify
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                                {(verificationStatus.blockscout_verification === 'unverified') && (
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            asChild
+                                            size="sm"
+                                            variant="outline"
+                                            className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                                        >
+                                            <Link
+                                                href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="cursor-pointer"
+                                            >
+                                                <img src="/blockscout.svg" alt="Blockscout" className="w-4 h-4" />
+                                                Verify
+                                            </Link>
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {primaryName && (
                         <div>
