@@ -71,6 +71,22 @@ export default function NameContract() {
     }
 
     useEffect(() => {
+        setLabel('')
+        setParentType('web3labs')
+        setParentName(enscribeDomain)
+        setError('')
+        setLoading(false)
+        setDeployedAddress('')
+        setTxHash('')
+        setModalOpen(false)
+        setModalSteps([])
+        setModalTitle('')
+        setModalSubtitle('')
+        setUserOwnedDomains([])
+        setShowENSModal(false)
+    }, [chain?.id, isConnected]);
+
+    useEffect(() => {
         const initFromQuery = async () => {
             if (
                 router.query.contract &&
@@ -170,13 +186,13 @@ export default function NameContract() {
                 const domains = data.data.domains.map((domain: { name: string }) => domain.name);
 
                 // Filter out .addr.reverse names
-                const filteredDomains = domains.filter(domain => !domain.endsWith('.addr.reverse'));
+                const filteredDomains = domains.filter((domain: string) => !domain.endsWith('.addr.reverse'));
 
                 // Process domains with labelhashes
-                const processedDomains = await Promise.all(filteredDomains.map(async (domain) => {
+                const processedDomains = await Promise.all(filteredDomains.map(async (domain: string) => {
                     // Check if any part of the domain name contains a labelhash (looks like a hex string)
                     const parts = domain.split('.');
-                    const processedParts = await Promise.all(parts.map(async (part) => {
+                    const processedParts = await Promise.all(parts.map(async (part: string) => {
                         // Check if the part looks like a labelhash in square brackets [hexstring]
                         const bracketMatch = part.match(/^\[([0-9a-f]{64})\]$/i);
                         if (bracketMatch) {

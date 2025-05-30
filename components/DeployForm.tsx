@@ -4,7 +4,7 @@ import { wagmiConfig } from "@/pages/_app";
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
-import { useAccount, useWalletClient, } from 'wagmi'
+import { useAccount, useWalletClient } from 'wagmi'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +118,24 @@ export default function DeployForm() {
             setParentName(config.ENSCRIBE_DOMAIN)
         }
     }, [config, parentType])
+
+    useEffect(() => {
+        setBytecode('')
+        setLabel('')
+        setParentType('web3labs')
+        setParentName(enscribeDomain)
+        setAbiText('')
+        setError('')
+        setLoading(false)
+        setDeployedAddress('')
+        setTxHash('')
+        setModalOpen(false)
+        setModalSteps([])
+        setModalTitle('')
+        setModalSubtitle('')
+        setUserOwnedDomains([])
+        setShowENSModal(false)
+    }, [chain?.id, isConnected]);
 
     useEffect(() => {
         if (bytecode.length > 0) {
@@ -326,10 +344,10 @@ export default function DeployForm() {
                 const domains = data.data.domains.map((domain: { name: string }) => domain.name);
 
                 // Filter out .addr.reverse names
-                const filteredDomains = domains.filter(domain => !domain.endsWith('.addr.reverse'));
+                const filteredDomains = domains.filter((domain: string) => !domain.endsWith('.addr.reverse'));
 
                 // Process domains with labelhashes
-                const processedDomains = await Promise.all(filteredDomains.map(async (domain) => {
+                const processedDomains = await Promise.all(filteredDomains.map(async (domain: string) => {
                     // Check if any part of the domain name contains a labelhash (looks like a hex string)
                     const parts = domain.split('.');
                     const processedParts = await Promise.all(parts.map(async (part) => {
