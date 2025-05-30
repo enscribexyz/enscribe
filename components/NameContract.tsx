@@ -175,68 +175,144 @@ export default function NameContract() {
 
         try {
             setFetchingENS(true);
-            const response = await fetch(config.SUBGRAPH_API, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
-                },
-                body: JSON.stringify({
-                    query: `query getDomainsForAccount { domains(where: { owner: "${address.toLowerCase()}" }) { name } }`
-                })
-            });
 
-            const data = await response.json();
-
-            if (data.data && data.data.domains) {
-                const domains = data.data.domains.map((domain: { name: string }) => domain.name);
-
-                // Filter out .addr.reverse names
-                const filteredDomains = domains.filter((domain: string) => !domain.endsWith('.addr.reverse'));
-
-                // Process domains with labelhashes
-                const processedDomains = await Promise.all(filteredDomains.map(async (domain: string) => {
-                    // Check if any part of the domain name contains a labelhash (looks like a hex string)
-                    const parts = domain.split('.');
-                    const processedParts = await Promise.all(parts.map(async (part: string) => {
-                        // Check if the part looks like a labelhash in square brackets [hexstring]
-                        const bracketMatch = part.match(/^\[([0-9a-f]{64})\]$/i);
-                        if (bracketMatch) {
-                            const labelHash = bracketMatch[1];
-                            try {
-                                // Call the ENS Rainbow API to heal the labelhash (adding 0x prefix)
-                                const healResponse = await fetch(`https://api.ensrainbow.io/v1/heal/0x${labelHash}`);
-                                const healData = await healResponse.json();
-
-                                if (healData.status === 'success' && healData.label) {
-                                    return healData.label;
-                                }
-                            } catch (error) {
-                                console.error(`Error healing labelhash ${labelHash}:`, error);
+            // Fetch domains where user is the owner
+            const [ownerResponse, registrantResponse, wrappedResponse] = await Promise.all([
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { owner: $address }) { 
+                                    name 
+                                } 
                             }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
                         }
-                        return part;
-                    }));
-                    return processedParts.join('.');
+                    })
+                }),
+                // Fetch domains where user is the registrant
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { registrant: $address }) { 
+                                    name 
+                                } 
+                            }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
+                        }
+                    })
+                }),
+                // Fetch domains where user is the wrapped
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { wrappedOwner: $address }) { 
+                                    name 
+                                } 
+                            }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
+                        }
+                    })
+                })
+            ]);
 
-                }));
 
-                // Sort domains by level depth (2LDs first, then 3LDs, etc.) and put domains with labelhashes at the end
-                const sortedDomains = processedDomains.sort((a, b) => {
-                    // Check if domain contains a labelhash (unresolved)
-                    const aHasLabelhash = a.includes('[') && a.includes(']');
-                    const bHasLabelhash = b.includes('[') && b.includes(']');
+            const [ownerData, registrantData, wrappedData] = await Promise.all([
+                ownerResponse.json(),
+                registrantResponse.json(),
+                wrappedResponse.json()
+            ]);
 
-                    // If one has a labelhash and the other doesn't, the one with labelhash goes last
-                    if (aHasLabelhash && !bHasLabelhash) return 1;
-                    if (!aHasLabelhash && bHasLabelhash) return -1;
+            // Combine all sets of domains and remove duplicates
+            const ownedDomains = ownerData?.data?.domains?.map((d: { name: string }) => d.name) || [];
+            const registrantDomains = registrantData?.data?.domains?.map((d: { name: string }) => d.name) || [];
+            const wrappedDomains = wrappedData?.data?.domains?.map((d: { name: string }) => d.name) || [];
 
-                    // If both have or don't have labelhashes, sort by domain level depth
-                    const aDepth = a.split('.').length;
-                    const bDepth = b.split('.').length;
+            // Combine and deduplicate domains
+            const allDomains = [...new Set([...ownedDomains, ...registrantDomains, ...wrappedDomains])];
 
-                    return aDepth - bDepth; // Sort by ascending depth (2LDs first, then 3LDs, etc.)
+            if (allDomains.length > 0) {
+                // Filter out .addr.reverse names
+                const filteredDomains = allDomains.filter((domain: string) => !domain.endsWith('.addr.reverse'));
+
+                // Keep domains as-is, including any labelhashes
+                const processedDomains = filteredDomains;
+
+                // First, separate domains with labelhashes from regular domains
+                const domainsWithLabelhash = processedDomains.filter(domain => domain.includes('[') && domain.includes(']'));
+                const regularDomains = processedDomains.filter(domain => !(domain.includes('[') && domain.includes(']')));
+
+                // Function to get the 2LD for a domain
+                const get2LD = (domain: string): string => {
+                    const parts = domain.split('.');
+                    if (parts.length < 2) return domain;
+                    return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+                };
+
+                // Group regular domains by their 2LD
+                const domainsByParent: { [key: string]: string[] } = {};
+
+                regularDomains.forEach(domain => {
+                    const parent2LD = get2LD(domain);
+                    if (!domainsByParent[parent2LD]) {
+                        domainsByParent[parent2LD] = [];
+                    }
+                    domainsByParent[parent2LD].push(domain);
                 });
+
+                // Sort 2LDs alphabetically
+                const sorted2LDs = Object.keys(domainsByParent).sort();
+
+                // For each 2LD, sort its domains by depth
+                const sortedDomains: string[] = [];
+
+                sorted2LDs.forEach(parent2LD => {
+                    // Sort domains within this 2LD group by depth
+                    const sortedGroup = domainsByParent[parent2LD].sort((a, b) => {
+                        // Always put the 2LD itself first
+                        if (a === parent2LD) return -1;
+                        if (b === parent2LD) return 1;
+
+                        // Then sort by depth
+                        const aDepth = a.split('.').length;
+                        const bDepth = b.split('.').length;
+                        if (aDepth !== bDepth) {
+                            return aDepth - bDepth;
+                        }
+
+                        // If same depth, sort alphabetically
+                        return a.localeCompare(b);
+                    });
+
+                    // Add all domains from this group to the result
+                    sortedDomains.push(...sortedGroup);
+                });
+
+                // Finally, add domains with labelhashes at the end
+                sortedDomains.push(...domainsWithLabelhash);
 
                 setUserOwnedDomains(sortedDomains);
                 console.log("Fetched and processed user owned domains:", sortedDomains);
@@ -782,7 +858,7 @@ export default function NameContract() {
                     <DialogHeader className="mb-4">
                         <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Choose Your ENS Parent</DialogTitle>
                         <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                            Choose one of your owned ENS domains or select "None" to enter manually.
+                            Choose one of your owned ENS domains or enter manually.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -799,21 +875,77 @@ export default function NameContract() {
                     ) : (
                         <div className="space-y-4 px-1">
                             {userOwnedDomains.length > 0 ? (
-                                <div className="max-h-60 overflow-y-auto pr-1">
-                                    <div className="flex flex-wrap gap-2">
-                                        {userOwnedDomains.map((domain) => (
-                                            <div
-                                                key={domain}
-                                                className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
-                                                onClick={() => {
-                                                    setParentName(domain);
-                                                    setShowENSModal(false);
-                                                }}
-                                            >
-                                                <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                <div className="max-h-[50vh] overflow-y-auto pr-1">
+                                    {(() => {
+                                        // Function to get the 2LD for a domain
+                                        const get2LD = (domain: string): string => {
+                                            const parts = domain.split('.');
+                                            if (parts.length < 2) return domain;
+                                            return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+                                        };
+
+                                        // Separate domains with labelhashes
+                                        const domainsWithLabelhash = userOwnedDomains.filter(domain => domain.includes('[') && domain.includes(']'));
+                                        const regularDomains = userOwnedDomains.filter(domain => !(domain.includes('[') && domain.includes(']')));
+
+                                        // Group regular domains by 2LD
+                                        const domainGroups: { [key: string]: string[] } = {};
+
+                                        regularDomains.forEach(domain => {
+                                            const parent2LD = get2LD(domain);
+                                            if (!domainGroups[parent2LD]) {
+                                                domainGroups[parent2LD] = [];
+                                            }
+                                            domainGroups[parent2LD].push(domain);
+                                        });
+
+                                        // Sort 2LDs alphabetically
+                                        const sorted2LDs = Object.keys(domainGroups).sort();
+
+                                        return (
+                                            <div className="space-y-4">
+                                                {/* Regular domains grouped by 2LD */}
+                                                {sorted2LDs.map(parent2LD => (
+                                                    <div key={parent2LD} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {domainGroups[parent2LD].map(domain => (
+                                                                <div
+                                                                    key={domain}
+                                                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                                                    onClick={() => {
+                                                                        setParentName(domain);
+                                                                        setShowENSModal(false);
+                                                                    }}
+                                                                >
+                                                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Domains with labelhashes at the end */}
+                                                {domainsWithLabelhash.length > 0 && (
+                                                    <div className="pt-2">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {domainsWithLabelhash.map(domain => (
+                                                                <div
+                                                                    key={domain}
+                                                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                                                    onClick={() => {
+                                                                        setParentName(domain);
+                                                                        setShowENSModal(false);
+                                                                    }}
+                                                                >
+                                                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        ))}
-                                    </div>
+                                        );
+                                    })()}
                                 </div>
                             ) : (
                                 <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
@@ -821,23 +953,19 @@ export default function NameContract() {
                                 </div>
                             )}
 
-                            <div className="flex flex-wrap gap-2 mt-4">
-                                <div
-                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                            <div className="flex justify-end gap-3 mt-6">
+                                <Button variant="outline"
                                     onClick={() => {
-                                        setParentName('');
-                                        setShowENSModal(false);
+                                        setParentName('')
+                                        setShowENSModal(false)
                                     }}
+                                    className="hover:bg-gray-200 text-black"
                                 >
-                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">None, I will type manually</span>
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end mt-6">
+                                    Enter manually
+                                </Button>
                                 <Button
                                     onClick={() => {
                                         setShowENSModal(false)
-
                                     }}
                                     className="bg-gray-900 hover:bg-gray-800 text-white"
                                 >
