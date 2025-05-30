@@ -221,10 +221,10 @@ export default function Layout({ children }: LayoutProps) {
                         </Link>
                     </div>
 
-                    {/* Address Search Component - Top Navbar (visible on all screens) */}
+                    {/* Address Search Component */}
                     <div className="flex-1 max-w-md">
-                        <AddressSearch 
-                            selectedChain={selectedChain} 
+                        <AddressSearch
+                            selectedChain={selectedChain}
                             setManuallyChanged={setManuallyChanged}
                         />
                     </div>

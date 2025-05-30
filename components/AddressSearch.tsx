@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { usePublicClient, useAccount } from 'wagmi';
-import { isAddress, ethers } from 'ethers';
+import { ethers, isAddress } from 'ethers';
+import { createPublicClient, http } from 'viem';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { CONTRACTS } from '@/utils/constants';
+import { CHAINS, CONTRACTS } from '@/utils/constants';
 import { useAccount as useWagmiAccount } from 'wagmi';
 
 interface AddressSearchProps {
@@ -17,13 +18,12 @@ export default function AddressSearch({ selectedChain: propSelectedChain, setMan
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  // Use the prop value if provided, otherwise default to 1 (Ethereum mainnet)
   const [selectedChain, setSelectedChain] = useState<number>(propSelectedChain || 1);
   const [manuallyChanged, setManuallyChanged] = useState(false);
 
   const router = useRouter();
   const { chain } = useWagmiAccount();
-  
+
   // Update local state when prop changes
   useEffect(() => {
     if (propSelectedChain !== undefined) {
@@ -41,39 +41,14 @@ export default function AddressSearch({ selectedChain: propSelectedChain, setMan
   }, [chain?.id, manuallyChanged]);
 
   const getProvider = (chainId: number) => {
-    const config = CONTRACTS[chainId];
+    const config = CONTRACTS[chainId as keyof typeof CONTRACTS];
     if (!config) {
       throw new Error(`Unsupported chain ID: ${chainId}`);
     }
 
-    // Get the appropriate Infura RPC endpoint based on the chain
-    let rpcEndpoint = '';
+    console.log(`Using RPC endpoint for chain ${chainId}:`, config.RPC_ENDPOINT);
 
-    // Use the chain-specific RPC endpoint from .env
-    if (chainId === 1) { // Ethereum Mainnet
-      rpcEndpoint = process.env.NEXT_PUBLIC_RPC || '';
-    } else if (chainId === 11155111) { // Sepolia
-      rpcEndpoint = process.env.NEXT_PUBLIC_RPC_SEPOLIA || '';
-    } else if (chainId === 59144) { // Linea Mainnet
-      rpcEndpoint = process.env.NEXT_PUBLIC_RPC_LENIA || '';
-    } else if (chainId === 59140) { // Linea Sepolia
-      rpcEndpoint = process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || '';
-    } else if (chainId === 8453) { // Base Mainnet
-      rpcEndpoint = process.env.NEXT_PUBLIC_RPC_BASE || '';
-    } else if (chainId === 84532) { // Base Sepolia
-      rpcEndpoint = process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || '';
-    }
-
-    // Append Infura API key if available
-    const infuraApiKey = process.env.NEXT_PUBLIC_INFURA_API_KEY || '';
-    if (infuraApiKey && rpcEndpoint) {
-      rpcEndpoint += infuraApiKey;
-    }
-
-    const finalEndpoint = rpcEndpoint || config.RPC_ENDPOINT;
-    console.log(`Using RPC endpoint for chain ${chainId}:`, finalEndpoint);
-
-    return new ethers.JsonRpcProvider(finalEndpoint);
+    return new ethers.JsonRpcProvider(config.RPC_ENDPOINT);
   };
 
   const handleSearch = async () => {
@@ -91,7 +66,7 @@ export default function AddressSearch({ selectedChain: propSelectedChain, setMan
       console.log('Search query:', cleanedQuery);
       console.log('Is valid address:', isValidAddress);
       console.log('Using chain for search:', selectedChain);
-      
+
       // Make sure Layout knows this chain selection is intentional
       if (propSetManuallyChanged) {
         propSetManuallyChanged(true);
@@ -102,19 +77,26 @@ export default function AddressSearch({ selectedChain: propSelectedChain, setMan
         // It's a valid Ethereum address, redirect to explore page
         router.push(`/explore/${selectedChain}/${cleanedQuery}`);
       } else {
-        // Not a valid Ethereum address, try to resolve it as an ENS name
         try {
           console.log('Not a valid address, trying to resolve as ENS name:', cleanedQuery);
-          // Always use mainnet provider for ENS resolution
-          const mainnetProvider = getProvider(1);
+          // Determine if we're on a testnet
+          const isTestnet = [
+            CHAINS.SEPOLIA,
+            CHAINS.LINEA_SEPOLIA,
+            CHAINS.BASE_SEPOLIA
+          ].includes(selectedChain);
+
+          // Use mainnet for mainnets, sepolia for testnets
+          const ensChainId = isTestnet ? CHAINS.SEPOLIA : CHAINS.MAINNET;
+
+          console.log('Using chain for ENS resolution:', ensChainId, isTestnet ? '(testnet)' : '(mainnet)');
+          const mainnetProvider = getProvider(ensChainId);
           const resolvedAddress = await mainnetProvider.resolveName(cleanedQuery);
-          console.log('Resolved ENS address:', resolvedAddress, 'using selected chain for redirect:', selectedChain);
 
           if (resolvedAddress) {
-            // Use the selected chain for the redirect, not mainnet
             router.push(`/explore/${selectedChain}/${resolvedAddress}`);
           } else {
-            setError("Couldn't resolve ENS name / Address");
+            setError("Invalid address or ENS name");
           }
         } catch (ensError) {
           console.error('Error resolving ENS name:', ensError);

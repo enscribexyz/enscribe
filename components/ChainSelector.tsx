@@ -4,19 +4,18 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select';
 import Image from 'next/image';
-import { useRouter } from 'next/router';
+import { CHAINS } from '@/utils/constants';
 
 // Chain information with logos
 const CHAIN_OPTIONS = [
-  { id: 1, name: 'Ethereum', logo: '/images/ethereum.svg' },
-  { id: 59144, name: 'Linea Mainnet', logo: '/images/linea.svg' },
-  { id: 8453, name: 'Base Mainnet', logo: '/images/base.svg' },
-  { id: 11155111, name: 'Sepolia Testnet', logo: '/images/ethereum.svg' },
-  { id: 59141, name: 'Linea Sepolia', logo: '/images/linea.svg' },
-  { id: 84532, name: 'Base Sepolia', logo: '/images/base.svg' }
+  { id: CHAINS.MAINNET, name: 'Ethereum', logo: '/images/ethereum.svg' },
+  { id: CHAINS.LINEA, name: 'Linea Mainnet', logo: '/images/linea.svg' },
+  { id: CHAINS.BASE, name: 'Base Mainnet', logo: '/images/base.svg' },
+  { id: CHAINS.SEPOLIA, name: 'Sepolia Testnet', logo: '/images/ethereum.svg' },
+  { id: CHAINS.LINEA_SEPOLIA, name: 'Linea Sepolia', logo: '/images/linea.svg' },
+  { id: CHAINS.BASE_SEPOLIA, name: 'Base Sepolia', logo: '/images/base.svg' }
 ];
 
 interface ChainSelectorProps {
@@ -32,31 +31,15 @@ const getChainById = (id: number) => {
 export default function ChainSelector({ selectedChain, onChainChange }: ChainSelectorProps) {
   const [isMobile, setIsMobile] = useState(false);
   const selectedChainInfo = getChainById(selectedChain);
-  const router = useRouter();
 
-  // Sync with chainId from URL query parameter if present
-  // useEffect(() => {
-  //   if (router.query.chainId && typeof router.query.chainId === 'string') {
-  //     const chainId = parseInt(router.query.chainId);
-  //     if (!isNaN(chainId) && CHAIN_OPTIONS.some(chain => chain.id === chainId) && chainId !== selectedChain) {
-  //       onChainChange(chainId);
-  //     }
-  //   }
-  // }, [router.query.chainId, selectedChain, onChainChange]);
-
-  // Check if screen is mobile size
   useEffect(() => {
     const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 640); // 640px is the sm breakpoint in Tailwind
+      setIsMobile(window.innerWidth < 640);
     };
 
-    // Initial check
     checkIfMobile();
 
-    // Add event listener for window resize
     window.addEventListener('resize', checkIfMobile);
-
-    // Cleanup
     return () => window.removeEventListener('resize', checkIfMobile);
   }, []);
 
