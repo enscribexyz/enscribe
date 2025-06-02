@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { useAccount, usePublicClient } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,9 @@ interface ENSDomain {
     name: string;
     isPrimary?: boolean;
     expiryDate?: number;
+    hasLabelhash?: boolean;
+    level?: number;
+    parent2LD?: string;
 }
 
 interface VerificationStatus {
@@ -38,7 +41,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     const [error, setError] = useState<string | null>(null);
     const [ensNames, setEnsNames] = useState<ENSDomain[]>([]);
     const [primaryName, setPrimaryName] = useState<string | null>(null);
+    const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<number | null>(null);
     const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
+    const [userOwnedDomains, setUserOwnedDomains] = useState<ENSDomain[]>([]);
+    const [fetchingENS, setFetchingENS] = useState(false);
     const { chain, isConnected } = useAccount();
     const walletPublicClient = usePublicClient();
     const [customProvider, setCustomProvider] = useState<ethers.JsonRpcProvider | null>(null);
@@ -59,6 +65,140 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         providedChainId: chainId,
         shouldUseWalletClient
     });
+
+    const fetchUserOwnedDomains = useCallback(async () => {
+        if (!address || !config?.SUBGRAPH_API) {
+            console.warn('Address or subgraph API is not configured');
+            return;
+        }
+
+        try {
+            setFetchingENS(true);
+
+            // Fetch domains where user is the owner, registrant, or wrapped owner
+            const [ownerResponse, registrantResponse, wrappedResponse] = await Promise.all([
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { owner: $address }) { 
+                                    name 
+                                    expiryDate
+                                } 
+                            }
+                        `,
+                        variables: { address: address.toLowerCase() }
+                    })
+                }),
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { registrant: $address }) { 
+                                    name 
+                                    expiryDate
+                                } 
+                            }
+                        `,
+                        variables: { address: address.toLowerCase() }
+                    })
+                }),
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { wrappedOwner: $address }) { 
+                                    name 
+                                    expiryDate
+                                } 
+                            }
+                        `,
+                        variables: { address: address.toLowerCase() }
+                    })
+                })
+            ]);
+
+            const [ownerData, registrantData, wrappedData] = await Promise.all([
+                ownerResponse.json(),
+                registrantResponse.json(),
+                wrappedResponse.json()
+            ]);
+
+            // Combine all domains and remove duplicates by name
+            const ownedDomainsMap = new Map();
+
+            // Process each set of domains
+            [ownerData?.data?.domains || [], registrantData?.data?.domains || [], wrappedData?.data?.domains || []].forEach(domains => {
+                domains.forEach((domain: { name: string, expiryDate?: number }) => {
+                    if (!domain.name.endsWith('.addr.reverse') && !ownedDomainsMap.has(domain.name)) {
+                        ownedDomainsMap.set(domain.name, {
+                            name: domain.name,
+                            expiryDate: domain.expiryDate ? Number(domain.expiryDate) : undefined
+                        });
+                    }
+                });
+            });
+
+            // Convert to array and enhance with additional properties
+            const domainsArray = Array.from(ownedDomainsMap.values()).map((domain: ENSDomain) => {
+                const nameParts = domain.name.split('.');
+                const tld = nameParts[nameParts.length - 1];
+                const sld = nameParts[nameParts.length - 2] || '';
+                const parent2LD = `${sld}.${tld}`;
+                const level = nameParts.length;
+                const hasLabelhash = nameParts.some(part => part.startsWith('[') && part.endsWith(']'));
+
+                return {
+                    ...domain,
+                    parent2LD,
+                    level,
+                    hasLabelhash
+                };
+            });
+
+            // Organize domains by their properties
+            const organizedDomains = domainsArray.sort((a, b) => {
+                // First, separate domains with labelhash (they go at the end)
+                if (a.hasLabelhash && !b.hasLabelhash) return 1;
+                if (!a.hasLabelhash && b.hasLabelhash) return -1;
+
+                // Then sort by parent 2LD
+                if (a.parent2LD !== b.parent2LD) {
+                    return a.parent2LD.localeCompare(b.parent2LD);
+                }
+
+                // For domains with the same parent 2LD, sort by level (3LD, 4LD, etc.)
+                if (a.level !== b.level) {
+                    return a.level - b.level;
+                }
+
+                // Finally, sort alphabetically for domains with the same level
+                return a.name.localeCompare(b.name);
+            });
+
+            setUserOwnedDomains(organizedDomains);
+            console.log("Fetched and organized user owned domains:", organizedDomains);
+        } catch (error) {
+            console.error("Error fetching user's owned ENS domains:", error);
+        } finally {
+            setFetchingENS(false);
+        }
+    }, [address, config]);
 
     // Initialize custom provider and viem client when chainId changes
     useEffect(() => {
@@ -143,6 +283,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             });
             return;
         }
+
+        // Fetch owned domains if this is not a contract
+        if (!isContract) {
+            fetchUserOwnedDomains();
+        }
         const fetchContractDetails = async () => {
             if (!address) return;
 
@@ -168,6 +313,53 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                 const primaryENS = await getENS(address, provider);
                 if (primaryENS) {
                     setPrimaryName(primaryENS);
+
+                    // Fetch expiry date for the primary name's 2LD
+                    try {
+                        // Extract the 2LD from the primary name
+                        const nameParts = primaryENS.split('.');
+                        if (nameParts.length >= 2) {
+                            const tld = nameParts[nameParts.length - 1];
+                            const sld = nameParts[nameParts.length - 2];
+                            const domain2LD = `${sld}.${tld}`;
+
+                            // Query the subgraph for the expiry date
+                            const expiryResponse = await fetch(config.SUBGRAPH_API, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                                },
+                                body: JSON.stringify({
+                                    query: `
+                                        query GetExpiry($name: String!) {
+                                            registrations(
+                                                where: { domain_: { name: $name } },
+                                                orderBy: expiryDate,
+                                                orderDirection: desc,
+                                                first: 1
+                                            ) {
+                                                expiryDate
+                                            }
+                                        }
+                                    `,
+                                    variables: {
+                                        name: domain2LD
+                                    }
+                                })
+                            });
+
+                            const expiryData = await expiryResponse.json();
+                            const expiryDate = expiryData?.data?.registrations?.[0]?.expiryDate;
+
+                            if (expiryDate) {
+                                setPrimaryNameExpiryDate(Number(expiryDate));
+                                console.log(`Expiry date for ${domain2LD}: ${new Date(Number(expiryDate) * 1000).toLocaleDateString()}`);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error fetching primary name expiry date:', error);
+                    }
                 }
 
                 // 2. Fetch all ENS names resolving to this address using subgraph from config
@@ -249,7 +441,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
                                 const expiryData = await expiryResponse.json();
                                 const expiryDate = expiryData?.data?.registrations?.[0]?.expiryDate;
-                                
+
                                 return {
                                     ...domain,
                                     expiryDate: expiryDate ? Number(expiryDate) : undefined
@@ -279,7 +471,9 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         };
 
         fetchContractDetails();
-    }, [address, walletPublicClient, customProvider, chain?.id, shouldUseWalletClient, isContract]);
+    }, [address, walletPublicClient, customProvider, chain?.id, shouldUseWalletClient, isContract, fetchUserOwnedDomains]);
+
+
 
     const getENS = async (addr: string, provider: ethers.JsonRpcProvider): Promise<string> => {
         // Use the effectiveChainId instead of chain?.id to ensure we're using the correct chain
@@ -310,11 +504,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     if (isLoading) {
         return (
             <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-                <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                     <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                         ENS Information
                     </CardTitle>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent className="p-6 space-y-4">
                     <Skeleton className="h-6 w-full" />
                     <Skeleton className="h-6 w-3/4" />
@@ -327,11 +521,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     if (error) {
         return (
             <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-                <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                     <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                         ENS Information
                     </CardTitle>
-                </CardHeader>
+                </CardHeader> */}
                 <CardContent className="p-6">
                     <div className="text-red-500 dark:text-red-400">{error}</div>
                 </CardContent>
@@ -341,13 +535,42 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
     return (
         <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-            <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+            {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
                 <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
                     ENS Information
                 </CardTitle>
-            </CardHeader>
+            </CardHeader> */}
             <CardContent className="p-6">
                 <div className="space-y-4">
+
+                    {primaryName && (
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">Primary ENS Name</h3>
+                                <div className="flex items-center mt-1">
+                                    <p className="text-gray-900 dark:text-white">{primaryName}</p>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="ml-2"
+                                        asChild
+                                    >
+                                        <a href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`} target="_blank" rel="noopener noreferrer">
+                                            <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                </div>
+                            </div>
+                            {primaryNameExpiryDate && (
+                                <div className="text-right">
+                                    <span className="text-s text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                        ENS 2LD Expires on: {new Date(primaryNameExpiryDate * 1000).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{isContract ? 'Contract Address' : 'Account Address'}</h3>
                         <div className="flex items-center mt-1">
@@ -491,64 +714,126 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                         </div>
                     )}
 
-                    {primaryName && (
-                        <div>
-                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Primary ENS Name</h3>
-                            <div className="flex items-center mt-1">
-                                <p className="text-gray-900 dark:text-white">{primaryName}</p>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="ml-2"
-                                    asChild
-                                >
-                                    <a href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`} target="_blank" rel="noopener noreferrer">
-                                        <ExternalLink className="h-4 w-4" />
-                                    </a>
-                                </Button>
-                            </div>
-                        </div>
-                    )}
 
-                    {ensNames.length > 0 && (
-                        <div>
-                            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                                Associated ENS Names ({ensNames.length})
-                            </h3>
-                            <div className="mt-2 space-y-2 max-h-60 overflow-y-auto pr-2">
-                                {ensNames.map((domain, index) => (
-                                    <div
-                                        key={index}
-                                        className={`p-2 rounded-md ${domain.isPrimary
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                                            : 'bg-gray-50 dark:bg-gray-700/30'}`}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-900 dark:text-white">{domain.name}</span>
-                                            <div className="flex items-center gap-2">
-                                                {domain.expiryDate && (
-                                                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                        Expires: {new Date(domain.expiryDate * 1000).toLocaleDateString()}
-                                                    </span>
-                                                )}
-                                                {domain.isPrimary && (
-                                                    <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
-                                                        Primary
-                                                    </span>
-                                                )}
+                    <div>
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                            Associated ENS Names ({ensNames.length})
+                        </h3>
+                        {ensNames.length > 0 ? (
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                                <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                                    <div className="space-y-2">
+                                        {ensNames.map((domain, index) => (
+                                            <div
+                                                key={index}
+                                                className={`flex items-center justify-between p-2 rounded ${domain.isPrimary
+                                                    ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
+                                            >
+                                                <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{domain.name}</span>
+                                                <div className="flex items-center gap-2">
+                                                    {domain.expiryDate && (
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                            Expires: {new Date(domain.expiryDate * 1000).toLocaleDateString()}
+                                                        </span>
+                                                    )}
+                                                    {domain.isPrimary && (
+                                                        <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                                            Primary
+                                                        </span>
+                                                    )}
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="ml-2 h-6 w-6 p-0 flex-shrink-0"
+                                                        asChild
+                                                    >
+                                                        <a
+                                                            href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                                        >
+                                                            <ExternalLink className="h-3 w-3" />
+                                                        </a>
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                                </div>
+                            </div>) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 py-2">No Associated ENS names found for this address</p>
+                        )}
+                    </div>
 
-                    {ensNames.length === 0 && (
-                        <div className="text-gray-500 dark:text-gray-400 italic">
-                            No ENS names found for this address
-                        </div>
-                    )}
+                    {/* Owned ENS Names */}
+                    <div>
+                        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Owned ENS Names{userOwnedDomains.length > 0 && ` (${userOwnedDomains.length})`}</h3>
+                        {fetchingENS ? (
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 py-2">
+                                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                </svg>
+                                Loading ENS names...
+                            </div>
+                        ) : userOwnedDomains.length > 0 ? (
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                                <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                                    <div className="space-y-2">
+                                        {(() => {
+                                            let currentParent2LD = '';
+                                            return userOwnedDomains.map((domain, index) => {
+                                                // Check if we're starting a new 2LD group
+                                                const isNewGroup = domain.parent2LD !== currentParent2LD;
+                                                if (isNewGroup && domain.parent2LD) {
+                                                    currentParent2LD = domain.parent2LD;
+                                                }
+
+                                                // Calculate indentation for subdomains
+                                                const indentLevel = domain.level && domain.level > 2 ? (domain.level - 2) : 0;
+                                                const indentClass = indentLevel > 0 ? `pl-${indentLevel * 4}` : '';
+
+                                                return (
+                                                    <div key={domain.name} className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}>
+                                                        <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{domain.name}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            {domain.expiryDate && (
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                                                    Expires: {new Date(domain.expiryDate * 1000).toLocaleDateString()}
+                                                                </span>
+                                                            )}
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="ml-2 h-6 w-6 p-0 flex-shrink-0"
+                                                                asChild
+                                                            >
+                                                                <a
+                                                                    href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                                                >
+                                                                    <ExternalLink className="h-3 w-3" />
+                                                                </a>
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            });
+                                        })()}
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-500 dark:text-gray-400 py-2">No Owned ENS names found for this address</p>
+                        )}
+                    </div>
+
                 </div>
             </CardContent>
         </Card>
