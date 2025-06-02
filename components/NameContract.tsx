@@ -908,10 +908,10 @@ export default function NameContract() {
                                                 {sorted2LDs.map(parent2LD => (
                                                     <div key={parent2LD} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0">
                                                         <div className="flex flex-wrap gap-2">
-                                                            {domainGroups[parent2LD].map(domain => (
+                                                            {domainGroups[parent2LD].map((domain, index) => (
                                                                 <div
                                                                     key={domain}
-                                                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                                                    className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                                                                     onClick={() => {
                                                                         setParentName(domain);
                                                                         setShowENSModal(false);
