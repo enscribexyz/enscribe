@@ -9,7 +9,6 @@ import { CONTRACTS } from '@/utils/constants';
 import { CHAINS } from '@/utils/constants';
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
 import publicResolverABI from '@/contracts/PublicResolver';
-import { createPublicClient, http } from 'viem';
 import Link from 'next/link';
 
 interface ENSDetailsProps {
@@ -44,11 +43,9 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<number | null>(null);
     const [verificationStatus, setVerificationStatus] = useState<VerificationStatus | null>(null);
     const [userOwnedDomains, setUserOwnedDomains] = useState<ENSDomain[]>([]);
-    const [fetchingENS, setFetchingENS] = useState(false);
     const { chain, isConnected } = useAccount();
     const walletPublicClient = usePublicClient();
     const [customProvider, setCustomProvider] = useState<ethers.JsonRpcProvider | null>(null);
-    const [viemClient, setViemClient] = useState<any>(null);
 
     // Use provided chainId if available, otherwise use connected wallet's chain
     const effectiveChainId = chainId || chain?.id;
@@ -73,8 +70,6 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         }
 
         try {
-            setFetchingENS(true);
-
             // Fetch domains where user is the owner, registrant, or wrapped owner
             const [ownerResponse, registrantResponse, wrappedResponse] = await Promise.all([
                 fetch(config.SUBGRAPH_API, {
@@ -88,7 +83,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                             query getDomainsForAccount($address: String!) { 
                                 domains(where: { owner: $address }) { 
                                     name 
-                                    expiryDate
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 } 
                             }
                         `,
@@ -106,7 +104,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                             query getDomainsForAccount($address: String!) { 
                                 domains(where: { registrant: $address }) { 
                                     name 
-                                    expiryDate
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 } 
                             }
                         `,
@@ -124,7 +125,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                             query getDomainsForAccount($address: String!) { 
                                 domains(where: { wrappedOwner: $address }) { 
                                     name 
-                                    expiryDate
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 } 
                             }
                         `,
@@ -144,11 +148,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
             // Process each set of domains
             [ownerData?.data?.domains || [], registrantData?.data?.domains || [], wrappedData?.data?.domains || []].forEach(domains => {
-                domains.forEach((domain: { name: string, expiryDate?: number }) => {
+                domains.forEach((domain: { name: string, registration: { expiryDate: string } | null }) => {
                     if (!domain.name.endsWith('.addr.reverse') && !ownedDomainsMap.has(domain.name)) {
                         ownedDomainsMap.set(domain.name, {
                             name: domain.name,
-                            expiryDate: domain.expiryDate ? Number(domain.expiryDate) : undefined
+                            expiryDate: domain.registration?.expiryDate ? Number(domain.registration.expiryDate) : undefined
                         });
                     }
                 });
@@ -171,8 +175,22 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                 };
             });
 
+            // Apply chain-specific filtering
+            let filteredDomainsArray = domainsArray;
+
+            // Filter based on chain
+            if (effectiveChainId === CHAINS.BASE) {
+                // For Base chain, only keep .base.eth names
+                console.log('[ENSDetails] Filtering owned domains for Base chain - only keeping .base.eth names');
+                filteredDomainsArray = domainsArray.filter(domain => domain.name.endsWith('.base.eth'));
+            } else if (effectiveChainId === CHAINS.BASE_SEPOLIA) {
+                // For Base Sepolia, don't show any names
+                console.log('[ENSDetails] Base Sepolia detected - not showing any owned ENS names');
+                filteredDomainsArray = [];
+            }
+
             // Organize domains by their properties
-            const organizedDomains = domainsArray.sort((a, b) => {
+            const organizedDomains = filteredDomainsArray.sort((a, b) => {
                 // First, separate domains with labelhash (they go at the end)
                 if (a.hasLabelhash && !b.hasLabelhash) return 1;
                 if (!a.hasLabelhash && b.hasLabelhash) return -1;
@@ -195,41 +213,19 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             console.log("Fetched and organized user owned domains:", organizedDomains);
         } catch (error) {
             console.error("Error fetching user's owned ENS domains:", error);
-        } finally {
-            setFetchingENS(false);
         }
     }, [address, config]);
 
-    // Initialize custom provider and viem client when chainId changes
+    // Initialize custom provider when chainId changes
     useEffect(() => {
         if (effectiveChainId && config?.RPC_ENDPOINT) {
             try {
                 // Initialize ethers provider
                 const provider = new ethers.JsonRpcProvider(config.RPC_ENDPOINT);
                 setCustomProvider(provider);
-
-                // Initialize viem client
-                const client = createPublicClient({
-                    transport: http(config.RPC_ENDPOINT),
-                    chain: {
-                        id: effectiveChainId,
-                        name: config.name || 'Unknown Chain',
-                        nativeCurrency: {
-                            name: 'Ether',
-                            symbol: 'ETH',
-                            decimals: 18
-                        },
-                        rpcUrls: {
-                            default: { http: [config.RPC_ENDPOINT] },
-                            public: { http: [config.RPC_ENDPOINT] }
-                        }
-                    }
-                });
-                setViemClient(client);
-
-                console.log(`[ContractDetails] Initialized custom provider for chain ${effectiveChainId}`);
+                console.log(`[ENSDetails] Initialized custom provider for chain ${effectiveChainId}`);
             } catch (err) {
-                console.error('Error initializing provider:', err);
+                console.error('[ENSDetails] Error initializing provider:', err);
                 setError('Failed to initialize provider for the selected chain');
             }
         }
@@ -264,112 +260,47 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         }
     }
 
-    useEffect(() => {
-        // Always clear error on dependency change
-        setError(null);
-
-        // Only fetch when a provider is available
-        if (!address) return;
-        if (!config) {
-            setError('Chain ID is not supported.');
-            setIsLoading(false);
-            return;
+    // Function to fetch primary ENS name for an address
+    const fetchPrimaryName = useCallback(async () => {
+        if (!address || !customProvider) return;
+        
+        try {
+            console.log(`[ENSDetails] Fetching primary ENS name for ${address}`);
+            const primaryENS = await getENS(address, customProvider);
+            
+            if (primaryENS) {
+                setPrimaryName(primaryENS);
+                console.log(`[ENSDetails] Primary ENS name found: ${primaryENS}`);
+                
+                // Fetch expiry date for the primary name's 2LD
+                await fetchPrimaryNameExpiryDate(primaryENS);
+            } else {
+                console.log(`[ENSDetails] No primary ENS name found for ${address}`);
+                setPrimaryName(null);
+                setPrimaryNameExpiryDate(null);
+            }
+        } catch (error) {
+            console.error('[ENSDetails] Error fetching primary ENS name:', error);
+            setPrimaryName(null);
         }
-        if (!(shouldUseWalletClient && walletPublicClient) && !customProvider) {
-            console.log('[ContractDetails] Waiting for provider to be ready', {
-                shouldUseWalletClient,
-                walletPublicClient,
-                customProvider
-            });
-            return;
-        }
-
-        // Fetch owned domains if this is not a contract
-        if (!isContract) {
-            fetchUserOwnedDomains();
-        }
-        const fetchContractDetails = async () => {
-            if (!address) return;
-
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                // 1. Try to get the primary name for this address
-                let provider;
-
-                if (shouldUseWalletClient && walletPublicClient) {
-                    // Use wallet provider if wallet is connected and chain matches
-                    console.log('[ContractDetails] Using wallet provider for ENS lookup');
-                    provider = new ethers.JsonRpcProvider(walletPublicClient.transport.url);
-                } else if (customProvider) {
-                    // Use custom provider with Infura/RPC endpoint
-                    console.log('[ContractDetails] Using custom provider for ENS lookup');
-                    provider = customProvider;
-                } else {
-                    throw new Error('No provider available');
-                }
-
-                const primaryENS = await getENS(address, provider);
-                if (primaryENS) {
-                    setPrimaryName(primaryENS);
-
-                    // Fetch expiry date for the primary name's 2LD
-                    try {
-                        // Extract the 2LD from the primary name
-                        const nameParts = primaryENS.split('.');
-                        if (nameParts.length >= 2) {
-                            const tld = nameParts[nameParts.length - 1];
-                            const sld = nameParts[nameParts.length - 2];
-                            const domain2LD = `${sld}.${tld}`;
-
-                            // Query the subgraph for the expiry date
-                            const expiryResponse = await fetch(config.SUBGRAPH_API, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
-                                },
-                                body: JSON.stringify({
-                                    query: `
-                                        query GetExpiry($name: String!) {
-                                            registrations(
-                                                where: { domain_: { name: $name } },
-                                                orderBy: expiryDate,
-                                                orderDirection: desc,
-                                                first: 1
-                                            ) {
-                                                expiryDate
-                                            }
-                                        }
-                                    `,
-                                    variables: {
-                                        name: domain2LD
-                                    }
-                                })
-                            });
-
-                            const expiryData = await expiryResponse.json();
-                            const expiryDate = expiryData?.data?.registrations?.[0]?.expiryDate;
-
-                            if (expiryDate) {
-                                setPrimaryNameExpiryDate(Number(expiryDate));
-                                console.log(`Expiry date for ${domain2LD}: ${new Date(Number(expiryDate) * 1000).toLocaleDateString()}`);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error fetching primary name expiry date:', error);
-                    }
-                }
-
-                // 2. Fetch all ENS names resolving to this address using subgraph from config
-                if (!config?.SUBGRAPH_API) {
-                    console.warn('No subgraph API endpoint configured for this chain');
-                    return;
-                }
-
-                // First, fetch all domains for the address
-                const domainsResponse = await fetch(config.SUBGRAPH_API, {
+    }, [address, customProvider]);
+    
+    // Function to fetch expiry date for a primary name's 2LD
+    const fetchPrimaryNameExpiryDate = async (primaryENS: string) => {
+        if (!config?.SUBGRAPH_API) return;
+        
+        try {
+            // Extract the 2LD from the primary name
+            const nameParts = primaryENS.split('.');
+            if (nameParts.length >= 2) {
+                const tld = nameParts[nameParts.length - 1];
+                const sld = nameParts[nameParts.length - 2];
+                const domain2LD = `${sld}.${tld}`;
+                
+                console.log(`[ENSDetails] Fetching expiry date for ${domain2LD}`);
+                
+                // Query the subgraph for the domain with its registration data
+                const domainResponse = await fetch(config.SUBGRAPH_API, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -377,101 +308,169 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     },
                     body: JSON.stringify({
                         query: `
-                            query GetENSNames($address: String!) {
-                                domains(where: { resolvedAddress: $address }) { 
-                                    name 
+                            query GetDomainWithRegistration($name: String!) {
+                                domains(where: { name: $name }) {
+                                    name
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 }
                             }
                         `,
                         variables: {
-                            address: address.toLowerCase()
+                            name: domain2LD
                         }
                     })
                 });
-
-                const domainsData = await domainsResponse.json();
-
-                if (domainsData.data && domainsData.data.domains) {
-                    // Create initial domains array
-                    const domains = domainsData.data.domains.map((domain: { name: string }) => ({
-                        name: domain.name,
-                        isPrimary: domain.name === primaryENS,
-                        expiryDate: undefined // Will be populated later
-                    }));
-
-                    // Sort domains: primary first, then by name length
-                    const sortedDomains = domains.sort((a, b) => {
-                        if (a.isPrimary) return -1;
-                        if (b.isPrimary) return 1;
-                        return a.name.length - b.name.length;
-                    });
-
-                    // Set initial domains (without expiry dates)
-                    setEnsNames(sortedDomains);
-
-
-                    // Now fetch expiry dates for each domain
-                    const domainsWithExpiry = await Promise.all(
-                        sortedDomains.map(async (domain: ENSDomain) => {
-                            try {
-                                const expiryResponse = await fetch(config.SUBGRAPH_API, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
-                                    },
-                                    body: JSON.stringify({
-                                        query: `
-                                            query GetExpiry($name: String!) {
-                                                registrations(
-                                                    where: { domain_: { name: $name } },
-                                                    orderBy: expiryDate,
-                                                    orderDirection: desc,
-                                                    first: 1
-                                                ) {
-                                                    expiryDate
-                                                }
-                                            }
-                                        `,
-                                        variables: {
-                                            name: domain.name
-                                        }
-                                    })
-                                });
-
-                                const expiryData = await expiryResponse.json();
-                                const expiryDate = expiryData?.data?.registrations?.[0]?.expiryDate;
-
-                                return {
-                                    ...domain,
-                                    expiryDate: expiryDate ? Number(expiryDate) : undefined
-                                };
-                            } catch (error) {
-                                console.error(`Error fetching expiry for ${domain.name}:`, error);
-                                return domain; // Return domain without expiry date if there's an error
+                
+                const domainData = await domainResponse.json();
+                console.log(`[ENSDetails] Domain data for ${domain2LD}:`, domainData);
+                
+                const expiryDate = domainData?.data?.domains?.[0]?.registration?.expiryDate;
+                
+                if (expiryDate) {
+                    setPrimaryNameExpiryDate(Number(expiryDate));
+                    console.log(`[ENSDetails] Expiry date for ${domain2LD}: ${new Date(Number(expiryDate) * 1000).toLocaleDateString()}`);
+                } else {
+                    console.log(`[ENSDetails] No expiry date found for ${domain2LD}`);
+                    setPrimaryNameExpiryDate(null);
+                }
+            }
+        } catch (error) {
+            console.error('[ENSDetails] Error fetching primary name expiry date:', error);
+            setPrimaryNameExpiryDate(null);
+        }
+    };
+    
+    // Function to fetch all ENS names resolving to this address
+    const fetchAssociatedNames = useCallback(async () => {
+        if (!address || !config?.SUBGRAPH_API) return;
+        
+        try {
+            console.log(`[ENSDetails] Fetching associated ENS names for ${address}`);
+            
+            // Fetch domains with their registration data in a single query
+            const domainsResponse = await fetch(config.SUBGRAPH_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                },
+                body: JSON.stringify({
+                    query: `
+                        query GetENSNamesWithExpiry($address: String!) {
+                            domains(where: { resolvedAddress: $address }) { 
+                                name
+                                registration {
+                                    expiryDate
+                                    registrationDate
+                                }
                             }
-                        })
-                    );
-
-                    // Update with domains that now have expiry dates
-                    setEnsNames(domainsWithExpiry);
+                        }
+                    `,
+                    variables: {
+                        address: address.toLowerCase()
+                    }
+                })
+            });
+            
+            const domainsData = await domainsResponse.json();
+            console.log('[ENSDetails] Associated domains data:', domainsData);
+            
+            if (domainsData.data && domainsData.data.domains) {
+                // Filter domains based on chain
+                let filteredDomains = domainsData.data.domains;
+                
+                // Apply chain-specific filtering
+                if (effectiveChainId === CHAINS.BASE) {
+                    // For Base chain, only keep .base.eth names
+                    console.log('[ENSDetails] Filtering for Base chain - only keeping .base.eth names');
+                    filteredDomains = filteredDomains.filter((domain: { name: string }) =>
+                        domain.name.endsWith('.base.eth'));
+                } else if (effectiveChainId === CHAINS.BASE_SEPOLIA) {
+                    // For Base Sepolia, don't show any names
+                    console.log('[ENSDetails] Base Sepolia detected - not showing any ENS names');
+                    filteredDomains = [];
                 }
-
-                // 3. If this is a contract, fetch verification status
-                if (isContract) {
-                    const status = await getContractStatus(effectiveChainId, address);
-                    setVerificationStatus(status);
-                }
+                
+                // Create domains array with expiry dates already included
+                const domains = filteredDomains.map((domain: { name: string, registration: { expiryDate: string } | null }) => ({
+                    name: domain.name,
+                    isPrimary: domain.name === primaryName,
+                    expiryDate: domain.registration?.expiryDate ? Number(domain.registration.expiryDate) : undefined
+                }));
+                
+                // Sort domains: primary first, then by name length
+                const sortedDomains = domains.sort((a: { isPrimary: any; name: string | any[]; }, b: { isPrimary: any; name: string | any[]; }) => {
+                    if (a.isPrimary) return -1;
+                    if (b.isPrimary) return 1;
+                    return a.name.length - b.name.length;
+                });
+                
+                // Set domains with expiry dates already included
+                setEnsNames(sortedDomains);
+                console.log('[ENSDetails] Set associated ENS names with expiry dates:', sortedDomains);
+            }
+        } catch (error) {
+            console.error('[ENSDetails] Error fetching associated ENS names:', error);
+        }
+    }, [address, config, effectiveChainId, primaryName]);
+    
+    // Function to fetch verification status for a contract
+    const fetchVerificationStatus = useCallback(async () => {
+        if (!address || !effectiveChainId || !isContract) return;
+        
+        try {
+            console.log(`[ENSDetails] Fetching verification status for contract ${address}`);
+            const status = await getContractStatus(effectiveChainId, address);
+            setVerificationStatus(status);
+            console.log('[ENSDetails] Verification status:', status);
+        } catch (error) {
+            console.error('[ENSDetails] Error fetching verification status:', error);
+            setVerificationStatus(null);
+        }
+    }, [address, effectiveChainId, isContract]);
+    
+    // Main useEffect to trigger data fetching when dependencies change
+    useEffect(() => {
+        // Always clear error on dependency change
+        setError(null);
+        
+        // Only fetch when a provider is available
+        if (!address) return;
+        if (!config) {
+            setError('Chain ID is not supported.');
+            setIsLoading(false);
+            return;
+        }
+        if (!customProvider) {
+            console.log('[ENSDetails] Waiting for provider to be ready');
+            return;
+        }
+        
+        const fetchAllData = async () => {
+            setIsLoading(true);
+            setError(null);
+            
+            try {
+                // Fetch data in parallel
+                await Promise.all([
+                    fetchPrimaryName(),
+                    fetchAssociatedNames(),
+                    isContract ? fetchVerificationStatus() : Promise.resolve(),
+                    fetchUserOwnedDomains()
+                ]);
             } catch (err) {
-                console.error('Error fetching contract details:', err);
-                setError('Failed to fetch contract details');
+                console.error('[ENSDetails] Error fetching data:', err);
+                setError('Failed to fetch data');
             } finally {
                 setIsLoading(false);
             }
         };
-
-        fetchContractDetails();
-    }, [address, walletPublicClient, customProvider, chain?.id, shouldUseWalletClient, isContract, fetchUserOwnedDomains]);
+        
+        fetchAllData();
+    }, [address, customProvider, config, effectiveChainId, isContract, fetchPrimaryName, fetchAssociatedNames, fetchVerificationStatus, fetchUserOwnedDomains]);
 
 
 
@@ -480,22 +479,51 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         // for ENS lookups even when the wallet is not connected
         if (effectiveChainId === CHAINS.MAINNET || effectiveChainId === CHAINS.SEPOLIA) {
             try {
-                console.log(`[ContractDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId}`);
+                console.log(`[ENSDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId}`);
                 return (await provider.lookupAddress(addr)) || ''
             } catch (error) {
-                console.error('[ContractDetails] Error looking up ENS name:', error);
+                console.error('[ENSDetails] Error looking up ENS name:', error);
                 return ''
             }
         } else {
             try {
-                console.log(`[ContractDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId} using reverse registrar`);
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, provider);
-                const reversedNode = await reverseRegistrarContract.node(addr)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, provider);
-                const name = await resolverContract.name(reversedNode)
-                return name || '';
+                console.log(`[ENSDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId} using reverse registrar`);
+
+                // Check if contract addresses are configured
+                if (!config?.REVERSE_REGISTRAR || !config?.PUBLIC_RESOLVER) {
+                    console.error(`[ENSDetails] Missing contract addresses for chain ${effectiveChainId}`);
+                    return '';
+                }
+
+                // Get reversed node with error handling
+                let reversedNode;
+                try {
+                    const reverseRegistrarContract = new ethers.Contract(config.REVERSE_REGISTRAR, reverseRegistrarABI, provider);
+                    reversedNode = await reverseRegistrarContract.node(addr);
+                    console.log(`[ENSDetails] Reversed node for ${addr}: ${reversedNode}`);
+                } catch (nodeError) {
+                    console.error('[ENSDetails] Error getting reversed node:', nodeError);
+                    return '';
+                }
+
+                // If we don't have a valid reversed node, return empty
+                if (!reversedNode) {
+                    console.log('[ENSDetails] No reversed node found, returning empty name');
+                    return '';
+                }
+
+                // Get name from resolver with error handling
+                try {
+                    const resolverContract = new ethers.Contract(config.PUBLIC_RESOLVER, publicResolverABI, provider);
+                    const name = await resolverContract.name(reversedNode) || '';
+                    console.log(`[ENSDetails] ENS name for ${addr}: ${name}`);
+                    return name;
+                } catch (resolverError: any) {
+                    console.error('[ENSDetails] Error calling resolver contract:', resolverError);
+                    return '';
+                }
             } catch (error) {
-                console.error('[ContractDetails] Error looking up ENS name using reverse registrar:', error);
+                console.error('[ENSDetails] Error looking up ENS name using reverse registrar:', error);
                 return ''
             }
         }
@@ -561,13 +589,42 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                     </Button>
                                 </div>
                             </div>
-                            {primaryNameExpiryDate && (
-                                <div className="text-right">
-                                    <span className="text-s text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                        ENS 2LD Expires on: {new Date(primaryNameExpiryDate * 1000).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            )}
+                            {primaryNameExpiryDate && (() => {
+                                // Extract the 2LD from the primary name
+                                const nameParts = primaryName.split('.');
+                                const tld = nameParts[nameParts.length - 1];
+                                const sld = nameParts[nameParts.length - 2];
+                                const domain2LD = `${sld}.${tld}`;
+
+                                // Calculate expiry status
+                                const now = new Date();
+                                const expiryDate = new Date(primaryNameExpiryDate * 1000);
+                                const threeMonthsFromNow = new Date();
+                                threeMonthsFromNow.setMonth(now.getMonth() + 3);
+
+                                const isExpired = expiryDate < now;
+                                const isWithinThreeMonths = !isExpired && expiryDate < threeMonthsFromNow;
+
+                                // Check if in grace period (expired but within 90 days)
+                                const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
+                                const isInGracePeriod = isExpired && (now.getTime() - expiryDate.getTime()) < ninetyDaysInMs;
+
+                                // Determine text color based on expiry status
+                                let textColorClass = "text-green-600 dark:text-green-400"; // Default: > 3 months
+                                if (isWithinThreeMonths) {
+                                    textColorClass = "text-yellow-600 dark:text-yellow-400"; // Within 3 months
+                                } else if (isExpired && isInGracePeriod) {
+                                    textColorClass = "text-red-600 dark:text-red-400"; // Expired but in grace period
+                                }
+
+                                return (
+                                    <div className="text-right">
+                                        <span className={`text-s whitespace-nowrap ${textColorClass}`}>
+                                            {domain2LD} {isExpired ? "expired on" : "expires on"}: {expiryDate.toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
 
@@ -733,8 +790,33 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                                 <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{domain.name}</span>
                                                 <div className="flex items-center gap-2">
                                                     {domain.expiryDate && (
-                                                        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                            Expires: {new Date(domain.expiryDate * 1000).toLocaleDateString()}
+                                                        <span className="text-xs whitespace-nowrap">
+                                                            {(() => {
+                                                                const now = new Date();
+                                                                const expiryDate = new Date(domain.expiryDate * 1000);
+                                                                const threeMonthsFromNow = new Date();
+                                                                threeMonthsFromNow.setMonth(now.getMonth() + 3);
+
+                                                                const isExpired = expiryDate < now;
+                                                                const isWithinThreeMonths = !isExpired && expiryDate < threeMonthsFromNow;
+                                                                const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
+                                                                const isInGracePeriod = isExpired && (now.getTime() - expiryDate.getTime()) < ninetyDaysInMs;
+
+                                                                let textColorClass = "text-green-600 dark:text-green-400";
+                                                                if (isWithinThreeMonths) {
+                                                                    textColorClass = "text-yellow-600 dark:text-yellow-400";
+                                                                } else if (isExpired && isInGracePeriod) {
+                                                                    textColorClass = "text-red-600 dark:text-red-400";
+                                                                } else if (isExpired) {
+                                                                    textColorClass = "text-red-600 dark:text-red-400";
+                                                                }
+
+                                                                return (
+                                                                    <span className={textColorClass}>
+                                                                        {isExpired ? "Expired" : "Expires"}: {expiryDate.toLocaleDateString()}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </span>
                                                     )}
                                                     {domain.isPrimary && (
@@ -771,15 +853,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     {/* Owned ENS Names */}
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Owned ENS Names{userOwnedDomains.length > 0 && ` (${userOwnedDomains.length})`}</h3>
-                        {fetchingENS ? (
-                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 py-2">
-                                <svg className="animate-spin h-4 w-4 mr-2" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                                </svg>
-                                Loading ENS names...
-                            </div>
-                        ) : userOwnedDomains.length > 0 ? (
+                        {userOwnedDomains.length > 0 ? (
                             <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
                                 <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                                     <div className="space-y-2">
@@ -801,8 +875,33 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                                         <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{domain.name}</span>
                                                         <div className="flex items-center gap-2">
                                                             {domain.expiryDate && (
-                                                                <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                                                    Expires: {new Date(domain.expiryDate * 1000).toLocaleDateString()}
+                                                                <span className="text-xs whitespace-nowrap">
+                                                                    {(() => {
+                                                                        const now = new Date();
+                                                                        const expiryDate = new Date(domain.expiryDate * 1000);
+                                                                        const threeMonthsFromNow = new Date();
+                                                                        threeMonthsFromNow.setMonth(now.getMonth() + 3);
+
+                                                                        const isExpired = expiryDate < now;
+                                                                        const isWithinThreeMonths = !isExpired && expiryDate < threeMonthsFromNow;
+                                                                        const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
+                                                                        const isInGracePeriod = isExpired && (now.getTime() - expiryDate.getTime()) < ninetyDaysInMs;
+
+                                                                        let textColorClass = "text-green-600 dark:text-green-400";
+                                                                        if (isWithinThreeMonths) {
+                                                                            textColorClass = "text-yellow-600 dark:text-yellow-400";
+                                                                        } else if (isExpired && isInGracePeriod) {
+                                                                            textColorClass = "text-red-600 dark:text-red-400";
+                                                                        } else if (isExpired) {
+                                                                            textColorClass = "text-red-600 dark:text-red-400";
+                                                                        }
+
+                                                                        return (
+                                                                            <span className={textColorClass}>
+                                                                                {isExpired ? "Expired" : "Expires"}: {expiryDate.toLocaleDateString()}
+                                                                            </span>
+                                                                        );
+                                                                    })()}
                                                                 </span>
                                                             )}
                                                             <Button

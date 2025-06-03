@@ -314,8 +314,22 @@ export default function NameContract() {
                 // Finally, add domains with labelhashes at the end
                 sortedDomains.push(...domainsWithLabelhash);
 
-                setUserOwnedDomains(sortedDomains);
-                console.log("Fetched and processed user owned domains:", sortedDomains);
+                // Apply chain-specific filtering
+                let chainFilteredDomains = sortedDomains;
+
+                // Filter based on chain
+                if (chain?.id === CHAINS.BASE) {
+                    // For Base chain, only keep .base.eth names
+                    console.log('[DeployForm] Filtering owned domains for Base chain - only keeping .base.eth names');
+                    chainFilteredDomains = sortedDomains.filter(domain => domain.endsWith('.base.eth'));
+                } else if (chain?.id === CHAINS.BASE_SEPOLIA) {
+                    // For Base Sepolia, don't show any names
+                    console.log('[DeployForm] Base Sepolia detected - not showing any owned ENS names');
+                    chainFilteredDomains = [];
+                }
+
+                setUserOwnedDomains(chainFilteredDomains);
+                console.log("Fetched and processed user owned domains:", chainFilteredDomains);
             }
         } catch (error) {
             console.error("Error fetching user's owned ENS domains:", error);
