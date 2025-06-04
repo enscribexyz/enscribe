@@ -10,6 +10,7 @@ import { CHAINS } from '@/utils/constants';
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
 import publicResolverABI from '@/contracts/PublicResolver';
 import Link from 'next/link';
+import ensRegistryABI from '@/contracts/ENSRegistry';
 
 interface ENSDetailsProps {
     address: string;
@@ -263,15 +264,15 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
     // Function to fetch primary ENS name for an address
     const fetchPrimaryName = useCallback(async () => {
         if (!address || !customProvider) return;
-        
+
         try {
             console.log(`[ENSDetails] Fetching primary ENS name for ${address}`);
             const primaryENS = await getENS(address, customProvider);
-            
+
             if (primaryENS) {
                 setPrimaryName(primaryENS);
                 console.log(`[ENSDetails] Primary ENS name found: ${primaryENS}`);
-                
+
                 // Fetch expiry date for the primary name's 2LD
                 await fetchPrimaryNameExpiryDate(primaryENS);
             } else {
@@ -284,11 +285,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             setPrimaryName(null);
         }
     }, [address, customProvider]);
-    
+
     // Function to fetch expiry date for a primary name's 2LD
     const fetchPrimaryNameExpiryDate = async (primaryENS: string) => {
         if (!config?.SUBGRAPH_API) return;
-        
+
         try {
             // Extract the 2LD from the primary name
             const nameParts = primaryENS.split('.');
@@ -296,9 +297,9 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                 const tld = nameParts[nameParts.length - 1];
                 const sld = nameParts[nameParts.length - 2];
                 const domain2LD = `${sld}.${tld}`;
-                
+
                 console.log(`[ENSDetails] Fetching expiry date for ${domain2LD}`);
-                
+
                 // Query the subgraph for the domain with its registration data
                 const domainResponse = await fetch(config.SUBGRAPH_API, {
                     method: 'POST',
@@ -323,12 +324,12 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                         }
                     })
                 });
-                
+
                 const domainData = await domainResponse.json();
                 console.log(`[ENSDetails] Domain data for ${domain2LD}:`, domainData);
-                
+
                 const expiryDate = domainData?.data?.domains?.[0]?.registration?.expiryDate;
-                
+
                 if (expiryDate) {
                     setPrimaryNameExpiryDate(Number(expiryDate));
                     console.log(`[ENSDetails] Expiry date for ${domain2LD}: ${new Date(Number(expiryDate) * 1000).toLocaleDateString()}`);
@@ -342,14 +343,14 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             setPrimaryNameExpiryDate(null);
         }
     };
-    
+
     // Function to fetch all ENS names resolving to this address
     const fetchAssociatedNames = useCallback(async () => {
         if (!address || !config?.SUBGRAPH_API) return;
-        
+
         try {
             console.log(`[ENSDetails] Fetching associated ENS names for ${address}`);
-            
+
             // Fetch domains with their registration data in a single query
             const domainsResponse = await fetch(config.SUBGRAPH_API, {
                 method: 'POST',
@@ -374,14 +375,14 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     }
                 })
             });
-            
+
             const domainsData = await domainsResponse.json();
             console.log('[ENSDetails] Associated domains data:', domainsData);
-            
+
             if (domainsData.data && domainsData.data.domains) {
                 // Filter domains based on chain
                 let filteredDomains = domainsData.data.domains;
-                
+
                 // Apply chain-specific filtering
                 if (effectiveChainId === CHAINS.BASE) {
                     // For Base chain, only keep .base.eth names
@@ -393,21 +394,21 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     console.log('[ENSDetails] Base Sepolia detected - not showing any ENS names');
                     filteredDomains = [];
                 }
-                
+
                 // Create domains array with expiry dates already included
                 const domains = filteredDomains.map((domain: { name: string, registration: { expiryDate: string } | null }) => ({
                     name: domain.name,
                     isPrimary: domain.name === primaryName,
                     expiryDate: domain.registration?.expiryDate ? Number(domain.registration.expiryDate) : undefined
                 }));
-                
+
                 // Sort domains: primary first, then by name length
                 const sortedDomains = domains.sort((a: { isPrimary: any; name: string | any[]; }, b: { isPrimary: any; name: string | any[]; }) => {
                     if (a.isPrimary) return -1;
                     if (b.isPrimary) return 1;
                     return a.name.length - b.name.length;
                 });
-                
+
                 // Set domains with expiry dates already included
                 setEnsNames(sortedDomains);
                 console.log('[ENSDetails] Set associated ENS names with expiry dates:', sortedDomains);
@@ -416,11 +417,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             console.error('[ENSDetails] Error fetching associated ENS names:', error);
         }
     }, [address, config, effectiveChainId, primaryName]);
-    
+
     // Function to fetch verification status for a contract
     const fetchVerificationStatus = useCallback(async () => {
         if (!address || !effectiveChainId || !isContract) return;
-        
+
         try {
             console.log(`[ENSDetails] Fetching verification status for contract ${address}`);
             const status = await getContractStatus(effectiveChainId, address);
@@ -431,12 +432,12 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             setVerificationStatus(null);
         }
     }, [address, effectiveChainId, isContract]);
-    
+
     // Main useEffect to trigger data fetching when dependencies change
     useEffect(() => {
         // Always clear error on dependency change
         setError(null);
-        
+
         // Only fetch when a provider is available
         if (!address) return;
         if (!config) {
@@ -448,11 +449,11 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             console.log('[ENSDetails] Waiting for provider to be ready');
             return;
         }
-        
+
         const fetchAllData = async () => {
             setIsLoading(true);
             setError(null);
-            
+
             try {
                 // Fetch data in parallel
                 await Promise.all([
@@ -468,7 +469,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                 setIsLoading(false);
             }
         };
-        
+
         fetchAllData();
     }, [address, customProvider, config, effectiveChainId, isContract, fetchPrimaryName, fetchAssociatedNames, fetchVerificationStatus, fetchUserOwnedDomains]);
 
@@ -512,9 +513,20 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                     return '';
                 }
 
+                const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, provider)
+
+                let publicResolverAddress = config?.PUBLIC_RESOLVER!
+                try {
+                    publicResolverAddress = await ensRegistryContract.resolver(reversedNode) || config?.PUBLIC_RESOLVER!
+                } catch (err) {
+                    console.log("err " + err);
+                    setError("Failed to get public resolver");
+                }
+
                 // Get name from resolver with error handling
                 try {
-                    const resolverContract = new ethers.Contract(config.PUBLIC_RESOLVER, publicResolverABI, provider);
+
+                    const resolverContract = new ethers.Contract(publicResolverAddress, publicResolverABI, provider);
                     const name = await resolverContract.name(reversedNode) || '';
                     console.log(`[ENSDetails] ENS name for ${addr}: ${name}`);
                     return name;

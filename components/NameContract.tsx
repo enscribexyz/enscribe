@@ -126,41 +126,6 @@ export default function NameContract() {
         populateName()
     }, []);
 
-    const fetchPrimaryENS = async () => {
-        if (!signer || !address) return
-
-        const provider = (await signer).provider
-        setFetchingENS(true)
-        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
-            try {
-                const ensName = await provider.lookupAddress(address)
-                if (ensName) {
-                    setParentName(ensName)
-                } else {
-                    setParentName("")
-                }
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName("")
-            }
-        } else {
-            try {
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
-                const reversedNode = await reverseRegistrarContract.node(address)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
-                const ensName = await resolverContract.name(reversedNode)
-                if (ensName) {
-                    setParentName(ensName)
-                } else {
-                    setParentName("")
-                }
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName("")
-            }
-        }
-        setFetchingENS(false)
-    }
 
     const fetchUserOwnedDomains = async () => {
         if (!address || !config) {
@@ -537,13 +502,23 @@ export default function NameContract() {
                 nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, sender)
             }
             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, sender)
-            const publicResolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, sender)
             const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, sender)
             const parentNode = getParentNode(parentName)
             const node = namehash(label + "." + parentName)
             const labelHash = keccak256(ethers.toUtf8Bytes(label))
             const nameExist = await ensRegistryContract.recordExists(node)
             const steps: Step[] = []
+
+            let publicResolverAddress = config?.PUBLIC_RESOLVER!
+            try {
+                publicResolverAddress = await ensRegistryContract.resolver(parentNode) || config?.PUBLIC_RESOLVER!
+            } catch (err) {
+                console.log("err " + err);
+                setError("Failed to get public resolver");
+                return
+            }
+
+            const publicResolverContract = new ethers.Contract(publicResolverAddress, publicResolverABI, sender)
 
             console.log("label - ", label)
             console.log("label hash - ", labelHash)
@@ -583,7 +558,7 @@ export default function NameContract() {
                         }
                     } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                         if (!nameExist) {
-                            const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
+                            const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, publicResolverAddress, 0)
                             const txReceipt = await txn.wait()
                             await logMetric(
                                 corelationId,
@@ -602,7 +577,7 @@ export default function NameContract() {
                         const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
                         if (!nameExist) {
                             if (isWrapped) {
-                                const txn = await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, config.PUBLIC_RESOLVER, 0, 0, 0)
+                                const txn = await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, publicResolverAddress, 0, 0, 0)
                                 const txReceipt = await txn.wait()
                                 await logMetric(
                                     corelationId,
@@ -617,7 +592,7 @@ export default function NameContract() {
                                     opType);
                                 return txn
                             } else {
-                                const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, config.PUBLIC_RESOLVER, 0)
+                                const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, publicResolverAddress, 0)
                                 const txReceipt = await txn.wait()
                                 await logMetric(
                                     corelationId,
@@ -697,7 +672,7 @@ export default function NameContract() {
                     steps.push({
                         title: "Set reverse resolution",
                         action: async () => {
-                            const txn = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, config.PUBLIC_RESOLVER, `${label}.${parentName}`)
+                            const txn = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, publicResolverAddress, `${label}.${parentName}`)
                             const txReceipt = await txn.wait()
                             await logMetric(
                                 corelationId,
