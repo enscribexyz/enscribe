@@ -11,6 +11,7 @@ import { CheckCircle, Loader2, XCircle } from "lucide-react"
 import { ethers } from 'ethers'
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import { useAccount, useWalletClient } from 'wagmi'
+import { useRouter } from 'next/router'
 
 export interface Step {
     title: string
@@ -52,7 +53,11 @@ export default function SetNameStepsModal({
         Array(steps?.length || 0).fill(null)
     )
 
+    // Add state to track contract address
+    const [internalContractAddress, setInternalContractAddress] = useState<string | undefined>(contractAddress)
+
     const { chain } = useAccount()
+    const router = useRouter()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
 
     // Reset state when modal opens or closes
@@ -69,6 +74,8 @@ export default function SetNameStepsModal({
             setLastTxHash(null);
             setAllStepsCompleted(false);
             setErrorMessage("");
+            // Initialize contract address from prop
+            setInternalContractAddress(contractAddress);
         }
 
         // Also reset when modal closes to ensure fresh state next time
@@ -116,6 +123,12 @@ export default function SetNameStepsModal({
         try {
             if (tx) {
                 const receipt = await tx.wait();
+                const matchingLog = receipt?.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
+                if (matchingLog) {
+                    const extractedAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
+                    setInternalContractAddress(extractedAddress);
+                    console.log("Contract address extracted:", extractedAddress);
+                }
                 const txHash = receipt?.hash ?? null;
 
                 setStepTxHashes((prev) => {
@@ -237,11 +250,11 @@ export default function SetNameStepsModal({
                 {allStepsCompleted && (
                     <div className="mt-6 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
                         {/* Contract Address */}
-                        {contractAddress && (
+                        {(internalContractAddress || contractAddress) && (
                             <div>
                                 <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
                                 <div className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                    {contractAddress}
+                                    {internalContractAddress || contractAddress}
                                 </div>
                             </div>
                         )}
@@ -265,11 +278,11 @@ export default function SetNameStepsModal({
                             </div>
                         )}
 
-                        {/* View on Etherscan */}
-                        {contractAddress && (
+                        {/* View on Enscribe */}
+                        {(internalContractAddress || contractAddress) && (
                             <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                                <a href={`${config?.ETHERSCAN_URL}address/${contractAddress}`} target="_blank" rel="noopener noreferrer">
-                                    View Contract on Etherscan
+                                <a href={`/explore/${chain?.id}/${internalContractAddress || contractAddress}`} target="_blank" rel="noopener noreferrer">
+                                    View Contract
                                 </a>
                             </Button>
                         )}
@@ -297,7 +310,13 @@ export default function SetNameStepsModal({
                     </div>
                 ) : <div className="mt-6 space-y-2">
                     <Button
-                        onClick={() => onClose()}
+                        onClick={() => {
+                            const address = internalContractAddress || contractAddress;
+                            if (address && chain?.id) {
+                                router.push(`/explore/${chain.id}/${address}`);
+                            }
+                            onClose();
+                        }}
                         className="w-full"
                     >
                         Done

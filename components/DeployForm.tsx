@@ -472,10 +472,10 @@ export default function DeployForm() {
 
                 // Finally, add domains with labelhashes at the end
                 sortedDomains.push(...domainsWithLabelhash);
-                
+
                 // Apply chain-specific filtering
                 let chainFilteredDomains = sortedDomains;
-                
+
                 // Filter based on chain
                 if (chain?.id === CHAINS.BASE) {
                     // For Base chain, only keep .base.eth names
@@ -542,16 +542,6 @@ export default function DeployForm() {
             }
         }
 
-    }
-
-    const processResult = async (txHash: string) => {
-        const txReceipt = await (await signer)!.provider.getTransactionReceipt(txHash)
-        setTxHash(txReceipt!.hash)
-        if (!isReverseClaimable) {
-            const matchingLog = txReceipt!.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-            const deployedContractAddress = ethers.getAddress("0x" + matchingLog!.topics[1].slice(-40))
-            setDeployedAddress(deployedContractAddress)
-        }
     }
 
     const recordExist = async (name: string): Promise<boolean> => {
@@ -1538,9 +1528,9 @@ export default function DeployForm() {
                         return
                     }
 
-                    if (result && result !== "INCOMPLETE") {
-                        setTxHash(result)
-                        processResult(result)
+                    if (result === "INCOMPLETE") {
+                        setError("Steps not completed. Please complete all steps before closing.")
+                    } else {
                         // Reset form after successful deployment
                         setBytecode('');
                         setLabel('');
@@ -1549,9 +1539,6 @@ export default function DeployForm() {
                         setArgs([])
                         setAbiText('')
                         populateName()
-                    } else if (result === "INCOMPLETE") {
-                        setError("Steps not completed. Please complete all steps before closing.")
-                        return
                     }
 
                     setIsReverseClaimable(false)

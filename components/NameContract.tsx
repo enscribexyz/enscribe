@@ -515,7 +515,6 @@ export default function NameContract() {
             } catch (err) {
                 console.log("err " + err);
                 setError("Failed to get public resolver");
-                return
             }
 
             const publicResolverContract = new ethers.Contract(publicResolverAddress, publicResolverABI, sender)
@@ -1013,8 +1012,9 @@ export default function NameContract() {
                         return
                     }
 
-                    if (result && result !== "INCOMPLETE") {
-                        setTxHash(result)
+                    if (result === "INCOMPLETE") {
+                        setError("Steps not completed. Please complete all steps before closing.")
+                    } else {
                         setDeployedAddress(existingContractAddress)
                         // Reset form after successful naming
                         setExistingContractAddress('');
@@ -1024,8 +1024,6 @@ export default function NameContract() {
                         setParentName(enscribeDomain);
                         setIsPrimaryNameSet(false);
                         populateName()
-                    } else if (result === "INCOMPLETE") {
-                        setError("Steps not completed. Please complete all steps before closing.")
                     }
                 }}
                 title={modalTitle}
