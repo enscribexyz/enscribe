@@ -294,7 +294,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
             // Extract domain parts from the primary name
             const nameParts = primaryENS.split('.');
             if (nameParts.length < 2) return;
-            
+
             // Check if we're on Linea, Base, or their testnets
             const isLineaOrBase = effectiveChainId ? [
                 CHAINS.LINEA,
@@ -302,12 +302,10 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                 CHAINS.BASE,
                 CHAINS.BASE_SEPOLIA
             ].includes(effectiveChainId) : false;
-            
-            // Determine which domain name to query
+
             let domainToQuery;
-            
+
             if (isLineaOrBase && nameParts.length >= 3) {
-                // For Linea/Base networks with 3LD names, query the 3LD
                 const tld = nameParts[nameParts.length - 1];
                 const sld = nameParts[nameParts.length - 2];
                 const thirdLevel = nameParts[nameParts.length - 3];
@@ -545,11 +543,20 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
                 // Get name from resolver with error handling
                 try {
-
                     const resolverContract = new ethers.Contract(publicResolverAddress, publicResolverABI, provider);
-                    const name = await resolverContract.name(reversedNode) || '';
-                    console.log(`[ENSDetails] ENS name for ${addr}: ${name}`);
-                    return name;
+
+                    try {
+                        const name = await resolverContract.name(reversedNode) || '';
+                        console.log(`[ENSDetails] ENS name for ${addr}: ${name}`);
+                        return name;
+                    } catch (nameError: any) {
+                        // Check for specific BAD_DATA error or empty result
+                        if (nameError.code === 'BAD_DATA' || nameError.message?.includes('could not decode result data')) {
+                            console.log(`[ENSDetails] Resolver doesn't have a valid name record for ${addr}, this is normal for some addresses`);
+                            return '';
+                        }
+                        throw nameError;
+                    }
                 } catch (resolverError: any) {
                     console.error('[ENSDetails] Error calling resolver contract:', resolverError);
                     return '';
@@ -626,7 +633,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                 const nameParts = primaryName.split('.');
                                 const tld = nameParts[nameParts.length - 1];
                                 const sld = nameParts[nameParts.length - 2];
-                                
+
                                 // Check if we're on Linea, Base, or their testnets
                                 const isLineaOrBase = effectiveChainId ? [
                                     CHAINS.LINEA,
@@ -634,7 +641,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                     CHAINS.BASE,
                                     CHAINS.BASE_SEPOLIA
                                 ].includes(effectiveChainId) : false;
-                                
+
                                 // For Linea and Base networks, use 3LD if available
                                 let domainToShow;
                                 if (isLineaOrBase && nameParts.length >= 3) {
