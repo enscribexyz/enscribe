@@ -4,7 +4,7 @@ import { useAccount, usePublicClient } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, CheckCircle, AlertCircle, XCircle, Clock } from 'lucide-react';
 import { CONTRACTS } from '@/utils/constants';
 import { CHAINS } from '@/utils/constants';
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
@@ -291,52 +291,72 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
         if (!config?.SUBGRAPH_API) return;
 
         try {
-            // Extract the 2LD from the primary name
+            // Extract domain parts from the primary name
             const nameParts = primaryENS.split('.');
-            if (nameParts.length >= 2) {
+            if (nameParts.length < 2) return;
+            
+            // Check if we're on Linea, Base, or their testnets
+            const isLineaOrBase = effectiveChainId ? [
+                CHAINS.LINEA,
+                CHAINS.LINEA_SEPOLIA,
+                CHAINS.BASE,
+                CHAINS.BASE_SEPOLIA
+            ].includes(effectiveChainId) : false;
+            
+            // Determine which domain name to query
+            let domainToQuery;
+            
+            if (isLineaOrBase && nameParts.length >= 3) {
+                // For Linea/Base networks with 3LD names, query the 3LD
                 const tld = nameParts[nameParts.length - 1];
                 const sld = nameParts[nameParts.length - 2];
-                const domain2LD = `${sld}.${tld}`;
+                const thirdLevel = nameParts[nameParts.length - 3];
+                domainToQuery = `${thirdLevel}.${sld}.${tld}`;
+                console.log(`[ENSDetails] Fetching expiry date for 3LD: ${domainToQuery}`);
+            } else {
+                // For other networks or 2LD names, query the 2LD
+                const tld = nameParts[nameParts.length - 1];
+                const sld = nameParts[nameParts.length - 2];
+                domainToQuery = `${sld}.${tld}`;
+                console.log(`[ENSDetails] Fetching expiry date for 2LD: ${domainToQuery}`);
+            }
 
-                console.log(`[ENSDetails] Fetching expiry date for ${domain2LD}`);
-
-                // Query the subgraph for the domain with its registration data
-                const domainResponse = await fetch(config.SUBGRAPH_API, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
-                    },
-                    body: JSON.stringify({
-                        query: `
-                            query GetDomainWithRegistration($name: String!) {
-                                domains(where: { name: $name }) {
-                                    name
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
+            // Query the subgraph for the domain with its registration data
+            const domainResponse = await fetch(config.SUBGRAPH_API, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                },
+                body: JSON.stringify({
+                    query: `
+                        query GetDomainWithRegistration($name: String!) {
+                            domains(where: { name: $name }) {
+                                name
+                                registration {
+                                    expiryDate
+                                    registrationDate
                                 }
                             }
-                        `,
-                        variables: {
-                            name: domain2LD
                         }
-                    })
-                });
+                    `,
+                    variables: {
+                        name: domainToQuery
+                    }
+                })
+            });
 
-                const domainData = await domainResponse.json();
-                console.log(`[ENSDetails] Domain data for ${domain2LD}:`, domainData);
+            const domainData = await domainResponse.json();
+            console.log(`[ENSDetails] Domain data for ${domainToQuery}:`, domainData);
 
-                const expiryDate = domainData?.data?.domains?.[0]?.registration?.expiryDate;
+            const expiryDate = domainData?.data?.domains?.[0]?.registration?.expiryDate;
 
-                if (expiryDate) {
-                    setPrimaryNameExpiryDate(Number(expiryDate));
-                    console.log(`[ENSDetails] Expiry date for ${domain2LD}: ${new Date(Number(expiryDate) * 1000).toLocaleDateString()}`);
-                } else {
-                    console.log(`[ENSDetails] No expiry date found for ${domain2LD}`);
-                    setPrimaryNameExpiryDate(null);
-                }
+            if (expiryDate) {
+                setPrimaryNameExpiryDate(Number(expiryDate));
+                console.log(`[ENSDetails] Expiry date for ${domainToQuery}: ${new Date(Number(expiryDate) * 1000).toLocaleDateString()}`);
+            } else {
+                console.log(`[ENSDetails] No expiry date found for ${domainToQuery}`);
+                setPrimaryNameExpiryDate(null);
             }
         } catch (error) {
             console.error('[ENSDetails] Error fetching primary name expiry date:', error);
@@ -602,11 +622,31 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                 </div>
                             </div>
                             {primaryNameExpiryDate && (() => {
-                                // Extract the 2LD from the primary name
+                                // Extract domain parts from the primary name
                                 const nameParts = primaryName.split('.');
                                 const tld = nameParts[nameParts.length - 1];
                                 const sld = nameParts[nameParts.length - 2];
-                                const domain2LD = `${sld}.${tld}`;
+                                
+                                // Check if we're on Linea, Base, or their testnets
+                                const isLineaOrBase = effectiveChainId ? [
+                                    CHAINS.LINEA,
+                                    CHAINS.LINEA_SEPOLIA,
+                                    CHAINS.BASE,
+                                    CHAINS.BASE_SEPOLIA
+                                ].includes(effectiveChainId) : false;
+                                
+                                // For Linea and Base networks, use 3LD if available
+                                let domainToShow;
+                                if (isLineaOrBase && nameParts.length >= 3) {
+                                    // Use 3LD (e.g., "mydomain.eth.linea")
+                                    const tld3 = nameParts[nameParts.length - 1];
+                                    const sld3 = nameParts[nameParts.length - 2];
+                                    const thirdLevel = nameParts[nameParts.length - 3];
+                                    domainToShow = `${thirdLevel}.${sld3}.${tld3}`;
+                                } else {
+                                    // Use 2LD for other networks (e.g., "mydomain.eth")
+                                    domainToShow = `${sld}.${tld}`;
+                                }
 
                                 // Calculate expiry status
                                 const now = new Date();
@@ -621,19 +661,36 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                 const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000;
                                 const isInGracePeriod = isExpired && (now.getTime() - expiryDate.getTime()) < ninetyDaysInMs;
 
-                                // Determine text color based on expiry status
-                                let textColorClass = "text-green-600 dark:text-green-400"; // Default: > 3 months
-                                if (isWithinThreeMonths) {
-                                    textColorClass = "text-yellow-600 dark:text-yellow-400"; // Within 3 months
-                                } else if (isExpired && isInGracePeriod) {
-                                    textColorClass = "text-red-600 dark:text-red-400"; // Expired but in grace period
+                                let statusIcon;
+                                let statusText;
+                                let bgColorClass = "bg-green-50 dark:bg-green-900/20";
+                                let textColorClass = "text-green-600 dark:text-green-400";
+
+                                if (isExpired && isInGracePeriod) {
+                                    // Red cross for expired domains in grace period
+                                    statusIcon = <XCircle className="inline-block mr-1 text-red-600 dark:text-red-400" size={16} />;
+                                    statusText = `expired on ${expiryDate.toLocaleDateString()}`;
+                                    bgColorClass = "bg-red-50 dark:bg-red-900/20";
+                                    textColorClass = "text-red-600 dark:text-red-400";
+                                } else if (isWithinThreeMonths) {
+                                    // Yellow exclamation for domains expiring soon
+                                    statusIcon = <AlertCircle className="inline-block mr-1 text-yellow-600 dark:text-yellow-400" size={16} />;
+                                    statusText = `expires on ${expiryDate.toLocaleDateString()}`;
+                                    bgColorClass = "bg-yellow-50 dark:bg-yellow-900/20";
+                                    textColorClass = "text-yellow-600 dark:text-yellow-400";
+                                } else {
+                                    // Green check for valid domains
+                                    statusIcon = <CheckCircle className="inline-block mr-1 text-green-600 dark:text-green-400" size={16} />;
+                                    statusText = `valid until ${expiryDate.toLocaleDateString()}`;
                                 }
 
                                 return (
-                                    <div className="text-right">
-                                        <span className={`text-s whitespace-nowrap ${textColorClass}`}>
-                                            {domain2LD} {isExpired ? "expired on" : "expires on"}: {expiryDate.toLocaleDateString()}
-                                        </span>
+                                    <div className="flex items-center justify-end">
+                                        <span className="text-gray-900 dark:text-white px-3">{domainToShow} </span>
+                                        <div className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${bgColorClass} ${textColorClass}`}>
+                                            {statusIcon}
+                                            <span className="whitespace-nowrap">{statusText}</span>
+                                        </div>
                                     </div>
                                 );
                             })()}
