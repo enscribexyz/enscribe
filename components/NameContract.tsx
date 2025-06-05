@@ -19,13 +19,13 @@ import {v4 as uuid} from "uuid";
 import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
 import {getEnsAddress, readContract, writeContract} from "viem/actions";
 import {namehash, normalize} from 'viem/ens'
-import type {Address} from "viem";
 import {isAddress, keccak256, toBytes} from "viem";
 import enscribeContractABI from "../contracts/Enscribe";
+import ownableContractABI from "@/contracts/Ownable";
 
 export default function NameContract() {
     const router = useRouter();
-    const { address, isConnected, chain } = useAccount()
+    const { address: walletAddress, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
@@ -61,17 +61,6 @@ export default function NameContract() {
     const [modalSteps, setModalSteps] = useState<Step[]>([]);
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
-
-    const [senderAddress, setSenderAddress] = useState<Address>()
-    useEffect(() => {
-        const connect = async () => {
-            if (!walletClient) return;
-            const [walletAddress] = await walletClient.requestAddresses();
-            setSenderAddress(walletAddress);
-        };
-
-        connect();
-    }, [walletClient]);
 
     const corelationId = uuid()
     const opType = "nameexisting"
@@ -136,7 +125,7 @@ export default function NameContract() {
     }
 
     const fetchUserOwnedDomains = async () => {
-        if (!address || !config) {
+        if (!walletAddress || !config) {
             console.warn('Address or chain configuration is missing');
             return;
         }
@@ -166,7 +155,7 @@ export default function NameContract() {
                             }
                         `,
                         variables: {
-                            address: address.toLowerCase()
+                            address: walletAddress.toLowerCase()
                         }
                     })
                 }),
@@ -186,7 +175,7 @@ export default function NameContract() {
                             }
                         `,
                         variables: {
-                            address: address.toLowerCase()
+                            address: walletAddress.toLowerCase()
                         }
                     })
                 }),
@@ -206,7 +195,7 @@ export default function NameContract() {
                             }
                         `,
                         variables: {
-                            address: address.toLowerCase()
+                            address: walletAddress.toLowerCase()
                         }
                     })
                 })
@@ -379,8 +368,7 @@ export default function NameContract() {
     }
 
     const checkIfContractOwner = async(address: string)=> {
-        console.log("checkIfContractOwner called")
-        if (checkIfAddressEmpty(address) || !isAddressValid(address) || !walletClient || config?.ENS_REGISTRY) {
+        if (checkIfAddressEmpty(address) || !isAddressValid(address) || !walletClient || !config?.ENS_REGISTRY || !walletAddress) {
             setIsOwnable(false);
             setIsContractOwner(false);
             return
@@ -388,11 +376,12 @@ export default function NameContract() {
         try {
             const ownerAddress = await readContract(walletClient, {
                 address: address as `0x${string}`,
-                abi: ["function owner() view returns (address)"],
+                abi: ownableContractABI,
                 functionName: 'owner',
                 args: [],
-            }) as string;
-            setIsContractOwner(ownerAddress.toLowerCase() == senderAddress)
+            }) as `0x${string}`;
+            console.log(`ownerAddress: ${ownerAddress.toLowerCase()} signer: ${walletAddress}`)
+            setIsContractOwner(ownerAddress.toLowerCase() == walletAddress.toLowerCase())
         } catch (err) {
             console.log("err " + err);
             const addrLabel = address.slice(2).toLowerCase()
@@ -404,8 +393,8 @@ export default function NameContract() {
                 args: [reversedNode],
             }) as string;
 
-            console.log(`resolvedAddr: ${resolvedAddr.toLowerCase()} signer: ${senderAddress}`)
-            setIsContractOwner(resolvedAddr.toLowerCase() == senderAddress)
+            console.log(`resolvedAddr: ${resolvedAddr.toLowerCase()} signer: ${walletAddress}`)
+            setIsContractOwner(resolvedAddr.toLowerCase() == walletAddress.toLowerCase())
         }
     }
 
@@ -418,10 +407,10 @@ export default function NameContract() {
         try {
             const ownerAddress = await readContract(walletClient, {
                 address: address as `0x${string}`,
-                abi: ["function owner() view returns (address)"],
+                abi: ownableContractABI,
                 functionName: 'owner',
                 args: [],
-            }) as string;
+            }) as `0x${string}`;
 
             console.log("contract ownable")
             setIsOwnable(true);
@@ -443,7 +432,7 @@ export default function NameContract() {
         }
 
         try {
-            if (!walletClient) {
+            if (!walletClient || !walletAddress) {
                 alert('Please connect your wallet first.')
                 setLoading(false)
                 return
@@ -458,7 +447,7 @@ export default function NameContract() {
             }) as `0x${string}`;
             console.log("resolvedaddr is " + resolvedAddr)
 
-            if (resolvedAddr === senderAddress) {
+            if (resolvedAddr.toLowerCase() === walletAddress.toLowerCase()) {
                 console.log("contract implements reverseclaimable")
                 setIsReverseClaimable(true);
             } else {
@@ -494,7 +483,7 @@ export default function NameContract() {
 
     const setPrimaryName = async (setPrimary: boolean) => {
         setError("")
-        if (!walletClient || !senderAddress) return
+        if (!walletClient || !walletAddress) return
 
         if (!isAddressValid(existingContractAddress)) {
             setIsOwnable(false)
@@ -602,7 +591,7 @@ export default function NameContract() {
                                 functionName: 'setName',
                                 args: [existingContractAddress, label, parentName, parentNode],
                                 value: txCost,
-                                account: senderAddress
+                                account: walletAddress
                             });
 
                             await logMetric(
@@ -610,7 +599,7 @@ export default function NameContract() {
                                 Date.now(),
                                 chainId,
                                 existingContractAddress,
-                                senderAddress,
+                                walletAddress,
                                 name,
                                 'subname::setName',
                                 txn,
@@ -627,15 +616,15 @@ export default function NameContract() {
                                 address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                                 abi: ensRegistryABI,
                                 functionName: 'setSubnodeRecord',
-                                args: [parentNode, labelHash, senderAddress, publicResolverAddress, 0],
-                                account: senderAddress
+                                args: [parentNode, labelHash, walletAddress, publicResolverAddress, 0],
+                                account: walletAddress
                             });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
                                 chainId,
                                 existingContractAddress,
-                                senderAddress,
+                                walletAddress,
                                 name,
                                 'subname::setSubnodeRecord',
                                 txn,
@@ -656,15 +645,15 @@ export default function NameContract() {
                                     address: config.NAME_WRAPPER as `0x${string}`,
                                     abi: nameWrapperABI,
                                     functionName: 'setSubnodeRecord',
-                                    args: [parentNode, label, senderAddress, publicResolverAddress, 0, 0, 0],
-                                    account: senderAddress
+                                    args: [parentNode, label, walletAddress, publicResolverAddress, 0, 0, 0],
+                                    account: walletAddress
                                 });
                                 await logMetric(
                                     corelationId,
                                     Date.now(),
                                     chainId,
                                     existingContractAddress,
-                                    senderAddress,
+                                    walletAddress,
                                     name,
                                     'subname::setSubnodeRecord',
                                     txn,
@@ -676,15 +665,15 @@ export default function NameContract() {
                                     address: config.ENS_REGISTRY as `0x${string}`,
                                     abi: ensRegistryABI,
                                     functionName: 'setSubnodeRecord',
-                                    args: [parentNode, labelHash, senderAddress, publicResolverAddress, 0],
-                                    account: senderAddress
+                                    args: [parentNode, labelHash, walletAddress, publicResolverAddress, 0],
+                                    account: walletAddress
                                 });
                                 await logMetric(
                                     corelationId,
                                     Date.now(),
                                     chainId,
                                     existingContractAddress,
-                                    senderAddress,
+                                    walletAddress,
                                     name,
                                     'subname::setSubnodeRecord',
                                     txn,
@@ -715,14 +704,14 @@ export default function NameContract() {
                                 abi: publicResolverABI,
                                 functionName: 'setAddr',
                                 args: [node, existingContractAddress],
-                                account: senderAddress
+                                account: walletAddress
                             });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
                                 chainId,
                                 existingContractAddress,
-                                senderAddress,
+                                walletAddress,
                                 name,
                                 'fwdres::setAddr',
                                 txn,
@@ -752,14 +741,14 @@ export default function NameContract() {
                                 abi: publicResolverABI,
                                 functionName: 'setName',
                                 args: [reversedNode, `${label}.${parentName}`],
-                                account: senderAddress
+                                account: walletAddress
                             });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
                                 chainId,
                                 existingContractAddress,
-                                senderAddress,
+                                walletAddress,
                                 name,
                                 'revres::setName',
                                 txn,
@@ -777,15 +766,15 @@ export default function NameContract() {
                                 address: config.REVERSE_REGISTRAR as `0x${string}`,
                                 abi: reverseRegistrarABI,
                                 functionName: 'setNameForAddr',
-                                args: [existingContractAddress, senderAddress, publicResolverAddress, `${label}.${parentName}`],
-                                account: senderAddress
+                                args: [existingContractAddress, walletAddress, publicResolverAddress, `${label}.${parentName}`],
+                                account: walletAddress
                             });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
                                 chainId,
                                 existingContractAddress,
-                                senderAddress,
+                                walletAddress,
                                 name,
                                 'revres::setNameForAddr',
                                 txn,
