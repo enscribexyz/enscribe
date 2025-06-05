@@ -13,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectItem, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
-import { CONTRACTS, CHAINS, METRICS_URL } from '../utils/constants';
+import {CONTRACTS, CHAINS} from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import { ArrowPathIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
-import { v4 as uuid } from "uuid";
-import { fetchGeneratedName, logMetric } from "@/components/componentUtils";
+import {ArrowPathIcon, CheckCircleIcon} from "@heroicons/react/24/outline";
+import {v4 as uuid} from "uuid";
+import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
+import {XCircleIcon} from "@heroicons/react/24/outline";
 
 export default function NameContract() {
     const router = useRouter();
@@ -49,6 +50,7 @@ export default function NameContract() {
     const [isAddressEmpty, setIsAddressEmpty] = useState(true);
     const [isAddressInvalid, setIsAddressInvalid] = useState(true);
     const [isOwnable, setIsOwnable] = useState<boolean | null>(false);
+    const [isContractOwner, setIsContractOwner] = useState<boolean | null>(false);
     const [isReverseClaimable, setIsReverseClaimable] = useState<boolean | null>(false);
     const [ensNameTaken, setEnsNameTaken] = useState(false)
     const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
@@ -61,6 +63,7 @@ export default function NameContract() {
 
     const corelationId = uuid()
     const opType = "nameexisting"
+
 
     const getParentNode = (name: string) => {
         try {
@@ -85,7 +88,6 @@ export default function NameContract() {
         setModalSubtitle('')
         setUserOwnedDomains([])
         setShowENSModal(false)
-        populateName()
         setIsOwnable(false)
         setIsReverseClaimable(false)
         setIsAddressEmpty(true);
@@ -120,12 +122,6 @@ export default function NameContract() {
         const name = await fetchGeneratedName();
         setLabel(name)
     }
-
-    // set label when component mounts
-    useEffect(() => {
-        populateName()
-    }, []);
-
 
     const fetchUserOwnedDomains = async () => {
         if (!address || !config) {
@@ -371,6 +367,30 @@ export default function NameContract() {
         return true;
     }
 
+    const checkIfContractOwner = async(address: string)=> {
+        console.log("checkIfContractOwner called")
+        if (checkIfAddressEmpty(address) || !isAddressValid(address) || !signer) {
+            setIsOwnable(false);
+            setIsContractOwner(false);
+            return
+        }
+
+        try {
+            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
+            const addrLabel = address.slice(2).toLowerCase()
+            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
+            console.log(`resolvedAddr: ${resolvedAddr.toLowerCase()} signer: ${(await signer).address.toLowerCase()}`)
+            setIsContractOwner(resolvedAddr.toLowerCase() == (await signer).address.toLowerCase())
+        } catch (err) {
+            console.log("err " + err);
+            setIsAddressEmpty(false)
+            setIsAddressInvalid(false)
+            setIsOwnable(false);
+            setIsContractOwner(false);
+        }
+    }
+
     const checkIfOwnable = async (address: string) => {
         if (checkIfAddressEmpty(address) || !isAddressValid(address)) {
             setIsOwnable(false);
@@ -379,8 +399,8 @@ export default function NameContract() {
 
         try {
             const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer));
-
             const ownerAddress = await contract.owner();
+
             console.log("contract ownable")
             setIsOwnable(true);
             setIsAddressInvalid(false)
@@ -719,6 +739,7 @@ export default function NameContract() {
                     value={existingContractAddress}
                     onChange={async (e) => {
                         setExistingContractAddress(e.target.value)
+                        await checkIfContractOwner(e.target.value)
                         await checkIfOwnable(e.target.value)
                         await checkIfReverseClaimable(e.target.value)
                     }}
@@ -742,23 +763,32 @@ export default function NameContract() {
                             is this?</Link></p>
 
                 )}
-                {
-                    <>
-                        <div className="justify-between">
-                            {isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
-                                    className="text-gray-700 inline">Contract implements <Link
-                                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                                        className="text-blue-600 hover:underline">Ownable</Link></p></>)}
-                            {isReverseClaimable && !isOwnable && (<><CheckCircleIcon
-                                className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" /><p
+                <div className="flex flex-col space-y-1">
+                    {!isAddressEmpty && !isContractOwner && (
+                        <>
+                            <div className="flex items-center">
+                                <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer"/>
+                                <p className="text-gray-600 inline ml-1">You are not the contract owner and cannot set its primary name</p>
+                            </div>
+                        </>
+                    )}
+                    {
+                        <>
+                            <div className="justify-between">
+                                {isOwnable && (<><CheckCircleIcon
+                                    className="w-5 h-5 inline text-green-500 cursor-pointer"/><p
+                                    className="text-gray-700 inline ml-1">Contract implements <Link
+                                    href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                                    className="text-blue-600 hover:underline">Ownable</Link></p></>)}
+                                {isReverseClaimable && !isOwnable && (<><CheckCircleIcon
+                                    className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer"/><p
                                     className="text-gray-700 inline">Contract is <Link
-                                        href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                                        className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
-                        </div>
-                    </>
-                }
-
+                                    href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                                    className="text-blue-600 hover:underline">ReverseClaimable</Link></p></>)}
+                            </div>
+                        </>
+                    }
+                </div>
                 <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
                 <div className={"flex items-center space-x-2"}>
                     <Input
@@ -770,12 +800,12 @@ export default function NameContract() {
                             setError("")
                         }}
                         onBlur={checkENSReverseResolution}
-                        placeholder="my-label"
+                        placeholder="my label"
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     />
                     <Button
                         onClick={populateName}>
-                        <ArrowPathIcon />
+                        Generate Name
                     </Button>
                 </div>
 
@@ -968,7 +998,7 @@ export default function NameContract() {
             <div className="flex gap-4 mt-6">
                 <Button
                     onClick={() => setPrimaryName(true)}
-                    disabled={!isConnected || loading || isAddressEmpty || !(isOwnable || isReverseClaimable) || isEmpty(label)}
+                    disabled={ !isContractOwner || !isConnected || loading || isAddressEmpty || !(isOwnable || isReverseClaimable) || isEmpty(label)}
                     className="w-1/2"
                 >
                     {loading ? (
@@ -1023,7 +1053,6 @@ export default function NameContract() {
                         setParentType('web3labs');
                         setParentName(enscribeDomain);
                         setIsPrimaryNameSet(false);
-                        populateName()
                     }
                 }}
                 title={modalTitle}

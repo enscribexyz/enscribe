@@ -141,7 +141,6 @@ export default function DeployForm() {
         setArgs([])
         setOperatorAccess(false)
         setEnsNameTaken(false)
-        populateName()
     }, [chain?.id, isConnected]);
 
     useEffect(() => {
@@ -156,11 +155,6 @@ export default function DeployForm() {
         const name = await fetchGeneratedName();
         setLabel(name)
     }
-
-    // set label when component mounts
-    useEffect(() => {
-        populateName()
-    }, []);
 
     const addArg = () =>
         setArgs([...args, { type: "string", value: "", isCustom: false }])
@@ -1277,12 +1271,12 @@ export default function DeployForm() {
                             setError("")
                         }}
                         onBlur={checkENSReverseResolution}
-                        placeholder="my-label"
+                        placeholder="my label"
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     />
                     <Button
                         onClick={populateName}>
-                        <ArrowPathIcon />
+                        Generate Name
                     </Button>
                 </div>
 
@@ -1538,7 +1532,6 @@ export default function DeployForm() {
                         setParentName(enscribeDomain);
                         setArgs([])
                         setAbiText('')
-                        populateName()
                     }
 
                     setIsReverseClaimable(false)

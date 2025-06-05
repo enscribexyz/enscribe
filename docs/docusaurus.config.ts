@@ -6,14 +6,14 @@ import 'dotenv/config';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: "Enscribe",
-  tagline: "ENScribe your Smart Contracts",
+  tagline: "Easily name your Ethereum smart contracts with ENS names using Enscribe",
   favicon: "img/favicon.ico",
 
   url: "https://www.enscribe.xyz",
   baseUrl: "/",
 
   // GitHub pages deployment config
-  organizationName: "enscribe.xyz",
+  organizationName: "enscribexyz",
   projectName: "enscribe",
 
   onBrokenLinks: "throw",
@@ -57,6 +57,8 @@ const config = {
         },
         blog: {
           showReadingTime: true,
+          blogSidebarTitle: 'All our posts',
+          blogSidebarCount: 'ALL',
         },
         theme: {
           customCss: require.resolve("./src/css/custom.css"),
