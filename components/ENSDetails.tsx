@@ -689,11 +689,20 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                     // Green check for valid domains
                                     statusIcon = <CheckCircle className="inline-block mr-1 text-green-600 dark:text-green-400" size={16} />;
                                     statusText = `valid until ${expiryDate.toLocaleDateString()}`;
+                                    bgColorClass = "bg-green-50 dark:bg-green-900/20";
+                                    textColorClass = "text-green-600 dark:text-green-400";
                                 }
+
+                                // Check if domain to show is the same as primary name
+                                const showDomainSeparately = domainToShow !== primaryName;
 
                                 return (
                                     <div className="flex items-center justify-end">
-                                        <span className="text-gray-900 dark:text-white px-3">{domainToShow} </span>
+                                        {showDomainSeparately && (
+                                            <span className="text-gray-800 dark:text-gray-400 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm mr-2">
+                                                {domainToShow}
+                                            </span>
+                                        )}
                                         <div className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${bgColorClass} ${textColorClass}`}>
                                             {statusIcon}
                                             <span className="whitespace-nowrap">{statusText}</span>
