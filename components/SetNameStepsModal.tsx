@@ -207,16 +207,22 @@ export default function SetNameStepsModal({
             <DialogContent className="bg-white dark:bg-gray-900 rounded-lg max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="text-xl text-gray-900 dark:text-white">
-                        {allStepsCompleted
-                            ? (title.includes("Deploy") ? "Deployment Successful!" : "Naming Contract Successful!")
-                            : title}
+                        {errorMessage
+                            ? (title.includes("Deploy") ? "Deployment Failed" : "Contract Naming Failed")
+                            : (allStepsCompleted
+                                ? (title.includes("Deploy") ? "Deployment Successful!" : "Naming Contract Successful!")
+                                : title)}
                     </DialogTitle>
                     <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">
-                        {allStepsCompleted
+                        {errorMessage
                             ? (title.includes("Deploy")
-                                ? "Your contract has been successfully deployed."
-                                : "Your contract has been named successfully.")
-                            : subtitle}
+                                ? "There was an error deploying your contract."
+                                : "There was an error naming your contract.")
+                            : (allStepsCompleted
+                                ? (title.includes("Deploy")
+                                    ? "Your contract has been successfully deployed."
+                                    : "Your contract has been named successfully.")
+                                : subtitle)}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -255,7 +261,7 @@ export default function SetNameStepsModal({
                 </div>
 
                 {/* Show success content when steps are completed */}
-                {allStepsCompleted && (
+                {allStepsCompleted && !errorMessage && (
                     <div className="mt-6 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
                         {/* Contract Address */}
                         {(internalContractAddress || contractAddress) && (
@@ -306,7 +312,6 @@ export default function SetNameStepsModal({
                     </div>
                 )}
 
-                {/* Show error message if there's an error */}
                 {errorMessage ? (
                     <div className="mt-6 space-y-2">
                         <Button
@@ -316,20 +321,24 @@ export default function SetNameStepsModal({
                             Close
                         </Button>
                     </div>
-                ) : <div className="mt-6 space-y-2">
-                    <Button
-                        onClick={() => {
-                            const address = internalContractAddress || contractAddress;
-                            if (address && chain?.id) {
-                                router.push(`/explore/${chain.id}/${address}`);
-                            }
-                            onClose();
-                        }}
-                        className="w-full"
-                    >
-                        Done
-                    </Button>
-                </div>}
+                ) : (
+                    allStepsCompleted && (
+                        <div className="mt-6 space-y-2">
+                            <Button
+                                onClick={() => {
+                                    const address = internalContractAddress || contractAddress;
+                                    if (address && chain?.id) {
+                                        router.push(`/explore/${chain.id}/${address}`);
+                                    }
+                                    onClose();
+                                }}
+                                className="w-full"
+                            >
+                                Done
+                            </Button>
+                        </div>
+                    )
+                )}
             </DialogContent>
         </Dialog>
     )

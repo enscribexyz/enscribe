@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "@docusaurus/Link"
 import useBaseUrl from "@docusaurus/useBaseUrl"
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
+import { useEffect } from "react";
 import { FaShieldAlt, FaBolt, FaGlobe, FaStar, FaGithub, FaTelegram, FaDiscord, FaUserAlt, FaLock, FaPlug } from "react-icons/fa"
 import { FaXTwitter } from "react-icons/fa6"
 import { SiFarcaster } from "react-icons/si";
@@ -33,6 +34,21 @@ export default function EnscribeLandingPage() {
   const {
     siteConfig: {customFields},
   } = useDocusaurusContext();
+
+  useEffect(() => {
+    const root = document.documentElement;
+
+    // Save original theme
+    const originalTheme = root.getAttribute("data-theme");
+
+    // Force dark theme
+    root.setAttribute("data-theme", "dark");
+
+    // Revert on unmount
+    return () => {
+      root.setAttribute("data-theme", originalTheme);
+    };
+  }, []);
 
   const [menuOpen, setMenuOpen] = useState(false);
 
