@@ -1,51 +1,52 @@
 ---
 slug: choose-ens-parent
-title: Option to Choose Your Owned and Managed ENS Domains
+title: Easily Find your Owned and Managed ENS Domains for Naming Smart Contracts
 authors: [nischal]
 tags: [ens]
 ---
 
-We’ve rolled out a highly useful feature in Enscribe — the ability to easily choose your **owned or managed ENS domains** when deploying or naming smart contracts. This makes the ENS parent selection process smoother, safer, and more intuitive.
+We've rolled out a great new feature in Enscribe — the ability to easily choose your **owned or managed ENS domains** when deploying or naming smart contracts. 
+This makes it straightforward to find the right ENS parent name you want to name your contract with.
 
-Thanks to the integration with **ENS subgraph**, Enscribe can now fetch all ENS names that your connected wallet **owns or manages**, and present them to you in a simple, organized UI.
+Thanks to the integration with **ENS Subgraph** , Enscribe can now fetch all ENS names that your connected wallet **owns or manages** and show them to you.
 
 ## How It Works
 When a user connects their wallet, Enscribe queries the ENS subgraph and retrieves a complete list of ENS domains owned or managed by that wallet. These names are then:
 
 - Grouped by second-level domain (2LD)  
 - Sorted alphabetically  
-- Displayed in a scrollable, intuitive modal
+- Displayed in a modal
 
 ## Demo
 
-Check out this quick demo video of the feature in action:  
+Check out the below video to see it in action:
+
 ![Demo Video](./demo.gif)
 
 Here’s how it looks in Enscribe:
 
-**Dropdown view inside Deploy form:**  
+**Dropdown view inside Deploy form:**
+
 ![Dropdown Field](./dropdown.png)
 
-**Choosing ENS Parent (modal):**  
+**Choosing ENS Parent (modal):**
+
 ![ENS Domain Picker](./modal.png)
 
-**Deploy Contract Form with ENS selection:**  
+**Deploy Contract Form with ENS selection:**
+
 ![Deploy Form](./form.png)
 
 
 ## Why It Matters
 
-Before this update, users had to **remember and manually type** their ENS parent name — introducing room for typos and uncertainty. Now, with direct selection from your owned and managed names, you:
-
-- Eliminate input errors  
-- Save time and cognitive effort  
-- Improve the overall UX of naming contracts with ENS
+Before this update, users had to remember and manually type their ENS parent name — introducing user error. 
 
 This feature is currently supported on:
 
 - **Ethereum Mainnet & Sepolia** — via the official ENS subgraph  
 - **Linea Mainnet & Linea Sepolia** — via ENS Linea subgraph  
-- **Base Mainnet** — via ENS Node by [namehash](https://github.com/namehash/ensnode)
+- **Base Mainnet** — via [ENS Node](https://github.com/namehash/ensnode) by [namehash](https://namehashlabs.org/)
 
 **Note**: Support for **Base Sepolia testnet** is pending because no ENS subgraph exists yet. We're actively working with Namehash to add support — see [GitHub issue #768](https://github.com/namehash/ensnode/issues/768).
 
