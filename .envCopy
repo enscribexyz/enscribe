@@ -11,7 +11,8 @@ NEXT_PUBLIC_ETHERSCAN='https://etherscan.io/'
 NEXT_PUBLIC_ENS_APP='https://app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS=''
 NEXT_PUBLIC_BLOCKSCOUT='https://eth.blockscout.com/'
-NEXT_PUBLIC_RPC='https://mainnet.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
+NEXT_PUBLIC_RPC='https://mainnet.infura.io/v3/'
+NEXT_PUBLIC_SUBGRAPH_API='https://gateway.thegraph.com/api/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH'
 
 # SEPOLIA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_SEPOLIA='0x98350BfB3ba627B18CC84c8A46440A2E3f74d6a7'
@@ -24,7 +25,8 @@ NEXT_PUBLIC_ETHERSCAN_SEPOLIA='https://sepolia.etherscan.io/'
 NEXT_PUBLIC_ENS_APP_SEPOLIA='https://sepolia.app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_SEPOLIA=''
 NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA='https://eth-sepolia.blockscout.com/'
-NEXT_PUBLIC_RPC_SEPOLIA='https://sepolia.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
+NEXT_PUBLIC_RPC_SEPOLIA='https://sepolia.infura.io/v3/'
+NEXT_PUBLIC_SUBGRAPH_API_SEPOLIA='https://gateway.thegraph.com/api/subgraphs/id/G1SxZs317YUb9nQX3CC98hDyvxfMJNZH5pPRGpNrtvwN'
 
 # LINEA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA='0x6d8Ac46BFC1bD0b6022f997108e9800Fd84fdD44'
@@ -37,7 +39,8 @@ NEXT_PUBLIC_ETHERSCAN_LINEA='https://lineascan.build/'
 NEXT_PUBLIC_ENS_APP_LINEA='https://names.linea.build/'
 NEXT_PUBLIC_CHAINLENS_LINEA='https://linea.chainlens.com/'
 NEXT_PUBLIC_BLOCKSCOUT_LINEA='https://explorer.linea.build/'
-NEXT_PUBLIC_RPC_LENIA='https://linea-mainnet.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
+NEXT_PUBLIC_RPC_LINEA='https://linea-mainnet.infura.io/v3/'
+NEXT_PUBLIC_SUBGRAPH_API_LINEA='https://gateway.thegraph.com/api/subgraphs/id/G5YH6BWrybbfua5sngRQ7Ku1LRCVx4qf5zjkqWG9FSuV'
 
 # LINEA SEPOLIA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_LINEA_SEPOLIA='0x564708c1f36ed9109736fd1d10c575ee4eeadbbd'
@@ -50,7 +53,8 @@ NEXT_PUBLIC_ETHERSCAN_LINEA_SEPOLIA='https://sepolia.lineascan.build/'
 NEXT_PUBLIC_ENS_APP_LINEA_SEPOLIA='https://names.linea.build/'
 NEXT_PUBLIC_CHAINLENS_LINEA_SEPOLIA='https://testnet.linea.chainlens.com/'
 NEXT_PUBLIC_BLOCKSCOUT_LINEA_SEPOLIA='https://explorer.sepolia.linea.build/'
-NEXT_PUBLIC_RPC_LINEA_SEPOLIA='https://linea-sepolia.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
+NEXT_PUBLIC_RPC_LINEA_SEPOLIA='https://linea-sepolia.infura.io/v3/'
+NEXT_PUBLIC_SUBGRAPH_API_LINEA_SEPOLIA='https://gateway.thegraph.com/api/subgraphs/id/6Jjkuneo5SgozoKAzi5bu2pDSHr614iQKumbRAYr8bgh'
 
 # BASE Mainnet Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE='0x8429c428F93754449C4b955F2Ae9fde17eF4e95a'
@@ -63,7 +67,8 @@ NEXT_PUBLIC_ETHERSCAN_BASE='https://basescan.org/'
 NEXT_PUBLIC_ENS_APP_BASE='https://app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_BASE=''
 NEXT_PUBLIC_BLOCKSCOUT_BASE='https://base.blockscout.com/'
-NEXT_PUBLIC_RPC_BASE='https://base-mainnet.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
+NEXT_PUBLIC_RPC_BASE='https://base-mainnet.infura.io/v3/'
+NEXT_PUBLIC_SUBGRAPH_API_BASE='https://api.alpha.blue.ensnode.io/subgraph'
 
 # BASE SEPOLIA Contract Address 
 NEXT_PUBLIC_ENSCRIBE_CONTRACT_BASE_SEPOLIA='0x3b854b093A4F60aB7C9635c2b84d015BC2359B2a'
@@ -76,7 +81,8 @@ NEXT_PUBLIC_ETHERSCAN_BASE_SEPOLIA='https://sepolia.basescan.org/'
 NEXT_PUBLIC_ENS_APP_BASE_SEPOLIA='https://sepolia.app.ens.domains/'
 NEXT_PUBLIC_CHAINLENS_BASE_SEPOLIA=''
 NEXT_PUBLIC_BLOCKSCOUT_BASE_SEPOLIA='https://base-sepolia.blockscout.com/'
-NEXT_PUBLIC_RPC_BASE_SEPOLIA='https://base-sepolia.infura.io/v3/fe0e00048b004f69be5a9ac90298d0ca'
+NEXT_PUBLIC_RPC_BASE_SEPOLIA='https://base-sepolia.infura.io/v3/'
+NEXT_PUBLIC_SUBGRAPH_API_BASE_SEPOLIA='https://api.alpha.blue.ensnode.io/subgraph'
 
 # Events topic
 NEXT_PUBLIC_TOPIC0_SET_NAME="0xbce672f287ca218b7a90c84485d9b40640252149f0e8c2932fe972e3fbc6fdc3"
@@ -94,3 +100,6 @@ NEXT_PUBLIC_SOURCIFY_API=https://sourcify.dev/server/v2/contract/
 # SUPABASE
 NEXT_PUBLIC_SUPABASE_URL=''
 NEXT_PUBLIC_SUPABASE_KEY=''
+
+# Subgraph
+NEXT_PUBLIC_GRAPH_API_KEY=

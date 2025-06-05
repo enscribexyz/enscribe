@@ -1,8 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Toaster } from "@/components/ui/toaster"
-import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon, InformationCircleIcon, DocumentIcon } from '@heroicons/react/24/outline';
+import { PencilSquareIcon, ClockIcon, Bars3Icon, XMarkIcon, DocumentTextIcon, InformationCircleIcon, DocumentIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import AddressSearch from './AddressSearch';
+import ChainSelector from './ChainSelector';
+import { useAccount } from 'wagmi';
+import { useRouter } from 'next/router';
 
 interface LayoutProps {
     children: React.ReactNode;
@@ -18,6 +22,60 @@ const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL;
 
 export default function Layout({ children }: LayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { isConnected, chain, connector } = useAccount();
+    const [selectedChain, setSelectedChain] = useState<number>(1);
+    const [manuallyChanged, setManuallyChanged] = useState(false);
+    const [prevConnected, setPrevConnected] = useState(false);
+    const [prevChain, setPrevChain] = useState<number | undefined>();
+    const router = useRouter();
+
+    // Initialize selectedChain from URL on first load only
+    useEffect(() => {
+        if (router.isReady && router.query.chainId && typeof router.query.chainId === 'string' && !manuallyChanged) {
+            const chainIdFromUrl = parseInt(router.query.chainId);
+            if (!isNaN(chainIdFromUrl)) {
+                console.log(`Initial sync with URL chainId: ${chainIdFromUrl}`);
+                setSelectedChain(chainIdFromUrl);
+            }
+        }
+    }, [router.isReady, router.query.chainId, manuallyChanged]);
+
+    useEffect(() => {
+        const isExplorePage = router.pathname.startsWith('/explore');
+        if (!isExplorePage) return;
+
+        const urlChainId = router.query.chainId && typeof router.query.chainId === 'string'
+            ? parseInt(router.query.chainId)
+            : undefined;
+
+        // Handle wallet connection (wallet just connected)
+        if (isConnected && !prevConnected && urlChainId && connector?.switchChain) {
+            // User just connected wallet on explore page, switch wallet to match URL chain
+            console.log(`Wallet connected on explore page. Switching wallet to chain ${urlChainId}`);
+            connector.switchChain({ chainId: urlChainId }).catch(err => {
+                console.error('Failed to switch chain on wallet connect:', err);
+            });
+        }
+
+        // Handle wallet disconnection
+        if (!isConnected && prevConnected) {
+            // User just disconnected wallet on explore page, redirect to root
+            console.log('Wallet disconnected on explore page. Redirecting to /');
+            router.push('/');
+        }
+
+        // Handle wallet chain change (chain changed while connected)
+        if (isConnected && chain?.id && prevChain !== undefined && chain.id !== prevChain && router.query.address) {
+            // User changed wallet chain while on explore page, update URL
+            const address = router.query.address as string;
+            console.log(`Wallet chain changed from ${prevChain} to ${chain.id}. Updating URL.`);
+            router.push(`/explore/${chain.id}/${address}`);
+        }
+
+        // Update previous states for next comparison
+        setPrevConnected(isConnected);
+        setPrevChain(chain?.id);
+    }, [isConnected, chain?.id, router.pathname, router.query.chainId, router.query.address, connector, prevConnected, prevChain]);
 
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
@@ -99,6 +157,8 @@ export default function Layout({ children }: LayoutProps) {
                     </button>
                 </div>
 
+
+
                 {/* Navigation Links */}
                 <nav className="px-4 py-6 flex-grow">
                     <ul className="space-y-2">
@@ -147,7 +207,50 @@ export default function Layout({ children }: LayoutProps) {
                         </button>
                     </div>
 
+                    {/* Logo for medium screens */}
+                    <div className="hidden md:flex lg:hidden items-center ml-2 mr-4">
+                        <Link href="/" legacyBehavior>
+                            <a className="flex items-center">
+                                <svg width="24" height="24" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="32" height="32" rx="4" fill="#151A2D" />
+                                    <path d="M10 12L6 16L10 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M22 12L26 16L22 20" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <path d="M18 10L14 22" stroke="#4DB8E8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                            </a>
+                        </Link>
+                    </div>
+
+                    {/* Address Search Component */}
+                    <div className="flex-1 max-w-md">
+                        <AddressSearch
+                            selectedChain={selectedChain}
+                            setManuallyChanged={setManuallyChanged}
+                        />
+                    </div>
+
                     <div className="flex-1"></div>
+
+                    {/* Chain Selector - only visible when wallet is not connected */}
+                    {!isConnected && (
+                        <div className="mr-2">
+                            <ChainSelector
+                                selectedChain={selectedChain}
+                                onChainChange={(chainId) => {
+                                    // Mark as manually changed to prevent auto-sync with URL
+                                    setManuallyChanged(true);
+                                    setSelectedChain(chainId);
+
+                                    // If there's a chainId in the URL, redirect to new chain URL
+                                    if (router.query.chainId && router.query.address) {
+                                        const address = router.query.address as string;
+                                        console.log(`Redirecting to chain ${chainId} for address ${address}`);
+                                        router.push(`/explore/${chainId}/${address}`);
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* WalletConnect Button */}
                     <ConnectButton accountStatus={{

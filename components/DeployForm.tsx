@@ -4,7 +4,7 @@ import { wagmiConfig } from "@/pages/_app";
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
-import { useAccount, useWalletClient, } from 'wagmi'
+import { useAccount, useWalletClient } from 'wagmi'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +100,9 @@ export default function DeployForm() {
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
 
+    const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([]);
+    const [showENSModal, setShowENSModal] = useState(false);
+
     const corelationId = uuid()
 
     const getParentNode = (name: string) => {
@@ -115,6 +118,31 @@ export default function DeployForm() {
             setParentName(config.ENSCRIBE_DOMAIN)
         }
     }, [config, parentType])
+
+    useEffect(() => {
+        setBytecode('')
+        setLabel('')
+        setParentType('web3labs')
+        setParentName(enscribeDomain)
+        setAbiText('')
+        setError('')
+        setLoading(false)
+        setDeployedAddress('')
+        setTxHash('')
+        setModalOpen(false)
+        setModalSteps([])
+        setModalTitle('')
+        setModalSubtitle('')
+        setUserOwnedDomains([])
+        setShowENSModal(false)
+        setIsOwnable(false)
+        setIsReverseClaimable(false)
+        setRecordExists(false)
+        setArgs([])
+        setOperatorAccess(false)
+        setEnsNameTaken(false)
+        populateName()
+    }, [chain?.id, isConnected]);
 
     useEffect(() => {
         if (bytecode.length > 0) {
@@ -253,44 +281,225 @@ export default function DeployForm() {
         }
     }
 
-    const fetchPrimaryENS = async () => {
-        if (!signer || !address) return
+    // const fetchPrimaryENS = async () => {
+    //     if (!signer || !address) return
 
-        const provider = (await signer).provider
-        setFetchingENS(true)
-        if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
-            try {
-                const ensName = await provider.lookupAddress(address)
-                if (ensName) {
-                    setParentName(ensName)
-                } else {
-                    setParentName("")
-                }
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName("")
-            }
-        } else {
-            try {
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
-                const reversedNode = await reverseRegistrarContract.node(address)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
-                const ensName = await resolverContract.name(reversedNode)
-                if (ensName) {
-                    setParentName(ensName)
-                } else {
-                    setParentName("")
-                }
-            } catch (error) {
-                console.error("Error fetching ENS name:", error)
-                setParentName("")
-            }
+    //     const provider = (await signer).provider
+    //     setFetchingENS(true)
+    //     if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+    //         try {
+    //             const ensName = await provider.lookupAddress(address)
+    //             if (ensName) {
+    //                 setParentName(ensName)
+    //             } else {
+    //                 setParentName("")
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching ENS name:", error)
+    //             setParentName("")
+    //         }
+    //     } else {
+    //         try {
+    //             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
+    //             const reversedNode = await reverseRegistrarContract.node(address)
+    //             const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
+    //             const ensName = await resolverContract.name(reversedNode)
+    //             if (ensName) {
+    //                 setParentName(ensName)
+    //             } else {
+    //                 setParentName("")
+    //             }
+    //         } catch (error) {
+    //             console.error("Error fetching ENS name:", error)
+    //             setParentName("")
+    //         }
+    //     }
+
+    //     setFetchingENS(false)
+    //     const approved = await checkOperatorAccess()
+    //     setOperatorAccess(approved)
+
+    // }
+
+    const fetchUserOwnedDomains = async () => {
+        if (!address || !config) {
+            console.warn('Address or chain configuration is missing');
+            return;
         }
 
-        setFetchingENS(false)
-        const approved = await checkOperatorAccess()
-        setOperatorAccess(approved)
+        if (!config.SUBGRAPH_API) {
+            console.warn('No subgraph API endpoint configured for this chain');
+            return;
+        }
 
+        try {
+            setFetchingENS(true);
+
+            // Fetch domains where user is the owner
+            const [ownerResponse, registrantResponse, wrappedResponse] = await Promise.all([
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { owner: $address }) { 
+                                    name 
+                                } 
+                            }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
+                        }
+                    })
+                }),
+                // Fetch domains where user is the registrant
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { registrant: $address }) { 
+                                    name 
+                                } 
+                            }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
+                        }
+                    })
+                }),
+                // Fetch domains where user is the wrapped
+                fetch(config.SUBGRAPH_API, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_GRAPH_API_KEY || ''}`
+                    },
+                    body: JSON.stringify({
+                        query: `
+                            query getDomainsForAccount($address: String!) { 
+                                domains(where: { wrappedOwner: $address }) { 
+                                    name 
+                                } 
+                            }
+                        `,
+                        variables: {
+                            address: address.toLowerCase()
+                        }
+                    })
+                })
+            ]);
+
+
+            const [ownerData, registrantData, wrappedData] = await Promise.all([
+                ownerResponse.json(),
+                registrantResponse.json(),
+                wrappedResponse.json()
+            ]);
+
+            // Combine all sets of domains and remove duplicates
+            const ownedDomains = ownerData?.data?.domains?.map((d: { name: string }) => d.name) || [];
+            const registrantDomains = registrantData?.data?.domains?.map((d: { name: string }) => d.name) || [];
+            const wrappedDomains = wrappedData?.data?.domains?.map((d: { name: string }) => d.name) || [];
+
+            // Combine and deduplicate domains
+            const allDomains = [...new Set([...ownedDomains, ...registrantDomains, ...wrappedDomains])];
+
+            if (allDomains.length > 0) {
+                // Filter out .addr.reverse names
+                const filteredDomains = allDomains.filter((domain: string) => !domain.endsWith('.addr.reverse'));
+
+                // Keep domains as-is, including any labelhashes
+                const processedDomains = filteredDomains;
+
+                // First, separate domains with labelhashes from regular domains
+                const domainsWithLabelhash = processedDomains.filter(domain => domain.includes('[') && domain.includes(']'));
+                const regularDomains = processedDomains.filter(domain => !(domain.includes('[') && domain.includes(']')));
+
+                // Function to get the 2LD for a domain
+                const get2LD = (domain: string): string => {
+                    const parts = domain.split('.');
+                    if (parts.length < 2) return domain;
+                    return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+                };
+
+                // Group regular domains by their 2LD
+                const domainsByParent: { [key: string]: string[] } = {};
+
+                regularDomains.forEach(domain => {
+                    const parent2LD = get2LD(domain);
+                    if (!domainsByParent[parent2LD]) {
+                        domainsByParent[parent2LD] = [];
+                    }
+                    domainsByParent[parent2LD].push(domain);
+                });
+
+                // Sort 2LDs alphabetically
+                const sorted2LDs = Object.keys(domainsByParent).sort();
+
+                // For each 2LD, sort its domains by depth
+                const sortedDomains: string[] = [];
+
+                sorted2LDs.forEach(parent2LD => {
+                    // Sort domains within this 2LD group by depth
+                    const sortedGroup = domainsByParent[parent2LD].sort((a, b) => {
+                        // Always put the 2LD itself first
+                        if (a === parent2LD) return -1;
+                        if (b === parent2LD) return 1;
+
+                        // Then sort by depth
+                        const aDepth = a.split('.').length;
+                        const bDepth = b.split('.').length;
+                        if (aDepth !== bDepth) {
+                            return aDepth - bDepth;
+                        }
+
+                        // If same depth, sort alphabetically
+                        return a.localeCompare(b);
+                    });
+
+                    // Add all domains from this group to the result
+                    sortedDomains.push(...sortedGroup);
+                });
+
+                // Finally, add domains with labelhashes at the end
+                sortedDomains.push(...domainsWithLabelhash);
+
+                // Apply chain-specific filtering
+                let chainFilteredDomains = sortedDomains;
+
+                // Filter based on chain
+                if (chain?.id === CHAINS.BASE) {
+                    // For Base chain, only keep .base.eth names
+                    console.log('[DeployForm] Filtering owned domains for Base chain - only keeping .base.eth names');
+                    chainFilteredDomains = sortedDomains.filter(domain => domain.endsWith('.base.eth'));
+                } else if (chain?.id === CHAINS.BASE_SEPOLIA) {
+                    // For Base Sepolia, don't show any names
+                    console.log('[DeployForm] Base Sepolia detected - not showing any owned ENS names');
+                    chainFilteredDomains = [];
+                }
+
+                setUserOwnedDomains(chainFilteredDomains);
+                console.log("Fetched and processed user owned domains:", chainFilteredDomains);
+            }
+        } catch (error) {
+            console.error("Error fetching user's owned ENS domains:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to fetch your owned ENS domains"
+            });
+        } finally {
+            setFetchingENS(false)
+        }
     }
 
     const checkENSReverseResolution = async () => {
@@ -335,21 +544,11 @@ export default function DeployForm() {
 
     }
 
-    const processResult = async (txHash: string) => {
-        const txReceipt = await (await signer)!.provider.getTransactionReceipt(txHash)
-        setTxHash(txReceipt!.hash)
-        if (!isReverseClaimable) {
-            const matchingLog = txReceipt!.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-            const deployedContractAddress = ethers.getAddress("0x" + matchingLog!.topics[1].slice(-40))
-            setDeployedAddress(deployedContractAddress)
-        }
-    }
-
-    const recordExist = async (): Promise<boolean> => {
-        if (!signer || !getParentNode(parentName)) return false
+    const recordExist = async (name: string): Promise<boolean> => {
+        if (!signer) return false
         try {
             const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const parentNode = getParentNode(parentName)
+            const parentNode = getParentNode(name)
 
             if (!(await ensRegistryContract.recordExists(parentNode))) return false
 
@@ -359,37 +558,36 @@ export default function DeployForm() {
         }
     }
 
-    const checkOperatorAccess = async (): Promise<boolean> => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return false;
+    const checkOperatorAccess = async (name: string): Promise<boolean> => {
+        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !name) return false;
 
         try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const parentNode = getParentNode(parentName)
-
-            if (!recordExist) return false
+            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
+            const parentNode = getParentNode(name)
+            // First check if the record exists
+            if (!(await ensRegistryContract.recordExists(parentNode))) return false;
 
             var nameWrapperContract: ethers.Contract | null = null;
             if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
-                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
+                nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER!, nameWrapperABI, await signer)
             }
 
+            let approved = false;
             if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-                return await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                approved = await ensRegistryContract.isApprovedForAll(address, config.ENSCRIBE_CONTRACT);
             } else {
-                const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
-                let approved = false
-
+                const isWrapped = await nameWrapperContract?.isWrapped(parentNode);
                 if (isWrapped) {
                     // Wrapped Names
                     console.log(`Wrapped detected.`);
-                    approved = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    approved = await nameWrapperContract?.isApprovedForAll(address, config.ENSCRIBE_CONTRACT!);
                 } else {
                     //Unwrapped Names
                     console.log(`Unwrapped detected.`);
-                    approved = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                    approved = await ensRegistryContract.isApprovedForAll(address, config.ENSCRIBE_CONTRACT!);
                 }
-                return approved
             }
+            return approved;
         } catch (err) {
             console.error("Approval check failed:", err)
             return false
@@ -404,7 +602,7 @@ export default function DeployForm() {
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
-            if (!(await recordExist())) return;
+            if (!(await recordExist(parentName))) return;
 
             let tx;
 
@@ -461,7 +659,7 @@ export default function DeployForm() {
         try {
             const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
-            if (!(await recordExist())) return;
+            if (!(await recordExist(parentName))) return;
 
             let tx;
 
@@ -576,7 +774,8 @@ export default function DeployForm() {
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
 
-            const txCost = 100000000000000n
+            const txCost = await namingContract.pricing();
+            console.log("txCost - ", txCost);
             let senderAddress = (await signer).address
             let name = `${label}.${parentName}`
 
@@ -587,7 +786,6 @@ export default function DeployForm() {
                         action: async () => {
                             const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {
                                 value: txCost
-                                // gasLimit: 5000000
                             })
                             const txReceipt = await txn.wait()
                             const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
@@ -735,7 +933,7 @@ export default function DeployForm() {
                 }
 
                 setModalTitle("Deploy Contract and set Primary Name")
-                setModalSubtitle("Complete each step to finish naming this contract")
+                setModalSubtitle("Running each step to finish naming this contract")
                 setModalSteps(steps)
                 setModalOpen(true)
             } else if (isReverseClaimable) {
@@ -1098,7 +1296,8 @@ export default function DeployForm() {
                             setParentName(enscribeDomain)
                         } else {
                             setParentName('')
-                            fetchPrimaryENS()
+                            fetchUserOwnedDomains()
+                            setShowENSModal(true)
                         }
                     }}
                 >
@@ -1114,47 +1313,47 @@ export default function DeployForm() {
                 {parentType === 'own' && (
                     <>
                         <label className="block text-gray-700 dark:text-gray-300">Parent Name</label>
-                        {fetchingENS ? (
-                            <p className="text-gray-500 dark:text-gray-400">Fetching primary ENS name...</p>
-                        ) : (
-                            <div className="flex items-center gap-2">
-                                <Input
-                                    type="text"
-                                    value={parentName}
-                                    onChange={(e) => {
-                                        setParentName(e.target.value)
-                                        setOperatorAccess(false)
-                                        setRecordExists(false)
-                                    }}
-                                    onBlur={async () => {
-                                        const exist = await recordExist()
-                                        setRecordExists(exist)
+                        <div className="flex items-center gap-2">
+                            <Input
+                                type="text"
+                                value={parentName}
+                                onChange={(e) => {
+                                    setParentName(e.target.value)
+                                    setOperatorAccess(false)
+                                    setRecordExists(false)
+                                }}
+                                onBlur={async () => {
+                                    const exist = await recordExist(parentName)
+                                    setRecordExists(exist)
 
-                                        const approved = await checkOperatorAccess()
-                                        console.log("Operator check for ", parentName, " is ", approved)
-                                        setOperatorAccess(approved)
+                                    const approved = await checkOperatorAccess(parentName)
+                                    console.log("Operator check for ", parentName, " is ", approved)
+                                    setOperatorAccess(approved)
+                                }}
+                                placeholder="mydomain.eth"
+                                className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                            />
+                            <Button
+                                onClick={() => setShowENSModal(true)}
+                                className="bg-gray-900 text-white"
+                            >
+                                Choose ENS
+                            </Button>
 
+                            {operatorAccess && recordExists && (
+                                <Button variant="destructive" disabled={accessLoading}
+                                    onClick={revokeOperatorAccess}>
+                                    {accessLoading ? "Revoking..." : "Revoke Access"}
+                                </Button>
+                            )}
 
-                                    }}
-                                    placeholder="mydomain.eth"
-                                    className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                                />
+                            {!operatorAccess && recordExists && (
+                                <Button disabled={accessLoading} onClick={grantOperatorAccess}>
+                                    {accessLoading ? "Granting..." : "Grant Access"}
+                                </Button>
+                            )}
+                        </div>
 
-                                {operatorAccess && recordExists && (
-                                    <Button variant="destructive" disabled={accessLoading}
-                                        onClick={revokeOperatorAccess}>
-                                        {accessLoading ? "Revoking..." : "Revoke Access"}
-                                    </Button>
-                                )}
-
-                                {!operatorAccess && recordExists && (
-                                    <Button disabled={accessLoading} onClick={grantOperatorAccess}>
-                                        {accessLoading ? "Granting..." : "Grant Access"}
-                                    </Button>
-                                )}
-
-                            </div>
-                        )}
                         {/* Access Info Message */}
                         {((operatorAccess && recordExists) || (!operatorAccess && recordExists)) && !fetchingENS && (
                             <p className="text-sm text-yellow-600 mt-2">
@@ -1172,6 +1371,131 @@ export default function DeployForm() {
                     </>
                 )}
             </div>
+
+            {/* Add ENS Selection Modal */}
+            <Dialog open={showENSModal} onOpenChange={setShowENSModal}>
+                <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+                    <DialogHeader className="mb-4">
+                        <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">Choose Your ENS Parent</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                            Choose one of your owned ENS domains or enter manually.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {fetchingENS ? (
+                        <div className="flex justify-center items-center p-6">
+                            <svg className="animate-spin h-5 w-5 mr-3 text-indigo-600 dark:text-indigo-400" viewBox="0 0 24 24" fill="none"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                            </svg>
+                            <p className="text-gray-700 dark:text-gray-300">Fetching your ENS domains...</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 px-1">
+                            {userOwnedDomains.length > 0 ? (
+                                <div className="max-h-[50vh] overflow-y-auto pr-1">
+                                    {(() => {
+                                        // Function to get the 2LD for a domain
+                                        const get2LD = (domain: string): string => {
+                                            const parts = domain.split('.');
+                                            if (parts.length < 2) return domain;
+                                            return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+                                        };
+
+                                        // Separate domains with labelhashes
+                                        const domainsWithLabelhash = userOwnedDomains.filter(domain => domain.includes('[') && domain.includes(']'));
+                                        const regularDomains = userOwnedDomains.filter(domain => !(domain.includes('[') && domain.includes(']')));
+
+                                        // Group regular domains by 2LD
+                                        const domainGroups: { [key: string]: string[] } = {};
+
+                                        regularDomains.forEach(domain => {
+                                            const parent2LD = get2LD(domain);
+                                            if (!domainGroups[parent2LD]) {
+                                                domainGroups[parent2LD] = [];
+                                            }
+                                            domainGroups[parent2LD].push(domain);
+                                        });
+
+                                        // Sort 2LDs alphabetically
+                                        const sorted2LDs = Object.keys(domainGroups).sort();
+
+                                        return (
+                                            <div className="space-y-4">
+                                                {/* Regular domains grouped by 2LD */}
+                                                {sorted2LDs.map(parent2LD => (
+                                                    <div key={parent2LD} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {domainGroups[parent2LD].map((domain, index) => (
+                                                                <div
+                                                                    key={domain}
+                                                                    className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                                                    onClick={() => {
+                                                                        setParentName(domain);
+                                                                        setShowENSModal(false);
+                                                                    }}
+                                                                >
+                                                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+
+                                                {/* Domains with labelhashes at the end */}
+                                                {domainsWithLabelhash.length > 0 && (
+                                                    <div className="pt-2">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {domainsWithLabelhash.map(domain => (
+                                                                <div
+                                                                    key={domain}
+                                                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                                                    onClick={() => {
+                                                                        setParentName(domain);
+                                                                        setShowENSModal(false);
+                                                                    }}
+                                                                >
+                                                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">{domain}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                    <p className="text-gray-500 dark:text-gray-400">No ENS domains found for your address.</p>
+                                </div>
+                            )}
+
+                            <div className="flex justify-end gap-3 mt-6">
+                                <Button variant="outline"
+                                    onClick={() => {
+                                        setParentName('')
+                                        setShowENSModal(false)
+                                    }}
+                                    className="hover:bg-gray-200 text-black"
+                                >
+                                    Enter manually
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setShowENSModal(false)
+                                    }}
+                                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                                >
+                                    Cancel
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <Button
                 onClick={deployContract}
@@ -1204,13 +1528,17 @@ export default function DeployForm() {
                         return
                     }
 
-                    if (result && result !== "INCOMPLETE") {
-                        setTxHash(result)
-                        processResult(result)
-                        setShowPopup(true)
-                    } else if (result === "INCOMPLETE") {
+                    if (result === "INCOMPLETE") {
                         setError("Steps not completed. Please complete all steps before closing.")
-                        return
+                    } else {
+                        // Reset form after successful deployment
+                        setBytecode('');
+                        setLabel('');
+                        setParentType('web3labs');
+                        setParentName(enscribeDomain);
+                        setArgs([])
+                        setAbiText('')
+                        populateName()
                     }
 
                     setIsReverseClaimable(false)
@@ -1220,79 +1548,9 @@ export default function DeployForm() {
                 title={modalTitle}
                 subtitle={modalSubtitle}
                 steps={modalSteps}
+                contractAddress={deployedAddress}
+                ensName={`${label}.${parentName}`}
             />
-
-            {showPopup && (
-                <Dialog open={showPopup} onOpenChange={setShowPopup}>
-                    <DialogContent className="max-w-lg bg-white dark:bg-gray-900 shadow-lg rounded-lg">
-                        <DialogHeader>
-                            <DialogTitle className="text-gray-900 dark:text-white">Deployment Successful!</DialogTitle>
-                            <DialogDescription className="text-gray-600 dark:text-gray-300">
-                                Your contract has been successfully deployed.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        {/* Transaction Hash */}
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Transaction Hash:</p>
-                            <div
-                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                {txHash}
-                            </div>
-                        </div>
-
-                        {/* Contract Address */}
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">Contract Address:</p>
-                            <div
-                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                {deployedAddress}
-                            </div>
-                        </div>
-
-                        {/* ENS Name */}
-                        <div>
-                            <p className="text-sm font-semibold text-gray-900 dark:text-white">ENS Name:</p>
-                            <div
-                                className="bg-gray-200 dark:bg-gray-800 p-2 rounded-md text-xs text-gray-900 dark:text-gray-300 break-words">
-                                {`${label}.${parentName}`}
-                            </div>
-                        </div>
-
-                        {/* View on Etherscan */}
-                        <Button asChild className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-                            <a href={`${etherscanUrl}tx/${txHash}`} target="_blank" rel="noopener noreferrer">
-                                View Transaction on Etherscan
-                            </a>
-                        </Button>
-
-                        {/* View on ENS App */}
-                        {ensAppUrl && <Button asChild className="w-full bg-green-600 hover:bg-green-700 text-white">
-                            <a href={`${ensAppUrl}${label}.${parentName}`} target="_blank" rel="noopener noreferrer">
-                                View Name in ENS App
-                            </a>
-                        </Button>}
-
-
-                        {/* Close Button */}
-                        <Button
-                            onClick={() => {
-                                setShowPopup(false);
-                                setBytecode('');
-                                setLabel('');
-                                setParentType('web3labs');
-                                setParentName(enscribeDomain);
-                                setArgs([])
-                                setAbiText('')
-                            }}
-                            className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                        >
-                            Close
-                        </Button>
-                    </DialogContent>
-                </Dialog>
-            )
-            }
         </div>
     )
 }

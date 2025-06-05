@@ -1,4 +1,3 @@
-// ContractHistory.tsx (with incremental loading and improved UX)
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAccount, useWalletClient } from 'wagmi'
