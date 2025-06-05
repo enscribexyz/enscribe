@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { ethers, namehash } from 'ethers'
-import { wagmiConfig } from "@/pages/_app";
-import contractABI from '../contracts/Enscribe'
+import {type Address} from 'viem'
+import {namehash, normalize} from 'viem/ens'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
 import { useAccount, useWalletClient } from 'wagmi'
@@ -12,13 +11,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast"
 import parseJson from 'json-parse-safe'
-import { CHAINS, CONTRACTS, NAME_GEN_URL, TOPIC0 } from '../utils/constants';
+import { CHAINS, CONTRACTS } from '../utils/constants';
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import { CheckCircleIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { v4 as uuid } from 'uuid'
-import { fetchGeneratedName, logMetric } from "@/components/componentUtils";
+import {
+    ConstructorArg,
+    encodeConstructorArgs,
+    fetchGeneratedName,
+    getDeployedAddress,
+    logMetric
+} from "@/components/componentUtils";
 import { string } from "postcss-selector-parser";
+import {getEnsAddress, getTransactionReceipt, readContract, waitForTransactionReceipt, writeContract} from "viem/actions";
+import enscribeContractABI from "../contracts/Enscribe";
 
 const OWNABLE_FUNCTION_SELECTORS = [
     "8da5cb5b",  // owner()
@@ -40,14 +47,6 @@ const commonTypes = [
     "tuple(address, uint256)"
 ]
 
-type ConstructorArg = {
-    type: string
-    value: string
-    isCustom: boolean
-    isTuple?: boolean
-    label?: string
-}
-
 const opType = "deployandname"
 
 const checkIfOwnable = (bytecode: string): boolean => {
@@ -62,7 +61,6 @@ const checkIfReverseClaimable = (bytecode: string): boolean => {
 export default function DeployForm() {
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
-    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
     const enscribeDomain = config?.ENSCRIBE_DOMAIN!
@@ -99,6 +97,16 @@ export default function DeployForm() {
     const [modalSteps, setModalSteps] = useState<Step[]>([]);
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
+    const [senderAddress, setSenderAddress] = useState<Address>();
+    useEffect(() => {
+        const connect = async () => {
+            if (!walletClient) return;
+            const [walletAddress] = await walletClient.requestAddresses();
+            setSenderAddress(walletAddress);
+        };
+
+        connect();
+    }, [walletClient]);
 
     const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([]);
     const [showENSModal, setShowENSModal] = useState(false);
@@ -240,80 +248,6 @@ export default function DeployForm() {
 
         }
     }
-
-
-    const encodeConstructorArgs = () => {
-        try {
-            const types = args.map((arg) => arg.type)
-            const values = args.map((arg) => {
-                try {
-                    if (
-                        arg.type.startsWith("tuple") ||
-                        arg.type.endsWith("[]") ||
-                        arg.type === "bool" ||
-                        arg.type.startsWith("uint") ||
-                        arg.type === "int" ||
-                        arg.type.startsWith("int")
-                    ) {
-                        return JSON.parse(arg.value)
-                    }
-
-                    // For address and string types, return as-is
-                    return arg.value
-                } catch (parseErr) {
-                    console.error(`Failed to parse value for type ${arg.type}:`, arg.value)
-                    throw new Error(`Invalid value for argument ${arg.label || arg.type}`)
-                }
-            })
-
-            const encoded = ethers.AbiCoder.defaultAbiCoder().encode(types, values)
-            return ethers.hexlify(ethers.concat([bytecode, encoded]))
-        } catch (err) {
-            console.error("Error encoding constructor args:", err)
-            setError("Error encoding constructor arguments. Please check your inputs.")
-            return bytecode
-        }
-    }
-
-    // const fetchPrimaryENS = async () => {
-    //     if (!signer || !address) return
-
-    //     const provider = (await signer).provider
-    //     setFetchingENS(true)
-    //     if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
-    //         try {
-    //             const ensName = await provider.lookupAddress(address)
-    //             if (ensName) {
-    //                 setParentName(ensName)
-    //             } else {
-    //                 setParentName("")
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching ENS name:", error)
-    //             setParentName("")
-    //         }
-    //     } else {
-    //         try {
-    //             const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, ["function node(address) view returns (bytes32)"], (await signer)?.provider);
-    //             const reversedNode = await reverseRegistrarContract.node(address)
-    //             const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, ["function name(bytes32) view returns (string)"], (await signer)?.provider);
-    //             const ensName = await resolverContract.name(reversedNode)
-    //             if (ensName) {
-    //                 setParentName(ensName)
-    //             } else {
-    //                 setParentName("")
-    //             }
-    //         } catch (error) {
-    //             console.error("Error fetching ENS name:", error)
-    //             setParentName("")
-    //         }
-    //     }
-
-    //     setFetchingENS(false)
-    //     const approved = await checkOperatorAccess()
-    //     setOperatorAccess(approved)
-
-    // }
 
     const fetchUserOwnedDomains = async () => {
         if (!address || !config) {
@@ -497,7 +431,7 @@ export default function DeployForm() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (!signer) return
+        if (!walletClient) return
 
 
         // Validate label and parent name before checking
@@ -519,9 +453,8 @@ export default function DeployForm() {
 
         let resolvedAddress
         try {
-            const provider = (await signer).provider
             const fullEnsName = `${label}.${parentName}`
-            resolvedAddress = await provider.resolveName(fullEnsName)
+            resolvedAddress = await getEnsAddress(walletClient, {name: normalize(fullEnsName)})
         } catch (err) {
             console.error("Error checking ENS name:", err)
             setError("")
@@ -539,49 +472,64 @@ export default function DeployForm() {
     }
 
     const recordExist = async (name: string): Promise<boolean> => {
-        if (!signer) return false
+        if (!walletClient || !config?.ENS_REGISTRY) return false
         try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
             const parentNode = getParentNode(name)
 
-            if (!(await ensRegistryContract.recordExists(parentNode))) return false
-
-            return true
+            return await readContract(walletClient, {
+                address: config.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'recordExists',
+                args: [parentNode],
+            }) as boolean
         } catch (err) {
             return false
         }
     }
 
     const checkOperatorAccess = async (name: string): Promise<boolean> => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !name) return false;
+        if (!walletClient || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !name) return false;
 
         try {
-            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
-            const parentNode = getParentNode(name)
             // First check if the record exists
-            if (!(await ensRegistryContract.recordExists(parentNode))) return false;
+            if (!(await recordExist(name))) return false;
 
-            var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
-                nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER!, nameWrapperABI, await signer)
-            }
+            const parentNode = getParentNode(name)
 
-            let approved = false;
             if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-                approved = await ensRegistryContract.isApprovedForAll(address, config.ENSCRIBE_CONTRACT);
+                return await readContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'isApprovedForAll',
+                    args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                }) as boolean;
             } else {
-                const isWrapped = await nameWrapperContract?.isWrapped(parentNode);
+                const isWrapped = await readContract(walletClient, {
+                    address: config.NAME_WRAPPER as `0x${string}`,
+                    abi: nameWrapperABI,
+                    functionName: 'isWrapped',
+                    args: [parentNode],
+                }) as boolean;
                 if (isWrapped) {
                     // Wrapped Names
                     console.log(`Wrapped detected.`);
-                    approved = await nameWrapperContract?.isApprovedForAll(address, config.ENSCRIBE_CONTRACT!);
+                    return await readContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'isApprovedForAll',
+                        args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                    }) as boolean;
                 } else {
                     //Unwrapped Names
                     console.log(`Unwrapped detected.`);
-                    approved = await ensRegistryContract.isApprovedForAll(address, config.ENSCRIBE_CONTRACT!);
+                    return await readContract(walletClient, {
+                        address: config.ENS_REGISTRY as `0x${string}`,
+                        abi: ensRegistryABI,
+                        functionName: 'isApprovedForAll',
+                        args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                    }) as boolean
                 }
             }
-            return approved;
         } catch (err) {
             console.error("Approval check failed:", err)
             return false
@@ -589,30 +537,49 @@ export default function DeployForm() {
     }
 
     const revokeOperatorAccess = async () => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
+        if (!walletClient || !senderAddress || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
 
         setAccessLoading(true)
 
         try {
-            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
             if (!(await recordExist(parentName))) return;
 
             let tx;
 
             if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-                tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
+                tx = await writeContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setApprovalForAll',
+                    args: [config.ENSCRIBE_CONTRACT, false],
+                    account: senderAddress
+                });
             } else {
-                const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
-                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
+                const isWrapped = await readContract(walletClient, {
+                    address: config.NAME_WRAPPER as `0x${string}`,
+                    abi: nameWrapperABI,
+                    functionName: 'isWrapped',
+                    args: [parentNode],
+                })
 
                 tx = isWrapped
-                    ? await nameWrapperContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false)
-                    : await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, false);
+                    ? await writeContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'setApprovalForAll',
+                        args: [config.ENSCRIBE_CONTRACT, false],
+                        account: senderAddress
+                    })
+                    : await writeContract(walletClient, {
+                        address: config.ENS_REGISTRY as `0x${string}`,
+                        abi: ensRegistryABI,
+                        functionName: 'setApprovalForAll',
+                        args: [config.ENSCRIBE_CONTRACT, false],
+                        account: senderAddress!
+                    });
             }
 
-            await tx.wait()
-            const txReceipt = await tx.wait()
             let contractType;
             if (isOwnable) {
                 contractType = 'Ownable';
@@ -626,10 +593,10 @@ export default function DeployForm() {
                 Date.now(),
                 chainId,
                 '',
-                (await signer).address,
+                senderAddress,
                 `${label}.${parentName}`,
                 'revoke::setApprovalForAll',
-                txReceipt.hash,
+                tx,
                 contractType,
                 opType);
 
@@ -646,30 +613,49 @@ export default function DeployForm() {
     }
 
     const grantOperatorAccess = async () => {
-        if (!signer || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
+        if (!walletClient || !senderAddress || !address || !config?.ENS_REGISTRY || !config?.ENSCRIBE_CONTRACT || !getParentNode(parentName)) return;
 
         setAccessLoading(true)
 
         try {
-            const ensRegistryContract = new ethers.Contract(config.ENS_REGISTRY, ensRegistryABI, await signer)
             const parentNode = getParentNode(parentName)
             if (!(await recordExist(parentName))) return;
 
             let tx;
 
             if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-                tx = await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
+                tx = await writeContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setApprovalForAll',
+                    args: [config.ENSCRIBE_CONTRACT, true],
+                    account: senderAddress
+                });
             } else {
-                const nameWrapperContract = new ethers.Contract(config.NAME_WRAPPER, nameWrapperABI, await signer)
-                const isWrapped = await nameWrapperContract.isWrapped(parentNode)
+                const isWrapped = await readContract(walletClient, {
+                    address: config.NAME_WRAPPER as `0x${string}`,
+                    abi: nameWrapperABI,
+                    functionName: 'isWrapped',
+                    args: [parentNode],
+                }) as boolean
 
                 tx = isWrapped
-                    ? await nameWrapperContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true)
-                    : await ensRegistryContract.setApprovalForAll(config.ENSCRIBE_CONTRACT, true);
+                    ? await writeContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'setApprovalForAll',
+                        args: [config.ENSCRIBE_CONTRACT, true],
+                        account: senderAddress
+                    })
+                    : await writeContract(walletClient, {
+                        address: config.ENS_REGISTRY as `0x${string}`,
+                        abi: ensRegistryABI,
+                        functionName: 'setApprovalForAll',
+                        args: [config.ENSCRIBE_CONTRACT, true],
+                        account: senderAddress!
+                    });
             }
 
-            await tx.wait()
-            const txReceipt = await tx.wait()
             let contractType;
             if (isOwnable) {
                 contractType = 'Ownable';
@@ -683,10 +669,10 @@ export default function DeployForm() {
                 Date.now(),
                 chainId,
                 '',
-                (await signer).address,
+                senderAddress,
                 `${label}.${parentName}`,
                 'grant::setApprovalForAll',
-                txReceipt.hash,
+                tx,
                 contractType,
                 opType);
 
@@ -701,6 +687,9 @@ export default function DeployForm() {
 
 
     const deployContract = async () => {
+        if (!walletClient || !senderAddress || !config?.NAME_WRAPPER) {
+            return;
+        }
         if (!label.trim()) {
             setError("Label cannot be empty")
             return
@@ -747,30 +736,29 @@ export default function DeployForm() {
             setError('')
             setTxHash('')
 
-            if (!signer) {
+            if (!walletClient) {
                 alert('Please connect your wallet first.')
                 setLoading(false)
                 return
             }
 
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, (await signer))
             const parentNode = getParentNode(parentName)
-            var nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != 84532 && chain?.id != 8453) {
-                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, (await signer))
-            }
 
-            const finalBytecode = encodeConstructorArgs()
+            const finalBytecode = encodeConstructorArgs(bytecode, args, setError)
             const steps: Step[] = []
 
             console.log("label - ", label)
             console.log("parentName - ", parentName)
             console.log("parentNode - ", parentNode)
 
-            const txCost = await namingContract.pricing();
+            const txCost = await readContract(walletClient, {
+                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                abi: enscribeContractABI,
+                functionName: 'pricing',
+                args: [],
+            }) as bigint;
+
             console.log("txCost - ", txCost);
-            let senderAddress = (await signer).address
             let name = `${label}.${parentName}`
 
             if (isOwnable) {
@@ -778,36 +766,58 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set Primary Name",
                         action: async () => {
-                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {
-                                value: txCost
-                            })
-                            const txReceipt = await txn.wait()
-                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            await logMetric(
-                                corelationId,
-                                Date.now(),
-                                chainId,
-                                deployedContractAddress,
-                                senderAddress,
-                                name,
-                                'setNameAndDeploy',
-                                txReceipt.hash,
-                                'Ownable',
-                                opType);
+                            // const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {
+                            //     value: txCost
+                            // })
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: enscribeContractABI,
+                                functionName: 'setNameAndDeploy',
+                                args: [finalBytecode, label, parentName, parentNode],
+                                value: txCost,
+                                account: senderAddress
+                            });
+
+                            const txReceipt = await waitForTransactionReceipt(walletClient, {
+                                hash: txn,
+                            });
+                            const deployedContractAddress = await getDeployedAddress(txReceipt);
+                            if (deployedContractAddress) {
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    deployedContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'setNameAndDeploy',
+                                    txn,
+                                    'Ownable',
+                                    opType);
+                            }
                             return txn;
                         }
                     })
 
                 } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
+                    const isApprovedForAll  = await readContract(walletClient, {
+                        address: config.ENS_REGISTRY as `0x${string}`,
+                        abi: ensRegistryABI,
+                        functionName: 'isApprovedForAll',
+                        args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                    }) as boolean;
 
-                    const isApprovedForAll = await ensRegistryContract.isApprovedForAll(senderAddress, config?.ENSCRIBE_CONTRACT!);
                     if (!isApprovedForAll) {
                         steps.push({
                             title: "Give operator access",
                             action: async () => {
-                                const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                const txReceipt = await txn.wait()
+                                const txn = await writeContract(walletClient, {
+                                    address: config.ENS_REGISTRY as `0x${string}`,
+                                    abi: ensRegistryABI,
+                                    functionName: 'setApprovalForAll',
+                                    args: [config.ENSCRIBE_CONTRACT, true],
+                                    account: senderAddress!
+                                });
                                 await logMetric(
                                     corelationId,
                                     Date.now(),
@@ -816,7 +826,7 @@ export default function DeployForm() {
                                     senderAddress,
                                     name,
                                     'setApprovalForAll',
-                                    txReceipt.hash,
+                                    txn,
                                     'Ownable',
                                     opType);
                                 return txn;
@@ -827,39 +837,65 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
-                            const txReceipt = await txn.wait()
-                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            await logMetric(
-                                corelationId,
-                                Date.now(),
-                                chainId,
-                                deployedContractAddress,
-                                senderAddress,
-                                name,
-                                'setNameAndDeploy',
-                                txn.hash,
-                                'Ownable',
-                                opType);
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: enscribeContractABI,
+                                functionName: 'setNameAndDeploy',
+                                args: [finalBytecode, label, parentName, parentNode],
+                                value: txCost,
+                                account: senderAddress
+                            });
+                            const txReceipt = await waitForTransactionReceipt(walletClient, {
+                                hash: txn,
+                            });
+                            const deployedContractAddress = await getDeployedAddress(txReceipt);
+                            if (deployedContractAddress) {
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    deployedContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'setNameAndDeploy',
+                                    txn,
+                                    'Ownable',
+                                    opType);
+                            }
                             return txn;
                         }
                     })
 
                 } else {
                     console.log("User's parent deployment type")
-                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                    const isWrapped = await readContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'isWrapped',
+                        args: [parentNode],
+                    }) as boolean;
 
                     if (isWrapped) {
                         // Wrapped Names
                         console.log(`Wrapped detected.`);
-                        const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        const isApprovedForAll  = await readContract(walletClient, {
+                            address: config.NAME_WRAPPER as `0x${string}`,
+                            abi: nameWrapperABI,
+                            functionName: 'isApprovedForAll',
+                            args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                        }) as boolean;
+
                         if (!isApprovedForAll) {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                    const txReceipt = await txn.wait()
+                                    const txn = await writeContract(walletClient, {
+                                        address: config.NAME_WRAPPER as `0x${string}`,
+                                        abi: nameWrapperABI,
+                                        functionName: 'setApprovalForAll',
+                                        args: [config.ENSCRIBE_CONTRACT, true],
+                                        account: senderAddress
+                                    });
                                     await logMetric(
                                         corelationId,
                                         Date.now(),
@@ -868,7 +904,7 @@ export default function DeployForm() {
                                         senderAddress,
                                         name,
                                         'setApprovalForAll',
-                                        txReceipt.hash,
+                                        txn,
                                         'Ownable',
                                         opType);
                                     return txn;
@@ -879,13 +915,24 @@ export default function DeployForm() {
                     } else {
                         //Unwrapped Names
                         console.log(`Unwrapped detected.`);
-                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        const isApprovedForAll = await readContract(walletClient, {
+                            address: config.ENS_REGISTRY as `0x${string}`,
+                            abi: ensRegistryABI,
+                            functionName: 'isApprovedForAll',
+                            args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                        }) as boolean;
+
                         if (!isApprovedForAll) {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                    const txReceipt = await txn.wait()
+                                    const txn = await writeContract(walletClient, {
+                                        address: config.ENS_REGISTRY as `0x${string}`,
+                                        abi: ensRegistryABI,
+                                        functionName: 'setApprovalForAll',
+                                        args: [config.ENSCRIBE_CONTRACT, true],
+                                        account: senderAddress!
+                                    });
                                     await logMetric(
                                         corelationId,
                                         Date.now(),
@@ -894,7 +941,7 @@ export default function DeployForm() {
                                         senderAddress,
                                         name,
                                         'setApprovalForAll',
-                                        txReceipt.hash,
+                                        txn,
                                         'Ownable',
                                         opType);
                                     return txn;
@@ -906,21 +953,31 @@ export default function DeployForm() {
                     steps.push({
                         title: "Deploy and Set primary Name",
                         action: async () => {
-                            const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, { value: txCost })
-                            const txReceipt = await txn.wait()
-                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            await logMetric(
-                                corelationId,
-                                Date.now(),
-                                chainId,
-                                deployedContractAddress,
-                                senderAddress,
-                                name,
-                                'setNameAndDeploy',
-                                txReceipt.hash,
-                                'Ownable',
-                                opType);
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: enscribeContractABI,
+                                functionName: 'setNameAndDeploy',
+                                args: [finalBytecode, label, parentName, parentNode],
+                                value: txCost,
+                                account: senderAddress
+                            });
+                            const txReceipt = await waitForTransactionReceipt(walletClient, {
+                                hash: txn,
+                            });
+                            const deployedContractAddress = await getDeployedAddress(txReceipt);
+                            if (deployedContractAddress) {
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    deployedContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'setNameAndDeploy',
+                                    txReceipt.transactionHash,
+                                    'Ownable',
+                                    opType);
+                            }
                             return txn;
                         }
                     })
@@ -933,18 +990,34 @@ export default function DeployForm() {
             } else if (isReverseClaimable) {
                 if (isReverseSetter) {
                     // step 1: Get operator access
-                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                    const isWrapped = await readContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'isWrapped',
+                        args: [parentNode],
+                    }) as boolean;
 
                     if (isWrapped) {
                         // Wrapped Names
                         console.log(`Wrapped detected.`);
-                        const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        const isApprovedForAll  = await readContract(walletClient, {
+                            address: config.NAME_WRAPPER as `0x${string}`,
+                            abi: nameWrapperABI,
+                            functionName: 'isApprovedForAll',
+                            args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                        }) as boolean;
+
                         if (!isApprovedForAll) {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                    const txReceipt = await txn.wait()
+                                    const txn = await writeContract(walletClient, {
+                                        address: config.NAME_WRAPPER as `0x${string}`,
+                                        abi: nameWrapperABI,
+                                        functionName: 'setApprovalForAll',
+                                        args: [config.ENSCRIBE_CONTRACT, true],
+                                        account: senderAddress
+                                    });
                                     await logMetric(
                                         corelationId,
                                         Date.now(),
@@ -953,7 +1026,7 @@ export default function DeployForm() {
                                         senderAddress,
                                         name,
                                         'setApprovalForAll',
-                                        txReceipt.hash,
+                                        txn,
                                         'ReverseSetter',
                                         opType);
                                     return txn;
@@ -963,13 +1036,25 @@ export default function DeployForm() {
                     } else {
                         //Unwrapped Names
                         console.log(`Unwrapped detected.`);
-                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        const isApprovedForAll  = await readContract(walletClient, {
+                            address: config.ENS_REGISTRY as `0x${string}`,
+                            abi: ensRegistryABI,
+                            functionName: 'isApprovedForAll',
+                            args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                        }) as boolean;
+
                         if (!isApprovedForAll) {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                    const txReceipt = await txn.wait()
+                                    const txn = await writeContract(walletClient, {
+                                        address: config.ENS_REGISTRY as `0x${string}`,
+                                        abi: ensRegistryABI,
+                                        functionName: 'setApprovalForAll',
+                                        args: [config.ENSCRIBE_CONTRACT, true],
+                                        account: senderAddress!
+                                    });
+
                                     await logMetric(
                                         corelationId,
                                         Date.now(),
@@ -978,7 +1063,7 @@ export default function DeployForm() {
                                         senderAddress,
                                         name,
                                         'setApprovalForAll',
-                                        txReceipt.hash,
+                                        txn,
                                         'ReverseSetter',
                                         opType);
                                     return txn;
@@ -991,40 +1076,67 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseSetter(finalBytecode, label, parentName, parentNode, { value: txCost })
-                            const txReceipt = await tx.wait()
-                            setTxHash(txReceipt.hash)
-                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            setDeployedAddress(deployedContractAddress)
-                            await logMetric(
-                                corelationId,
-                                Date.now(),
-                                chainId,
-                                deployedContractAddress,
-                                senderAddress,
-                                name,
-                                'setNameAndDeployReverseSetter',
-                                txReceipt.hash,
-                                'ReverseSetter',
-                                opType);
-                            return tx
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: enscribeContractABI,
+                                functionName: 'setNameAndDeployReverseSetter',
+                                args: [finalBytecode, label, parentName, parentNode],
+                                value: txCost,
+                                account: senderAddress
+                            });
+                            setTxHash(txn)
+
+                            const txReceipt = await waitForTransactionReceipt(walletClient, {
+                                hash: txn,
+                            });
+                            const deployedContractAddress = await getDeployedAddress(txReceipt);
+                            if (deployedContractAddress) {
+                                setDeployedAddress(deployedContractAddress)
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    deployedContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'setNameAndDeployReverseSetter',
+                                    txn,
+                                    'ReverseSetter',
+                                    opType);
+                            }
+                            return txn
                         }
                     })
                 } else { // default ReverseClaimable flow
                     // step 1: Get operator access
-                    const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                    const isWrapped = await readContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'isWrapped',
+                        args: [parentNode],
+                    }) as boolean;
 
                     if (isWrapped) {
                         // Wrapped Names
                         console.log(`Wrapped detected.`);
-                        const isApprovedForAll = await nameWrapperContract?.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        const isApprovedForAll  = await readContract(walletClient, {
+                            address: config.NAME_WRAPPER as `0x${string}`,
+                            abi: nameWrapperABI,
+                            functionName: 'isApprovedForAll',
+                            args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                        }) as boolean;
+
                         if (!isApprovedForAll) {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn = await nameWrapperContract?.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                    const txReceipt = await txn.wait()
+                                    const txn = await writeContract(walletClient, {
+                                        address: config.NAME_WRAPPER as `0x${string}`,
+                                        abi: nameWrapperABI,
+                                        functionName: 'setApprovalForAll',
+                                        args: [config.ENSCRIBE_CONTRACT, true],
+                                        account: senderAddress
+                                    });
                                     await logMetric(
                                         corelationId,
                                         Date.now(),
@@ -1033,7 +1145,7 @@ export default function DeployForm() {
                                         senderAddress,
                                         name,
                                         'setApprovalForAll',
-                                        txReceipt.hash,
+                                        txn,
                                         'ReverseClaimer',
                                         opType);
                                     return txn;
@@ -1043,13 +1155,25 @@ export default function DeployForm() {
                     } else {
                         //Unwrapped Names
                         console.log(`Unwrapped detected.`);
-                        const isApprovedForAll = await ensRegistryContract.isApprovedForAll((await signer).address, config?.ENSCRIBE_CONTRACT!);
+                        const isApprovedForAll  = await readContract(walletClient, {
+                            address: config.ENS_REGISTRY as `0x${string}`,
+                            abi: ensRegistryABI,
+                            functionName: 'isApprovedForAll',
+                            args: [senderAddress, config.ENSCRIBE_CONTRACT],
+                        }) as boolean;
+
                         if (!isApprovedForAll) {
                             steps.push({
                                 title: "Give operator access",
                                 action: async () => {
-                                    const txn = await ensRegistryContract.setApprovalForAll(config?.ENSCRIBE_CONTRACT!, true);
-                                    const txReceipt = await txn.wait()
+                                    const txn = await writeContract(walletClient, {
+                                        address: config.ENS_REGISTRY as `0x${string}`,
+                                        abi: ensRegistryABI,
+                                        functionName: 'setApprovalForAll',
+                                        args: [config.ENSCRIBE_CONTRACT, true],
+                                        account: senderAddress!
+                                    });
+
                                     await logMetric(
                                         corelationId,
                                         Date.now(),
@@ -1058,7 +1182,7 @@ export default function DeployForm() {
                                         senderAddress,
                                         name,
                                         'setApprovalForAll',
-                                        txReceipt.hash,
+                                        txn,
                                         'ReverseClaimer',
                                         opType);
                                     return txn;
@@ -1071,24 +1195,35 @@ export default function DeployForm() {
                     steps.push({
                         title: "Set name & Deploy contract",
                         action: async () => {
-                            const tx = await namingContract.setNameAndDeployReverseClaimer(finalBytecode, label, parentName, parentNode, { value: txCost })
-                            const txReceipt = await tx.wait()
-                            setTxHash(txReceipt.hash)
-                            const matchingLog = txReceipt.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                            const deployedContractAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                            setDeployedAddress(deployedContractAddress)
-                            await logMetric(
-                                corelationId,
-                                Date.now(),
-                                chainId,
-                                deployedContractAddress,
-                                senderAddress,
-                                name,
-                                'setNameAndDeployReverseClaimer',
-                                txReceipt.hash,
-                                'ReverseClaimer',
-                                opType);
-                            return tx
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: enscribeContractABI,
+                                functionName: 'setNameAndDeployReverseSetter',
+                                args: [finalBytecode, label, parentName, parentNode],
+                                value: txCost,
+                                account: senderAddress
+                            });
+                            setTxHash(txn)
+
+                            const txReceipt = await getTransactionReceipt(walletClient, {
+                                hash: txn as `0x${string}`,
+                            });
+                            const deployedContractAddress = await getDeployedAddress(txReceipt);
+                            if (deployedContractAddress) {
+                                setDeployedAddress(deployedContractAddress)
+                                await logMetric(
+                                    corelationId,
+                                    Date.now(),
+                                    chainId,
+                                    deployedContractAddress,
+                                    senderAddress,
+                                    name,
+                                    'setNameAndDeployReverseClaimer',
+                                    txn,
+                                    'ReverseClaimer',
+                                    opType);
+                            }
+                            return txn
                         }
                     })
                 }
@@ -1260,7 +1395,7 @@ export default function DeployForm() {
                     + Add Argument
                 </Button>
 
-                <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
+                <label className="block text-gray-700 dark:text-gray-300">Contract Name</label>
 
                 <div className={"flex items-center space-x-2"}>
                     <Input
@@ -1275,8 +1410,9 @@ export default function DeployForm() {
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     />
                     <Button
-                        onClick={populateName}>
-                        Generate Name
+                        onClick={populateName}
+                        className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        ✨Generate Name
                     </Button>
                 </div>
 

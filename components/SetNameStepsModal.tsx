@@ -12,10 +12,12 @@ import { ethers } from 'ethers'
 import { CONTRACTS, TOPIC0 } from '../utils/constants';
 import { useAccount, useWalletClient } from 'wagmi'
 import { useRouter } from 'next/router'
+import {getEnsAddress, getTransactionReceipt, readContract, waitForTransactionReceipt, writeContract} from "viem/actions";
+import {getDeployedAddress} from "@/components/componentUtils";
 
 export interface Step {
     title: string
-    action: () => Promise<ethers.TransactionResponse | void>
+    action: () => Promise<`0x${string}` | void>
 }
 
 export interface SetNameStepsModalProps {
@@ -59,6 +61,7 @@ export default function SetNameStepsModal({
     const { chain } = useAccount()
     const router = useRouter()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
+    const { data: walletClient } = useWalletClient()
 
     // Reset state when modal opens or closes
     useEffect(() => {
@@ -108,6 +111,8 @@ export default function SetNameStepsModal({
     }, [currentStep, executing, errorMessage, stepStatuses]);
 
     const runStep = async (index: number) => {
+        if (!walletClient) return;
+
         let tx = null;
         let errorMain = null;
         setExecuting(true);
@@ -122,14 +127,17 @@ export default function SetNameStepsModal({
 
         try {
             if (tx) {
-                const receipt = await tx.wait();
-                const matchingLog = receipt?.logs.find((log: ethers.Log) => log.topics[0] === TOPIC0);
-                if (matchingLog) {
-                    const extractedAddress = ethers.getAddress("0x" + matchingLog.topics[1].slice(-40));
-                    setInternalContractAddress(extractedAddress);
-                    console.log("Contract address extracted:", extractedAddress);
+                const txReceipt = await waitForTransactionReceipt(walletClient, {
+                    hash: tx as `0x${string}`,
+                });
+                if (txReceipt) {
+                    const deployedContractAddress = await getDeployedAddress(txReceipt);
+                    if (deployedContractAddress) {
+                        setInternalContractAddress(deployedContractAddress);
+                    }
                 }
-                const txHash = receipt?.hash ?? null;
+
+                const txHash = txReceipt?.transactionHash ?? null;
 
                 setStepTxHashes((prev) => {
                     const updated = [...prev];

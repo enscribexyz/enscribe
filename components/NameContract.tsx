@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router';
-import { ethers, namehash, keccak256 } from 'ethers'
 import contractABI from '../contracts/Enscribe'
 import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
 import publicResolverABI from '../contracts/PublicResolver'
-import ownableContractABI from '../contracts/Ownable'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import { useAccount, useWalletClient } from 'wagmi'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -16,16 +14,19 @@ import { useToast } from "@/hooks/use-toast"
 import {CONTRACTS, CHAINS} from '../utils/constants';
 import Link from "next/link";
 import SetNameStepsModal, { Step } from './SetNameStepsModal';
-import {ArrowPathIcon, CheckCircleIcon} from "@heroicons/react/24/outline";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
 import {v4 as uuid} from "uuid";
 import {fetchGeneratedName, logMetric} from "@/components/componentUtils";
-import {XCircleIcon} from "@heroicons/react/24/outline";
+import {getEnsAddress, readContract, writeContract} from "viem/actions";
+import {namehash, normalize} from 'viem/ens'
+import type {Address} from "viem";
+import {isAddress, keccak256, toBytes} from "viem";
+import enscribeContractABI from "../contracts/Enscribe";
 
 export default function NameContract() {
     const router = useRouter();
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
-    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
     const config = chain?.id ? CONTRACTS[chain.id] : undefined;
     const enscribeDomain = config?.ENSCRIBE_DOMAIN!
@@ -60,6 +61,17 @@ export default function NameContract() {
     const [modalSteps, setModalSteps] = useState<Step[]>([]);
     const [modalTitle, setModalTitle] = useState('');
     const [modalSubtitle, setModalSubtitle] = useState('');
+
+    const [senderAddress, setSenderAddress] = useState<Address>()
+    useEffect(() => {
+        const connect = async () => {
+            if (!walletClient) return;
+            const [walletAddress] = await walletClient.requestAddresses();
+            setSenderAddress(walletAddress);
+        };
+
+        connect();
+    }, [walletClient]);
 
     const corelationId = uuid()
     const opType = "nameexisting"
@@ -98,8 +110,8 @@ export default function NameContract() {
         const initFromQuery = async () => {
             if (
                 router.query.contract &&
-                ethers.isAddress(router.query.contract as string) &&
-                signer
+                isAddress(router.query.contract as string) &&
+                walletClient
             ) {
                 const addr = router.query.contract as string;
                 setExistingContractAddress(addr);
@@ -110,7 +122,7 @@ export default function NameContract() {
         };
 
         initFromQuery();
-    }, [router.query.contract, signer]);
+    }, [router.query.contract, walletClient]);
 
     useEffect(() => {
         if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
@@ -305,7 +317,7 @@ export default function NameContract() {
     }
 
     const checkENSReverseResolution = async () => {
-        if (isEmpty(label) || !signer) return
+        if (isEmpty(label) || !walletClient) return
 
         // Validate label and parent name before checking
         // if (!label.trim()) {
@@ -324,9 +336,8 @@ export default function NameContract() {
         }
 
         try {
-            const provider = (await signer).provider
             const fullEnsName = `${label}.${parentName}`
-            const resolvedAddress = await provider.resolveName(fullEnsName)
+            let resolvedAddress = await getEnsAddress(walletClient, {name: normalize(fullEnsName)})
 
             if (resolvedAddress) {
                 setEnsNameTaken(true)
@@ -358,7 +369,7 @@ export default function NameContract() {
             return false
         }
 
-        if (!ethers.isAddress(existingContractAddress)) {
+        if (!isAddress(existingContractAddress)) {
             setError("Invalid contract address");
             setIsOwnable(false);
             setIsAddressInvalid(true);
@@ -369,37 +380,48 @@ export default function NameContract() {
 
     const checkIfContractOwner = async(address: string)=> {
         console.log("checkIfContractOwner called")
-        if (checkIfAddressEmpty(address) || !isAddressValid(address) || !signer) {
+        if (checkIfAddressEmpty(address) || !isAddressValid(address) || !walletClient || config?.ENS_REGISTRY) {
             setIsOwnable(false);
             setIsContractOwner(false);
             return
         }
-
         try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
-            const addrLabel = address.slice(2).toLowerCase()
-            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
-            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
-            console.log(`resolvedAddr: ${resolvedAddr.toLowerCase()} signer: ${(await signer).address.toLowerCase()}`)
-            setIsContractOwner(resolvedAddr.toLowerCase() == (await signer).address.toLowerCase())
+            const ownerAddress = await readContract(walletClient, {
+                address: address as `0x${string}`,
+                abi: ["function owner() view returns (address)"],
+                functionName: 'owner',
+                args: [],
+            }) as string;
+            setIsContractOwner(ownerAddress.toLowerCase() == senderAddress)
         } catch (err) {
             console.log("err " + err);
-            setIsAddressEmpty(false)
-            setIsAddressInvalid(false)
-            setIsOwnable(false);
-            setIsContractOwner(false);
+            const addrLabel = address.slice(2).toLowerCase()
+            const reversedNode = namehash(addrLabel + "." + "addr.reverse")
+            const resolvedAddr = await readContract(walletClient, {
+                address: config?.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'owner',
+                args: [reversedNode],
+            }) as string;
+
+            console.log(`resolvedAddr: ${resolvedAddr.toLowerCase()} signer: ${senderAddress}`)
+            setIsContractOwner(resolvedAddr.toLowerCase() == senderAddress)
         }
     }
 
     const checkIfOwnable = async (address: string) => {
-        if (checkIfAddressEmpty(address) || !isAddressValid(address)) {
+        if (checkIfAddressEmpty(address) || !isAddressValid(address) || !walletClient) {
             setIsOwnable(false);
             return
         }
 
         try {
-            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer));
-            const ownerAddress = await contract.owner();
+            const ownerAddress = await readContract(walletClient, {
+                address: address as `0x${string}`,
+                abi: ["function owner() view returns (address)"],
+                functionName: 'owner',
+                args: [],
+            }) as string;
 
             console.log("contract ownable")
             setIsOwnable(true);
@@ -421,20 +443,22 @@ export default function NameContract() {
         }
 
         try {
-            if (!signer) {
+            if (!walletClient) {
                 alert('Please connect your wallet first.')
                 setLoading(false)
                 return
             }
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
             const addrLabel = address.slice(2).toLowerCase()
             const reversedNode = namehash(addrLabel + "." + "addr.reverse")
-            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
+            const resolvedAddr = await readContract(walletClient, {
+                address: config?.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'owner',
+                args: [reversedNode],
+            }) as `0x${string}`;
             console.log("resolvedaddr is " + resolvedAddr)
 
-            const sender = (await signer)
-            const signerAddress = sender.address;
-            if (resolvedAddr === signerAddress) {
+            if (resolvedAddr === senderAddress) {
                 console.log("contract implements reverseclaimable")
                 setIsReverseClaimable(true);
             } else {
@@ -453,14 +477,16 @@ export default function NameContract() {
     };
 
     const recordExist = async (): Promise<boolean> => {
-        if (!signer || !getParentNode(parentName)) return false
+        if (!walletClient || !getParentNode(parentName)) return false
         try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
             const parentNode = getParentNode(parentName)
 
-            if (!(await ensRegistryContract.recordExists(parentNode))) return false
-
-            return true
+            return await readContract(walletClient, {
+                address: config?.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'recordExists',
+                args: [parentNode],
+            }) as boolean;
         } catch (err) {
             return false
         }
@@ -468,6 +494,7 @@ export default function NameContract() {
 
     const setPrimaryName = async (setPrimary: boolean) => {
         setError("")
+        if (!walletClient || !senderAddress) return
 
         if (!isAddressValid(existingContractAddress)) {
             setIsOwnable(false)
@@ -504,40 +531,40 @@ export default function NameContract() {
             setError('')
             setTxHash('')
 
-            if (!signer) {
+            if (!walletClient) {
                 alert('Please connect your wallet first.')
                 setLoading(false)
                 return
             }
 
-            const sender = (await signer)
-            const senderAddress = sender.address;
             const name = `${label}.${parentName}`
             const chainId = chain?.id!
 
-            const namingContract = new ethers.Contract(config?.ENSCRIBE_CONTRACT!, contractABI, sender)
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, sender)
-            let nameWrapperContract: ethers.Contract | null = null;
-            if (chain?.id != CHAINS.BASE && chain?.id != CHAINS.BASE_SEPOLIA) {
-                nameWrapperContract = new ethers.Contract(config?.NAME_WRAPPER!, nameWrapperABI, sender)
-            }
-            const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, sender)
-            const ownableContract = new ethers.Contract(existingContractAddress, ownableContractABI, sender)
             const parentNode = getParentNode(parentName)
             const node = namehash(label + "." + parentName)
-            const labelHash = keccak256(ethers.toUtf8Bytes(label))
-            const nameExist = await ensRegistryContract.recordExists(node)
+            const labelHash = keccak256(toBytes(label))
+
+            const nameExist = await readContract(walletClient, {
+                address: config?.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'recordExists',
+                args: [node],
+            }) as boolean;
+
             const steps: Step[] = []
 
-            let publicResolverAddress = config?.PUBLIC_RESOLVER!
+            let publicResolverAddress = config?.PUBLIC_RESOLVER! as `0x${string}`
             try {
-                publicResolverAddress = await ensRegistryContract.resolver(parentNode) || config?.PUBLIC_RESOLVER!
+                publicResolverAddress = await readContract(walletClient, {
+                    address: config?.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'resolver',
+                    args: [parentNode],
+                }) as `0x${string}`;
             } catch (err) {
                 console.log("err " + err);
                 setError("Failed to get public resolver");
             }
-
-            const publicResolverContract = new ethers.Contract(publicResolverAddress, publicResolverABI, sender)
 
             console.log("label - ", label)
             console.log("label hash - ", labelHash)
@@ -545,7 +572,13 @@ export default function NameContract() {
             console.log("parentNode - ", parentNode)
             console.log("name node - ", node)
 
-            const txCost = await namingContract.pricing();
+            const txCost = await readContract(walletClient, {
+                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                abi: enscribeContractABI,
+                functionName: 'pricing',
+                args: [],
+            }) as bigint;
+
             console.log("txCost - ", txCost);
 
             const titleFirst = parentType === 'web3labs' ? "Set forward resolution" : "Create subname"
@@ -555,10 +588,23 @@ export default function NameContract() {
                 title: titleFirst,
                 action: async () => {
                     if (parentType === 'web3labs') {
-                        const currentAddr = await publicResolverContract.addr(node)
+                        const currentAddr = await readContract(walletClient, {
+                            address: publicResolverAddress,
+                            abi: publicResolverABI,
+                            functionName: 'addr',
+                            args: [node],
+                        }) as `0x${string}`;
+
                         if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
-                            const txn = await namingContract.setName(existingContractAddress, label, parentName, parentNode, { value: txCost })
-                            const txReceipt = await txn.wait()
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: contractABI,
+                                functionName: 'setName',
+                                args: [existingContractAddress, label, parentName, parentNode],
+                                value: txCost,
+                                account: senderAddress
+                            });
+
                             await logMetric(
                                 corelationId,
                                 Date.now(),
@@ -567,7 +613,7 @@ export default function NameContract() {
                                 senderAddress,
                                 name,
                                 'subname::setName',
-                                txReceipt.hash,
+                                txn,
                                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                                 opType);
                             return txn
@@ -577,8 +623,13 @@ export default function NameContract() {
                         }
                     } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
                         if (!nameExist) {
-                            const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, publicResolverAddress, 0)
-                            const txReceipt = await txn.wait()
+                            const txn = await writeContract(walletClient, {
+                                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                                abi: ensRegistryABI,
+                                functionName: 'setSubnodeRecord',
+                                args: [parentNode, labelHash, senderAddress, publicResolverAddress, 0],
+                                account: senderAddress
+                            });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
@@ -587,17 +638,27 @@ export default function NameContract() {
                                 senderAddress,
                                 name,
                                 'subname::setSubnodeRecord',
-                                txReceipt.hash,
+                                txn,
                                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                                 opType);
                             return txn
                         }
                     } else {
-                        const isWrapped = await nameWrapperContract?.isWrapped(parentNode)
+                        const isWrapped = await readContract(walletClient, {
+                            address: config.NAME_WRAPPER as `0x${string}`,
+                            abi: nameWrapperABI,
+                            functionName: 'isWrapped',
+                            args: [parentNode],
+                        });
                         if (!nameExist) {
                             if (isWrapped) {
-                                const txn = await nameWrapperContract?.setSubnodeRecord(parentNode, label, sender.address, publicResolverAddress, 0, 0, 0)
-                                const txReceipt = await txn.wait()
+                                const txn = await writeContract(walletClient, {
+                                    address: config.NAME_WRAPPER as `0x${string}`,
+                                    abi: nameWrapperABI,
+                                    functionName: 'setSubnodeRecord',
+                                    args: [parentNode, label, senderAddress, publicResolverAddress, 0, 0, 0],
+                                    account: senderAddress
+                                });
                                 await logMetric(
                                     corelationId,
                                     Date.now(),
@@ -606,13 +667,18 @@ export default function NameContract() {
                                     senderAddress,
                                     name,
                                     'subname::setSubnodeRecord',
-                                    txReceipt.hash,
+                                    txn,
                                     isOwnable ? 'Ownable' : 'ReverseClaimer',
                                     opType);
                                 return txn
                             } else {
-                                const txn = await ensRegistryContract.setSubnodeRecord(parentNode, labelHash, sender.address, publicResolverAddress, 0)
-                                const txReceipt = await txn.wait()
+                                const txn = await writeContract(walletClient, {
+                                    address: config.ENS_REGISTRY as `0x${string}`,
+                                    abi: ensRegistryABI,
+                                    functionName: 'setSubnodeRecord',
+                                    args: [parentNode, labelHash, senderAddress, publicResolverAddress, 0],
+                                    account: senderAddress
+                                });
                                 await logMetric(
                                     corelationId,
                                     Date.now(),
@@ -621,7 +687,7 @@ export default function NameContract() {
                                     senderAddress,
                                     name,
                                     'subname::setSubnodeRecord',
-                                    txReceipt.hash,
+                                    txn,
                                     isOwnable ? 'Ownable' : 'ReverseClaimer',
                                     opType);
                                 return txn
@@ -636,10 +702,21 @@ export default function NameContract() {
                 steps.push({
                     title: "Set forward resolution",
                     action: async () => {
-                        const currentAddr = await publicResolverContract.addr(node)
+                        const currentAddr = await readContract(walletClient, {
+                            address: publicResolverAddress,
+                            abi: publicResolverABI,
+                            functionName: 'addr',
+                            args: [node],
+                        }) as `0x${string}`;
+
                         if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
-                            const txn = await publicResolverContract.setAddr(node, existingContractAddress)
-                            const txReceipt = await txn.wait()
+                            const txn = await writeContract(walletClient, {
+                                address: config.PUBLIC_RESOLVER as `0x${string}`,
+                                abi: publicResolverABI,
+                                functionName: 'setAddr',
+                                args: [node, existingContractAddress],
+                                account: senderAddress
+                            });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
@@ -648,7 +725,7 @@ export default function NameContract() {
                                 senderAddress,
                                 name,
                                 'fwdres::setAddr',
-                                txReceipt.hash,
+                                txn,
                                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                                 opType);
                             return txn
@@ -670,8 +747,13 @@ export default function NameContract() {
                     steps.push({
                         title: "Set reverse resolution",
                         action: async () => {
-                            const txn = await publicResolverContract.setName(reversedNode, `${label}.${parentName}`)
-                            const txReceipt = await txn.wait()
+                            const txn = await writeContract(walletClient, {
+                                address: publicResolverAddress,
+                                abi: publicResolverABI,
+                                functionName: 'setName',
+                                args: [reversedNode, `${label}.${parentName}`],
+                                account: senderAddress
+                            });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
@@ -680,7 +762,7 @@ export default function NameContract() {
                                 senderAddress,
                                 name,
                                 'revres::setName',
-                                txReceipt.hash,
+                                txn,
                                 'ReverseClaimer',
                                 opType);
                             return txn
@@ -691,8 +773,13 @@ export default function NameContract() {
                     steps.push({
                         title: "Set reverse resolution",
                         action: async () => {
-                            const txn = await reverseRegistrarContract.setNameForAddr(existingContractAddress, sender.address, publicResolverAddress, `${label}.${parentName}`)
-                            const txReceipt = await txn.wait()
+                            const txn = await writeContract(walletClient, {
+                                address: config.REVERSE_REGISTRAR as `0x${string}`,
+                                abi: reverseRegistrarABI,
+                                functionName: 'setNameForAddr',
+                                args: [existingContractAddress, senderAddress, publicResolverAddress, `${label}.${parentName}`],
+                                account: senderAddress
+                            });
                             await logMetric(
                                 corelationId,
                                 Date.now(),
@@ -701,7 +788,7 @@ export default function NameContract() {
                                 senderAddress,
                                 name,
                                 'revres::setNameForAddr',
-                                txReceipt.hash,
+                                txn,
                                 'Ownable',
                                 opType);
                             return txn
@@ -789,7 +876,7 @@ export default function NameContract() {
                         </>
                     }
                 </div>
-                <label className="block text-gray-700 dark:text-gray-300">Label Name</label>
+                <label className="block text-gray-700 dark:text-gray-300">Contract Name</label>
                 <div className={"flex items-center space-x-2"}>
                     <Input
                         type="text"
@@ -804,8 +891,9 @@ export default function NameContract() {
                         className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     />
                     <Button
-                        onClick={populateName}>
-                        Generate Name
+                        onClick={populateName}
+                        className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        ✨Generate Name
                     </Button>
                 </div>
 

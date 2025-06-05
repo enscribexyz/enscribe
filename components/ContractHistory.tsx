@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAccount, useWalletClient } from 'wagmi'
-import { ethers, namehash } from 'ethers'
 import {
     Table,
     TableBody,
@@ -17,10 +16,11 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { CONTRACTS, TOPIC0, CHAINS, SOURCIFY_URL, ETHERSCAN_API } from '../utils/constants'
 import ensRegistryABI from '../contracts/ENSRegistry'
-import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
-import publicResolverABI from '../contracts/PublicResolver'
-import { BadgeCheckIcon, CheckCircle2Icon, CircleAlert, Info, ShieldCheck, XCircle } from 'lucide-react'
-
+import { CircleAlert, Info, ShieldCheck } from 'lucide-react'
+import {getEnsName, namehash} from "viem/ens";
+import {readContract, waitForTransactionReceipt} from "viem/actions";
+import type {Address} from "viem";
+import {getDeployedAddress} from "@/components/componentUtils";
 
 interface Contract {
     ensName: string
@@ -38,7 +38,17 @@ export default function ContractHistory() {
     const { address, isConnected, chain } = useAccount()
     const { data: walletClient } = useWalletClient()
     const config = chain?.id ? CONTRACTS[chain.id] : undefined
-    const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+    const [senderAddress, setSenderAddress] = useState<Address>()
+
+    useEffect(() => {
+        const connect = async () => {
+            if (!walletClient) return;
+            const [walletAddress] = await walletClient.requestAddresses();
+            setSenderAddress(walletAddress);
+        };
+
+        connect();
+    }, [walletClient]);
 
     const [withENS, setWithENS] = useState<Contract[]>([])
     const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -167,12 +177,16 @@ export default function ContractHistory() {
     }
 
     const extractDeployed = async (txHash: string): Promise<string | null> => {
+        if (!walletClient) return null;
+
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum)
-            const receipt = await (await provider.getSigner()).provider.getTransactionReceipt(txHash)
-            for (const log of receipt!.logs) {
-                if (log.topics[0] === topic0) {
-                    return ethers.getAddress('0x' + log.topics[1].slice(-40))
+            const txReceipt = await waitForTransactionReceipt(walletClient, {
+                hash: txHash as `0x${string}`,
+            });
+            if (txReceipt) {
+                const deployedContractAddress = await getDeployedAddress(txReceipt);
+                if (deployedContractAddress) {
+                    return deployedContractAddress
                 }
             }
             return null
@@ -181,33 +195,52 @@ export default function ContractHistory() {
         }
     }
 
-
+    /**
+     * resolves the ENS name for the given `addr`
+     * @param addr
+     */
     const getENS = async (addr: string): Promise<string> => {
+        if (!config?.REVERSE_REGISTRAR || !walletClient) return ''
+
         if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
             try {
-                return (await (await signer)?.provider.lookupAddress(addr)) || ''
+                return await getEnsName(walletClient, {address: addr as `0x${string}`}) || ''
             } catch {
                 return ''
             }
         } else {
             try {
-                const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
-                const reversedNode = await reverseRegistrarContract.node(addr)
-                const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
-                const name = await resolverContract.name(reversedNode)
+                const reversedNode = await readContract(walletClient, {
+                    address: config.REVERSE_REGISTRAR as `0x${string}`,
+                    abi: ["function node(address) view returns (bytes32)"],
+                    functionName: 'node',
+                    args: [address],
+                });
+                const name = await readContract(walletClient, {
+                    address: config.PUBLIC_RESOLVER as `0x${string}`,
+                    abi: ["function name(bytes32) view returns (string)"],
+                    functionName: 'name',
+                    args: [reversedNode],
+                }) as string;
+
                 return name || '';
             } catch (error) {
                 return ''
             }
         }
-
     }
 
-
     const checkIfOwnable = async (address: string): Promise<boolean> => {
+        if (!walletClient) return false;
+
         try {
-            const contract = new ethers.Contract(address, ["function owner() view returns (address)"], (await signer)?.provider);
-            await contract.owner();
+            const ownerAddress = await readContract(walletClient, {
+                address: address as `0x${string}`,
+                abi: ["function owner() view returns (address)"],
+                functionName: 'owner',
+                args: [],
+            }) as string;
+
             return true
         } catch (err) {
             return false
@@ -215,19 +248,19 @@ export default function ContractHistory() {
     };
 
     const checkIfReverseClaimable = async (address: string): Promise<boolean> => {
+        if (!walletClient) return false;
+
         try {
-            const ensRegistryContract = new ethers.Contract(config?.ENS_REGISTRY!, ensRegistryABI, (await signer))
             const addrLabel = address.slice(2).toLowerCase()
             const reversedNode = namehash(addrLabel + "." + "addr.reverse")
-            const resolvedAddr = await ensRegistryContract.owner(reversedNode)
+            const resolvedAddr = await readContract(walletClient, {
+                address: config?.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'owner',
+                args: [reversedNode],
+            }) as `0x${string}`;
 
-            const sender = (await signer)
-            const signerAddress = sender?.address;
-            if (resolvedAddr === signerAddress) {
-                return true
-            } else {
-                return false
-            }
+            return resolvedAddr === senderAddress;
         } catch (err) {
             console.log("err " + err);
             return false

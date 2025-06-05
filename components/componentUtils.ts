@@ -1,4 +1,7 @@
-import {METRICS_URL, NAME_GEN_URL} from "@/utils/constants";
+import {METRICS_URL, NAME_GEN_URL, TOPIC0} from "../utils/constants";
+import {string} from "postcss-selector-parser";
+import {ethers} from "ethers";
+import {concatHex, encodeAbiParameters, getAddress, GetTransactionReceiptReturnType, Hex, Log} from "viem";
 
 export async function logMetric(
     corelationId: String,
@@ -43,4 +46,69 @@ export const fetchGeneratedName = async () => {
         console.error('Sourcify fetch failed:', err);
     }
     return ''
+}
+
+export type ConstructorArg = {
+    type: string
+    value: string
+    isCustom: boolean
+    isTuple?: boolean
+    label?: string
+}
+
+export const encodeConstructorArgs = (
+    bytecode: string,
+    args: ConstructorArg[],
+    setError: (msg: string) => void
+) => {
+    try {
+        const types = args.map((arg) => arg.type)
+        const values = args.map((arg) => {
+            try {
+                if (
+                    arg.type.startsWith("tuple") ||
+                    arg.type.endsWith("[]") ||
+                    arg.type === "bool" ||
+                    arg.type.startsWith("uint") ||
+                    arg.type === "int" ||
+                    arg.type.startsWith("int")
+                ) {
+                    return JSON.parse(arg.value)
+                }
+
+                // For address and string types, return as-is
+                return arg.value
+            } catch (parseErr) {
+                console.error(`Failed to parse value for type ${arg.type}:`, arg.value)
+                throw new Error(`Invalid value for argument ${arg.label || arg.type}`)
+            }
+        })
+
+        const encoded = encodeAbiParameters(
+            types.map((type) => ({ type })),
+            values
+        ) as Hex
+
+        return concatHex([bytecode as Hex, encoded])
+    } catch (err) {
+        console.error("Error encoding constructor args:", err)
+        setError("Error encoding constructor arguments. Please check your inputs.")
+        return bytecode
+    }
+}
+
+/** gets a contract's deployment address from a txn receipt.
+ *
+ * @param txnReceipt
+ */
+export async function getDeployedAddress(txnReceipt: GetTransactionReceiptReturnType) : Promise<`0x${string}` | undefined> {
+    if (txnReceipt) {
+        const matchingLog = txnReceipt.logs.find((log: Log) => log.topics[0] === TOPIC0);
+        if (matchingLog) {
+            const topic = matchingLog.topics[1]!;
+            return getAddress(`0x${topic.slice(-40)}`);
+        }
+    }
+
+    return undefined;
 }
