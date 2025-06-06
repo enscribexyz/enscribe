@@ -299,7 +299,7 @@ export default function ContractHistory() {
         args: [reversedNode],
       })) as `0x${string}`
 
-      return resolvedAddr === senderAddress
+      return resolvedAddr === walletAddress
     } catch (err) {
       console.log('err ' + err)
       return false
