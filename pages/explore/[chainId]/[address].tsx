@@ -4,6 +4,8 @@ import { isAddress } from 'viem/utils'
 import { createPublicClient, http } from 'viem'
 import Layout from '@/components/Layout'
 import ENSDetails from '@/components/ENSDetails'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
 import { CONTRACTS } from '@/utils/constants'
 import { useAccount } from 'wagmi'
 
@@ -80,49 +82,91 @@ export default function ExploreAddressPage() {
   }, [router.isReady, chainId])
 
   useEffect(() => {
+    // Exit early if not ready
+    if (!router.isReady) {
+      console.log('Router not ready yet')
+      return
+    }
+
+    // Exit early if no client
+    if (!client) {
+      console.log('No client available yet')
+      return
+    }
+
+    // Exit early if no address
+    if (!address || typeof address !== 'string') {
+      console.log('No valid address in URL parameters')
+      setIsLoading(false)
+      return
+    }
+
+    // Set loading state at the beginning of the effect
+    setIsLoading(true)
+    console.log(
+      'Starting address validation for:',
+      address,
+      'on chain:',
+      chainId,
+    )
+
+    // Function to validate the address
     const validateAddress = async () => {
-      if (!address || typeof address !== 'string' || !client) {
-        setIsLoading(false)
-        return
-      }
-
       try {
-        // Check if it's a valid Ethereum address
-        if (isAddress(address)) {
-          setIsValidAddress(true)
+        // Check if it's a valid Ethereum address format
+        const addressIsValid = isAddress(address)
+        console.log('Address format validation result:', addressIsValid)
 
-          try {
-            const bytecode = await client.getBytecode({
-              address: address as `0x${string}`,
-            })
-            console.log('Bytecode for address:', address, 'is:', bytecode)
-            if (bytecode && bytecode !== '0x') {
-              setIsContract(true)
-              console.log('Address is a contract')
-            } else {
-              setIsContract(false)
-              console.log('Address is an EOA (Externally Owned Account)')
-            }
-          } catch (err) {
-            console.error('Error getting bytecode:', err)
-            setError('Failed to verify if the address is a contract')
-            setIsContract(false)
-          }
-        } else {
+        if (!addressIsValid) {
+          console.log('Invalid address format:', address)
+          setIsValidAddress(false)
           setError('Invalid Ethereum address format')
+          return
+        }
+
+        // Mark as valid address format
+        setIsValidAddress(true)
+
+        try {
+          // Get bytecode to determine if it's a contract
+          console.log('Getting bytecode for address:', address)
+          const bytecode = await client.getBytecode({
+            address: address as `0x${string}`,
+          })
+          const isContractAddress = bytecode && bytecode !== '0x'
+
+          console.log(
+            'Bytecode check result:',
+            isContractAddress ? 'Is contract' : 'Is EOA',
+            bytecode
+              ? bytecode === '0x'
+                ? '(empty bytecode)'
+                : '(has bytecode)'
+              : '(no bytecode)',
+          )
+
+          // Update contract status
+          setIsContract(isContractAddress)
+        } catch (bytecodeError) {
+          console.error('Error getting bytecode:', bytecodeError)
+          setError('Failed to verify if the address is a contract')
+          // Still consider address valid, but not a contract
+          setIsContract(false)
         }
       } catch (err) {
-        console.error('Error validating address:', err)
+        console.error('Error in address validation:', err)
+        setIsValidAddress(false)
         setError('An error occurred while validating the address')
       } finally {
+        // Always make sure to finish loading
+        console.log('Completing address validation')
         setIsLoading(false)
       }
     }
 
-    if (router.isReady && client) {
-      validateAddress()
-    }
-  }, [router.isReady, address, client])
+    // Run the validation
+    validateAddress()
+  }, [router.isReady, chainId, address, client])
 
   if (isLoading) {
     return (
