@@ -83,12 +83,8 @@ export default function DeployForm() {
   const { data: walletClient } = useWalletClient()
 
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
-  if (!config) {
-    console.log('No config found for the selected chain.')
-    return
-  }
 
-  const enscribeDomain = config.ENSCRIBE_DOMAIN!
+  const enscribeDomain = config?.ENSCRIBE_DOMAIN!
 
   const chainId = chain?.id!
 
@@ -135,8 +131,8 @@ export default function DeployForm() {
   }
 
   useEffect(() => {
-    if (parentType === 'web3labs' && config.ENSCRIBE_DOMAIN) {
-      setParentName(config.ENSCRIBE_DOMAIN)
+    if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
+      setParentName(config?.ENSCRIBE_DOMAIN)
     }
   }, [config, parentType])
 
@@ -271,7 +267,7 @@ export default function DeployForm() {
       return
     }
 
-    if (!config.SUBGRAPH_API) {
+    if (!config?.SUBGRAPH_API) {
       console.warn('No subgraph API endpoint configured for this chain')
       return
     }
@@ -509,7 +505,7 @@ export default function DeployForm() {
   }
 
   const recordExist = async (name: string): Promise<boolean> => {
-    if (!walletClient || !config.ENS_REGISTRY) return false
+    if (!walletClient || !config?.ENS_REGISTRY) return false
     try {
       const parentNode = getParentNode(name)
 
@@ -528,8 +524,8 @@ export default function DeployForm() {
     if (
       !walletClient ||
       !walletAddress ||
-      !config.ENS_REGISTRY ||
-      !config.ENSCRIBE_CONTRACT ||
+      !config?.ENS_REGISTRY ||
+      !config?.ENSCRIBE_CONTRACT ||
       !name
     )
       return false
@@ -584,8 +580,8 @@ export default function DeployForm() {
     if (
       !walletClient ||
       !walletAddress ||
-      !config.ENS_REGISTRY ||
-      !config.ENSCRIBE_CONTRACT ||
+      !config?.ENS_REGISTRY ||
+      !config?.ENSCRIBE_CONTRACT ||
       !getParentNode(parentName)
     )
       return
@@ -679,8 +675,8 @@ export default function DeployForm() {
     if (
       !walletClient ||
       !walletAddress ||
-      !config.ENS_REGISTRY ||
-      !config.ENSCRIBE_CONTRACT ||
+      !config?.ENS_REGISTRY ||
+      !config?.ENSCRIBE_CONTRACT ||
       !getParentNode(parentName)
     )
       return
@@ -841,7 +837,7 @@ export default function DeployForm() {
       console.log('parentNode - ', parentNode)
 
       const txCost = (await readContract(walletClient, {
-        address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+        address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
         abi: enscribeContractABI,
         functionName: 'pricing',
         args: [],
@@ -859,7 +855,7 @@ export default function DeployForm() {
               //     value: txCost
               // })
               const txn = await writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
                 args: [finalBytecode, label, parentName, parentNode],
@@ -894,10 +890,10 @@ export default function DeployForm() {
           chain?.id == CHAINS.BASE_SEPOLIA
         ) {
           const isApprovedForAll = (await readContract(walletClient, {
-            address: config.ENS_REGISTRY as `0x${string}`,
+            address: config?.ENS_REGISTRY as `0x${string}`,
             abi: ensRegistryABI,
             functionName: 'isApprovedForAll',
-            args: [walletAddress, config.ENSCRIBE_CONTRACT],
+            args: [walletAddress, config?.ENSCRIBE_CONTRACT],
           })) as boolean
 
           if (!isApprovedForAll) {
@@ -905,10 +901,10 @@ export default function DeployForm() {
               title: 'Give operator access',
               action: async () => {
                 const txn = await writeContract(walletClient, {
-                  address: config.ENS_REGISTRY as `0x${string}`,
+                  address: config?.ENS_REGISTRY as `0x${string}`,
                   abi: ensRegistryABI,
                   functionName: 'setApprovalForAll',
-                  args: [config.ENSCRIBE_CONTRACT, true],
+                  args: [config?.ENSCRIBE_CONTRACT, true],
                   account: walletAddress,
                 })
                 const txReceipt = await waitForTransactionReceipt(
@@ -938,7 +934,7 @@ export default function DeployForm() {
             title: 'Deploy and Set primary Name',
             action: async () => {
               const txn = await writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
                 args: [finalBytecode, label, parentName, parentNode],
@@ -970,7 +966,7 @@ export default function DeployForm() {
         } else {
           console.log("User's parent deployment type")
           const isWrapped = (await readContract(walletClient, {
-            address: config.NAME_WRAPPER as `0x${string}`,
+            address: config?.NAME_WRAPPER as `0x${string}`,
             abi: nameWrapperABI,
             functionName: 'isWrapped',
             args: [parentNode],
@@ -980,10 +976,10 @@ export default function DeployForm() {
             // Wrapped Names
             console.log(`Wrapped detected.`)
             const isApprovedForAll = (await readContract(walletClient, {
-              address: config.NAME_WRAPPER as `0x${string}`,
+              address: config?.NAME_WRAPPER as `0x${string}`,
               abi: nameWrapperABI,
               functionName: 'isApprovedForAll',
-              args: [walletAddress, config.ENSCRIBE_CONTRACT],
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
             if (!isApprovedForAll) {
@@ -991,10 +987,10 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   const txn = await writeContract(walletClient, {
-                    address: config.NAME_WRAPPER as `0x${string}`,
+                    address: config?.NAME_WRAPPER as `0x${string}`,
                     abi: nameWrapperABI,
                     functionName: 'setApprovalForAll',
-                    args: [config.ENSCRIBE_CONTRACT, true],
+                    args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
                   const txReceipt = await waitForTransactionReceipt(
@@ -1023,10 +1019,10 @@ export default function DeployForm() {
             //Unwrapped Names
             console.log(`Unwrapped detected.`)
             const isApprovedForAll = (await readContract(walletClient, {
-              address: config.ENS_REGISTRY as `0x${string}`,
+              address: config?.ENS_REGISTRY as `0x${string}`,
               abi: ensRegistryABI,
               functionName: 'isApprovedForAll',
-              args: [walletAddress, config.ENSCRIBE_CONTRACT],
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
             if (!isApprovedForAll) {
@@ -1034,10 +1030,10 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   const txn = await writeContract(walletClient, {
-                    address: config.ENS_REGISTRY as `0x${string}`,
+                    address: config?.ENS_REGISTRY as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setApprovalForAll',
-                    args: [config.ENSCRIBE_CONTRACT, true],
+                    args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
                   const txReceipt = await waitForTransactionReceipt(
@@ -1068,7 +1064,7 @@ export default function DeployForm() {
             title: 'Deploy and Set primary Name',
             action: async () => {
               const txn = await writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
                 args: [finalBytecode, label, parentName, parentNode],
@@ -1107,7 +1103,7 @@ export default function DeployForm() {
         if (isReverseSetter) {
           // step 1: Get operator access
           const isWrapped = (await readContract(walletClient, {
-            address: config.NAME_WRAPPER as `0x${string}`,
+            address: config?.NAME_WRAPPER as `0x${string}`,
             abi: nameWrapperABI,
             functionName: 'isWrapped',
             args: [parentNode],
@@ -1117,10 +1113,10 @@ export default function DeployForm() {
             // Wrapped Names
             console.log(`Wrapped detected.`)
             const isApprovedForAll = (await readContract(walletClient, {
-              address: config.NAME_WRAPPER as `0x${string}`,
+              address: config?.NAME_WRAPPER as `0x${string}`,
               abi: nameWrapperABI,
               functionName: 'isApprovedForAll',
-              args: [walletAddress, config.ENSCRIBE_CONTRACT],
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
             if (!isApprovedForAll) {
@@ -1128,10 +1124,10 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   const txn = await writeContract(walletClient, {
-                    address: config.NAME_WRAPPER as `0x${string}`,
+                    address: config?.NAME_WRAPPER as `0x${string}`,
                     abi: nameWrapperABI,
                     functionName: 'setApprovalForAll',
-                    args: [config.ENSCRIBE_CONTRACT, true],
+                    args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
                   const txReceipt = await waitForTransactionReceipt(
@@ -1160,10 +1156,10 @@ export default function DeployForm() {
             //Unwrapped Names
             console.log(`Unwrapped detected.`)
             const isApprovedForAll = (await readContract(walletClient, {
-              address: config.ENS_REGISTRY as `0x${string}`,
+              address: config?.ENS_REGISTRY as `0x${string}`,
               abi: ensRegistryABI,
               functionName: 'isApprovedForAll',
-              args: [walletAddress, config.ENSCRIBE_CONTRACT],
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
             if (!isApprovedForAll) {
@@ -1171,10 +1167,10 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   const txn = await writeContract(walletClient, {
-                    address: config.ENS_REGISTRY as `0x${string}`,
+                    address: config?.ENS_REGISTRY as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setApprovalForAll',
-                    args: [config.ENSCRIBE_CONTRACT, true],
+                    args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
 
@@ -1207,7 +1203,7 @@ export default function DeployForm() {
             title: 'Set name & Deploy contract',
             action: async () => {
               const txn = await writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeployReverseSetter',
                 args: [finalBytecode, label, parentName, parentNode],
@@ -1243,7 +1239,7 @@ export default function DeployForm() {
           // default ReverseClaimable flow
           // step 1: Get operator access
           const isWrapped = (await readContract(walletClient, {
-            address: config.NAME_WRAPPER as `0x${string}`,
+            address: config?.NAME_WRAPPER as `0x${string}`,
             abi: nameWrapperABI,
             functionName: 'isWrapped',
             args: [parentNode],
@@ -1253,10 +1249,10 @@ export default function DeployForm() {
             // Wrapped Names
             console.log(`Wrapped detected.`)
             const isApprovedForAll = (await readContract(walletClient, {
-              address: config.NAME_WRAPPER as `0x${string}`,
+              address: config?.NAME_WRAPPER as `0x${string}`,
               abi: nameWrapperABI,
               functionName: 'isApprovedForAll',
-              args: [walletAddress, config.ENSCRIBE_CONTRACT],
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
             if (!isApprovedForAll) {
@@ -1264,10 +1260,10 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   const txn = await writeContract(walletClient, {
-                    address: config.NAME_WRAPPER as `0x${string}`,
+                    address: config?.NAME_WRAPPER as `0x${string}`,
                     abi: nameWrapperABI,
                     functionName: 'setApprovalForAll',
-                    args: [config.ENSCRIBE_CONTRACT, true],
+                    args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
                   const txReceipt = await waitForTransactionReceipt(
@@ -1296,10 +1292,10 @@ export default function DeployForm() {
             //Unwrapped Names
             console.log(`Unwrapped detected.`)
             const isApprovedForAll = (await readContract(walletClient, {
-              address: config.ENS_REGISTRY as `0x${string}`,
+              address: config?.ENS_REGISTRY as `0x${string}`,
               abi: ensRegistryABI,
               functionName: 'isApprovedForAll',
-              args: [walletAddress, config.ENSCRIBE_CONTRACT],
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
             if (!isApprovedForAll) {
@@ -1307,10 +1303,10 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   const txn = await writeContract(walletClient, {
-                    address: config.ENS_REGISTRY as `0x${string}`,
+                    address: config?.ENS_REGISTRY as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setApprovalForAll',
-                    args: [config.ENSCRIBE_CONTRACT, true],
+                    args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
                   const txReceipt = await waitForTransactionReceipt(
@@ -1343,7 +1339,7 @@ export default function DeployForm() {
             title: 'Set name & Deploy contract',
             action: async () => {
               const txn = await writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeployReverseClaimer',
                 args: [finalBytecode, label, parentName, parentNode],

@@ -41,13 +41,9 @@ export default function NameContract() {
   const { data: walletClient } = useWalletClient()
 
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
-  if (!config) {
-    console.log('No config found for the selected chain.')
-    return
-  }
-  const enscribeDomain = config.ENSCRIBE_DOMAIN!
-  const etherscanUrl = config.ETHERSCAN_URL!
-  const ensAppUrl = config.ENS_APP_URL!
+  const enscribeDomain = config?.ENSCRIBE_DOMAIN!
+  const etherscanUrl = config?.ETHERSCAN_URL!
+  const ensAppUrl = config?.ENS_APP_URL!
 
   const { toast } = useToast()
 
@@ -131,7 +127,7 @@ export default function NameContract() {
   }, [router.query.contract, walletClient])
 
   useEffect(() => {
-    if (parentType === 'web3labs' && config.ENSCRIBE_DOMAIN) {
+    if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
       setParentName(config.ENSCRIBE_DOMAIN)
     }
   }, [config, parentType])
@@ -147,7 +143,7 @@ export default function NameContract() {
       return
     }
 
-    if (!config.SUBGRAPH_API) {
+    if (!config?.SUBGRAPH_API) {
       console.warn('No subgraph API endpoint configured for this chain')
       return
     }
@@ -411,7 +407,7 @@ export default function NameContract() {
       checkIfAddressEmpty(address) ||
       !isAddressValid(address) ||
       !walletClient ||
-      !config.ENS_REGISTRY ||
+      !config?.ENS_REGISTRY ||
       !walletAddress
     ) {
       setIsOwnable(false)
@@ -497,7 +493,7 @@ export default function NameContract() {
       const addrLabel = address.slice(2).toLowerCase()
       const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
       const resolvedAddr = (await readContract(walletClient, {
-        address: config.ENS_REGISTRY as `0x${string}`,
+        address: config?.ENS_REGISTRY as `0x${string}`,
         abi: ensRegistryABI,
         functionName: 'owner',
         args: [reversedNode],
@@ -528,7 +524,7 @@ export default function NameContract() {
       const parentNode = getParentNode(parentName)
 
       return (await readContract(walletClient, {
-        address: config.ENS_REGISTRY as `0x${string}`,
+        address: config?.ENS_REGISTRY as `0x${string}`,
         abi: ensRegistryABI,
         functionName: 'recordExists',
         args: [parentNode],
