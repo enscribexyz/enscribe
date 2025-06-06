@@ -4,7 +4,7 @@ import { useAccount, usePublicClient } from 'wagmi';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExternalLink, CheckCircle, AlertCircle, XCircle, Clock } from 'lucide-react';
+import { ExternalLink, CheckCircle, AlertCircle, XCircle, Clock, Copy, Check } from 'lucide-react';
 import { CONTRACTS } from '@/utils/constants';
 import { CHAINS } from '@/utils/constants';
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar';
@@ -37,6 +37,22 @@ interface VerificationStatus {
 }
 
 export default function ENSDetails({ address, chainId, isContract }: ENSDetailsProps) {
+    // State for copy feedback
+    const [copied, setCopied] = useState<{ [key: string]: boolean }>({});
+
+    // Function to copy text to clipboard
+    const copyToClipboard = (text: string, id: string) => {
+        navigator.clipboard.writeText(text)
+            .then(() => {
+                setCopied({ ...copied, [id]: true });
+                setTimeout(() => {
+                    setCopied({ ...copied, [id]: false });
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Failed to copy text: ', err);
+            });
+    };
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [ensNames, setEnsNames] = useState<ENSDomain[]>([]);
@@ -620,10 +636,19 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                         variant="ghost"
                                         size="sm"
                                         className="ml-2"
+                                        onClick={() => copyToClipboard(primaryName, 'primary-name')}
+                                    >
+                                        {copied['primary-name'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="ml-1"
                                         asChild
                                     >
                                         <a href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`} target="_blank" rel="noopener noreferrer">
                                             <ExternalLink className="h-4 w-4" />
+                                            {/* <img src="/ens-logo.svg" alt="View on ENS" className="h-4 w-4" /> */}
                                         </a>
                                     </Button>
                                 </div>
@@ -721,6 +746,14 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                 variant="ghost"
                                 size="sm"
                                 className="ml-2"
+                                onClick={() => copyToClipboard(address, 'address')}
+                            >
+                                {copied['address'] ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-1"
                                 asChild
                             >
                                 <a href={`${etherscanUrl}address/${address}`} target="_blank" rel="noopener noreferrer">
@@ -872,8 +905,25 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                                     ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                                                     : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'}`}
                                             >
-                                                <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{domain.name}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">{domain.name}</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-5 w-5 p-0 flex-shrink-0"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            copyToClipboard(domain.name, `associated-${index}`);
+                                                        }}
+                                                    >
+                                                        {copied[`associated-${index}`] ?
+                                                            <Check className="h-3 w-3 text-green-500" /> :
+                                                            <Copy className="h-3 w-3" />}
+                                                    </Button>
+                                                </div>
+
                                                 <div className="flex items-center gap-2">
+
                                                     {domain.expiryDate && (
                                                         <span className="text-xs whitespace-nowrap">
                                                             {(() => {
@@ -912,7 +962,7 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="ml-2 h-6 w-6 p-0 flex-shrink-0"
+                                                        className="ml-1 h-6 w-6 p-0 flex-shrink-0"
                                                         asChild
                                                     >
                                                         <a
@@ -930,7 +980,8 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
                                         ))}
                                     </div>
                                 </div>
-                            </div>) : (
+                            </div>
+                        ) : (
                             <p className="text-sm text-gray-500 dark:text-gray-400 py-2">No Associated ENS names found for this address</p>
                         )}
                     </div>
@@ -957,7 +1008,23 @@ export default function ENSDetails({ address, chainId, isContract }: ENSDetailsP
 
                                                 return (
                                                     <div key={domain.name} className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}>
-                                                        <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{domain.name}</span>
+                                                        <div className="flex items-center gap-1">
+                                                            <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">{domain.name}</span>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-5 w-5 p-0 flex-shrink-0"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    copyToClipboard(domain.name, `owned-${index}`);
+                                                                }}
+                                                            >
+                                                                {copied[`owned-${index}`] ?
+                                                                    <Check className="h-3 w-3 text-green-500" /> :
+                                                                    <Copy className="h-3 w-3" />}
+                                                            </Button>
+                                                        </div>
+
                                                         <div className="flex items-center gap-2">
                                                             {domain.expiryDate && (
                                                                 <span className="text-xs whitespace-nowrap">

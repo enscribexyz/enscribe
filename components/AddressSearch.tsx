@@ -75,7 +75,14 @@ export default function AddressSearch({ selectedChain: propSelectedChain, setMan
 
       if (isValidAddress) {
         // It's a valid Ethereum address, redirect to explore page
-        router.push(`/explore/${selectedChain}/${cleanedQuery}`);
+        // Use window.location for a full refresh if we're already on an explore page
+        const currentPath = router.asPath;
+        if (currentPath.startsWith('/explore/')) {
+          console.log('Already on explore page, using hard redirect');
+          window.location.href = `/explore/${selectedChain}/${cleanedQuery}`;
+        } else {
+          router.push(`/explore/${selectedChain}/${cleanedQuery}`);
+        }
       } else {
         try {
           console.log('Not a valid address, trying to resolve as ENS name:', cleanedQuery);
@@ -94,7 +101,14 @@ export default function AddressSearch({ selectedChain: propSelectedChain, setMan
           const resolvedAddress = await mainnetProvider.resolveName(cleanedQuery);
 
           if (resolvedAddress) {
-            router.push(`/explore/${selectedChain}/${resolvedAddress}`);
+            // Use window.location for a full refresh if we're already on an explore page
+            const currentPath = router.asPath;
+            if (currentPath.startsWith('/explore/')) {
+              console.log('Already on explore page, using hard redirect for resolved ENS');
+              window.location.href = `/explore/${selectedChain}/${resolvedAddress}`;
+            } else {
+              router.push(`/explore/${selectedChain}/${resolvedAddress}`);
+            }
           } else {
             setError("Invalid address or ENS name");
           }
