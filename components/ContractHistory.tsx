@@ -46,20 +46,9 @@ interface Contract {
 }
 
 export default function ContractHistory() {
-  const { address, isConnected, chain } = useAccount()
+  const { address: walletAddress, isConnected, chain } = useAccount()
   const { data: walletClient } = useWalletClient()
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
-  const [senderAddress, setSenderAddress] = useState<Address>()
-
-  useEffect(() => {
-    const connect = async () => {
-      if (!walletClient) return
-      const [walletAddress] = await walletClient.requestAddresses()
-      setSenderAddress(walletAddress)
-    }
-
-    connect()
-  }, [walletClient])
 
   const [withENS, setWithENS] = useState<Contract[]>([])
   const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -71,7 +60,7 @@ export default function ContractHistory() {
   const [pageWithout, setPageWithout] = useState(1)
   const itemsPerPage = 10
 
-  const etherscanApi = `${ETHERSCAN_API}&chainid=${chain?.id}&module=account&action=txlist&address=${address}&startblock=0&endblock=999999999999&sort=asc`
+  const etherscanApi = `${ETHERSCAN_API}&chainid=${chain?.id}&module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=999999999999&sort=asc`
   const etherscanUrl = config!.ETHERSCAN_URL
   const blockscoutUrl = config!.BLOCKSCOUT_URL
   const chainlensUrl = config!.CHAINLENS_URL
@@ -79,9 +68,9 @@ export default function ContractHistory() {
   const topic0 = TOPIC0
 
   useEffect(() => {
-    if (!isConnected || !address || !walletClient) return
+    if (!isConnected || !walletAddress || !walletClient) return
     fetchTxs()
-  }, [address, isConnected, walletClient])
+  }, [walletAddress, isConnected, walletClient])
 
   const fetchTxs = async () => {
     setLoading(true)
@@ -264,7 +253,7 @@ export default function ContractHistory() {
           address: config.REVERSE_REGISTRAR as `0x${string}`,
           abi: ['function node(address) view returns (bytes32)'],
           functionName: 'node',
-          args: [address],
+          args: [walletAddress],
         })
         const name = (await readContract(walletClient, {
           address: config.PUBLIC_RESOLVER as `0x${string}`,
