@@ -4,9 +4,9 @@ import DeployForm from '../components/DeployForm'
 import NameContract from '@/components/NameContract'
 
 export default function NameExisitingContract() {
-    return (
-        <Layout>
-            <NameContract />
-        </Layout>
-    )
+  return (
+    <Layout>
+      <NameContract />
+    </Layout>
+  )
 }
