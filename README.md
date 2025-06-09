@@ -1,5 +1,7 @@
 # Enscribe
 
+[Enscribe](https://www.enscribe.xyz/) is an app that enables developers to easily assign ENS names to smart contracts, while providing verification data to increase user trust.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
 ## Getting Started
