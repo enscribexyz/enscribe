@@ -19,6 +19,8 @@ import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
 import ensRegistryABI from '@/contracts/ENSRegistry'
+import { useRouter } from 'next/router'
+import { useToast } from '@/hooks/use-toast'
 
 interface ENSDetailsProps {
   address: string
@@ -49,6 +51,8 @@ export default function ENSDetails({
   chainId,
   isContract,
 }: ENSDetailsProps) {
+  const router = useRouter()
+  const { toast } = useToast()
   // State for copy feedback
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
 
@@ -96,6 +100,60 @@ export default function ENSDetails({
     providedChainId: chainId,
     shouldUseWalletClient,
   })
+
+  // Function to handle ENS name click and resolve address
+  const handleENSNameClick = async (ensName: string, e: React.MouseEvent) => {
+    e.preventDefault()
+    try {
+      console.log('Resolving ENS name:', ensName)
+
+      // Determine if we're on a testnet
+      const isTestnet = [
+        CHAINS.SEPOLIA,
+        CHAINS.LINEA_SEPOLIA,
+        CHAINS.BASE_SEPOLIA,
+      ].includes(effectiveChainId || CHAINS.MAINNET)
+
+      // Use mainnet for mainnets, sepolia for testnets
+      const ensChainId = isTestnet ? CHAINS.SEPOLIA : CHAINS.MAINNET
+
+      console.log(
+        'Using chain for ENS resolution:',
+        ensChainId,
+        isTestnet ? '(testnet)' : '(mainnet)',
+      )
+      const provider = new ethers.JsonRpcProvider(
+        CONTRACTS[ensChainId].RPC_ENDPOINT,
+      )
+
+      // Resolve the ENS name to an address
+      const resolvedAddress = await provider.resolveName(ensName)
+
+      if (resolvedAddress) {
+        console.log('Resolved ENS name to address:', resolvedAddress)
+        window.open(
+          `/explore/${effectiveChainId || CHAINS.MAINNET}/${resolvedAddress}`,
+          '_blank',
+        )
+      } else {
+        console.error('Failed to resolve ENS name:', ensName)
+
+        // Show toast notification for unresolved ENS name
+        toast({
+          title: 'Resolution Failed',
+          description: `${ensName} doesn't resolve to any address`,
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      console.error('Error resolving ENS name:', error)
+      toast({
+        title: 'Error',
+        description: `Failed to resolve ${ensName}`,
+        variant: 'destructive',
+      })
+    }
+  }
 
   const fetchUserOwnedDomains = useCallback(async () => {
     if (!address || !config?.SUBGRAPH_API) {
@@ -1235,9 +1293,15 @@ export default function ENSDetails({
                             className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
                           >
                             <div className="flex items-center gap-1">
-                              <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
+                              <a
+                                href={`/explore/${effectiveChainId || CHAINS.MAINNET}/resolve/${domain.name}`}
+                                className="font-mono text-sm text-blue-600 dark:text-blue-200 truncate px-2 hover:underline hover:text-blue-800 dark:hover:text-blue-100"
+                                onClick={(e) =>
+                                  handleENSNameClick(domain.name, e)
+                                }
+                              >
                                 {domain.name}
-                              </span>
+                              </a>
                               <Button
                                 variant="ghost"
                                 size="sm"
