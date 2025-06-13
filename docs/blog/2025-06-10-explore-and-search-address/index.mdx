@@ -1,0 +1,130 @@
+---
+slug: explore-and-search-address
+title: "Explore Accounts, Contracts and ENS Names Across Multiple Chains"
+authors: [nischal]
+tags: [ens]
+---
+
+We've updated [Enscribe](https://app.enscribe.xyz) to make contract exploration clear and useful across multiple networks. This update focuses on direct sharing links, multi-chain support, and better ENS integration to help you identify and trust smart contracts.
+
+## What's New
+
+This update adds several improvements to the Enscribe platform:
+
+- **Universal Search** - Search for any address (EOA or contract) or ENS name without connecting your wallet first
+- **Cross-Chain Exploration** - View smart contracts and accounts on Ethereum, Linea, and Base networks
+- **Contract Verification Display** - See verification status from Sourcify, Etherscan, and Blockscout at a glance
+- **ENS Details** - Clear visibility of all associated and owned ENS names with expiry status
+- **Shareable URLs** - Direct links to any address on any supported chain
+
+## Universal Search
+
+The updated search bar lets you look up any Ethereum address or ENS name without connecting your wallet first. Just paste a 0x address or type an ENS name, and Enscribe immediately shows you the relevant details.
+
+![Universal Search Bar](./searchbar.png)
+
+The search works with:
+- Standard Ethereum addresses (0x...)
+- ENS names
+- Automatic detection of which chain to use
+
+The ENS resolution works correctly across different networks, using mainnet resolvers for production chains and Sepolia for test networks, then directing you to the right page based on chain context.
+
+## The Explore Page
+
+Our new Explore page serves as a central hub for getting ENS details for any address onchain. It detects whether you're looking at a smart contract or a regular account (EOA) and shows you specific information that matters for each type.
+
+You can directly access any address using this URL format:
+
+```
+https://app.enscribe.xyz/explore/<chainId>/<address>
+```
+
+This standardized URL structure makes addresses easy to bookmark and share with others, allowing for collaborative exploration of the Ethereum ecosystem.
+
+### Contract Details View
+
+When viewing a contract, the display includes:
+
+- The contract's primary ENS name (if registered) with color-coded expiry status icons:
+  - Green checkmark: Valid registration (more than 3 months until expiry)
+  - Yellow exclamation: Expiring soon (within 3 months)
+  - Red X: Expired (in grace period)
+- Verification status across multiple sources (Sourcify, Etherscan, Blockscout)
+- Direct links to view verified source code
+- If not verified, user can select "Verify" button to verify the contract on respective platform
+- All ENS names associated with this contract address
+- ENS names owned or managed by this contract with expiration status
+- Copy buttons for addresses and names with visual confirmation
+
+![Contract Details View](./contract.png)
+
+This clear layout helps developers quickly confirm contract identity and trustworthiness without navigating between multiple tools.
+
+### Account Details View
+
+For regular accounts (EOAs), the page shows:
+
+- Primary ENS name (if available) with appropriate expiry status icon similar to contract view
+- All associated ENS names pointing to this address
+- ENS names owned or managed by this address with expiry information
+- Copy functionality for addresses and names
+
+![Account Details View](./account.png)
+
+Both account and contract views include external links — addresses link to Etherscan while ENS names link to the ENS app. When you click on an ENS name that a contract or account owns, Enscribe resolves it to an address and opens that address in a new tab within Enscribe.
+
+The ENS name resolution for owned names:
+- Opens resolved addresses in a new tab for convenient exploration
+- Shows toast notifications for failed resolutions
+
+## Smart Chain Selector
+
+The chain selector helps you navigate between networks while examining an address. It sits at the top of the interface and changes how it works based on whether your wallet is connected.
+
+**When No Wallet is Connected:**
+
+![Chain Selector - wallet disconnected](./chain-selector.png)
+
+- Choose any supported chain from the dropdown
+- Switch networks to compare the same address across chains
+- All data loads specifically for the selected network
+
+**When a Wallet is Connected:**
+
+![Wallet Connected](./wallet-selector.png)
+
+- Chain selector automatically syncs with your connected wallet's network
+- When switching chains on wallet, you'll be redirected to view the same address on the newly selected chain
+
+## Network Support
+
+Enscribe supports multiple chains:
+
+- **Ethereum Mainnet** 
+- **Ethereum Sepolia** 
+- **Linea Mainnet** (with .linea.eth domains)
+- **Linea Sepolia** (with .linea-sepolia.eth domains)
+- **Base Mainnet** (with .base.eth domains)
+- **Base Sepolia** - Partial support (working with ENS node Namehash team for full integration)
+
+This design handles the specific requirements of each chain, including ENS resolution differences and verification source availability. When you switch chains, the URL updates with the new chain ID, creating direct links to the same address across different networks.
+
+## Looking Forward
+
+This update makes Enscribe a more useful tool for everyone who works with smart contracts. It creates clarity around contract identity and verification status across multiple networks.
+
+Our upcoming development priorities include:
+
+- Support for Base Sepolia
+- Integration with Ethereum Follow Protocol 
+- Enhanced ENS management tools and details
+
+
+## Try It Today
+
+We're incredibly excited to share these new capabilities with our community. Checkout all these features today by visiting [Enscribe App](https://app.enscribe.xyz).
+
+We build based on community feedback. Share your thoughts and suggestions in our [Discord community](https://discord.gg/8QUMMdS5GY) or [Telegram](https://t.me/enscribers), or follow updates on [Twitter/X](https://x.com/enscribe_).
+
+Happy naming! 🚀
