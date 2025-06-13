@@ -1,26 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import { useAccount, usePublicClient } from 'wagmi'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  ExternalLink,
-  CheckCircle,
-  AlertCircle,
-  XCircle,
-  Clock,
-  Copy,
-  Check,
-} from 'lucide-react'
-import { CONTRACTS } from '@/utils/constants'
-import { CHAINS } from '@/utils/constants'
+import { AlertCircle, Check, CheckCircle, Copy, ExternalLink, XCircle } from 'lucide-react'
+import { CHAINS, CONTRACTS } from '@/utils/constants'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
 import ensRegistryABI from '@/contracts/ENSRegistry'
-import { useRouter } from 'next/router'
-import { useToast } from '@/hooks/use-toast'
+// import { EnsRainbowApiClient } from '@ensnode/ensrainbow-sdk'
 
 interface ENSDetailsProps {
   address: string
@@ -51,8 +41,6 @@ export default function ENSDetails({
   chainId,
   isContract,
 }: ENSDetailsProps) {
-  const router = useRouter()
-  const { toast } = useToast()
   // State for copy feedback
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
 
@@ -100,60 +88,6 @@ export default function ENSDetails({
     providedChainId: chainId,
     shouldUseWalletClient,
   })
-
-  // Function to handle ENS name click and resolve address
-  const handleENSNameClick = async (ensName: string, e: React.MouseEvent) => {
-    e.preventDefault()
-    try {
-      console.log('Resolving ENS name:', ensName)
-
-      // Determine if we're on a testnet
-      const isTestnet = [
-        CHAINS.SEPOLIA,
-        CHAINS.LINEA_SEPOLIA,
-        CHAINS.BASE_SEPOLIA,
-      ].includes(effectiveChainId || CHAINS.MAINNET)
-
-      // Use mainnet for mainnets, sepolia for testnets
-      const ensChainId = isTestnet ? CHAINS.SEPOLIA : CHAINS.MAINNET
-
-      console.log(
-        'Using chain for ENS resolution:',
-        ensChainId,
-        isTestnet ? '(testnet)' : '(mainnet)',
-      )
-      const provider = new ethers.JsonRpcProvider(
-        CONTRACTS[ensChainId].RPC_ENDPOINT,
-      )
-
-      // Resolve the ENS name to an address
-      const resolvedAddress = await provider.resolveName(ensName)
-
-      if (resolvedAddress) {
-        console.log('Resolved ENS name to address:', resolvedAddress)
-        window.open(
-          `/explore/${effectiveChainId || CHAINS.MAINNET}/${resolvedAddress}`,
-          '_blank',
-        )
-      } else {
-        console.error('Failed to resolve ENS name:', ensName)
-
-        // Show toast notification for unresolved ENS name
-        toast({
-          title: 'Resolution Failed',
-          description: `${ensName} doesn't resolve to any address`,
-          variant: 'destructive',
-        })
-      }
-    } catch (error) {
-      console.error('Error resolving ENS name:', error)
-      toast({
-        title: 'Error',
-        description: `Failed to resolve ${ensName}`,
-        variant: 'destructive',
-      })
-    }
-  }
 
   const fetchUserOwnedDomains = useCallback(async () => {
     if (!address || !config?.SUBGRAPH_API) {
@@ -556,18 +490,38 @@ export default function ENSDetails({
         }
 
         // Create domains array with expiry dates already included
-        const domains = filteredDomains.map(
-          (domain: {
-            name: string
-            registration: { expiryDate: string } | null
-          }) => ({
-            name: domain.name,
-            isPrimary: domain.name === primaryName,
-            expiryDate: domain.registration?.expiryDate
-              ? Number(domain.registration.expiryDate)
-              : undefined,
-          }),
-        )
+        const filterDomains = async () => {
+          // const client = new EnsRainbowApiClient();
+          return await Promise.all(
+            filteredDomains.map(
+              async (domain: {
+                name: string
+                registration: { expiryDate: string } | null
+              }) => {
+                // if (domain.name.startsWith('[')) {
+                //   const match = domain.name.match(/\[([^\]]+)\]/);
+                //   if (match) {
+                //     const response = await client.heal(`0x${match[1]}`)
+                //     if (response.status == "success") {
+                //       console.log(`domain name: ${domain.name}, healed: ${response.label}`)
+                //       domain.name = response.label!
+                //     }
+                //   }
+                // }
+
+                return {
+                  name: domain.name,
+                  isPrimary: domain.name === primaryName,
+                  expiryDate: domain.registration?.expiryDate
+                    ? Number(domain.registration.expiryDate)
+                    : undefined,
+                }
+              },
+            )
+          )
+        }
+
+        const domains = await filterDomains()
 
         // Sort domains: primary first, then by name length
         const sortedDomains = domains.sort(
@@ -1293,15 +1247,9 @@ export default function ENSDetails({
                             className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
                           >
                             <div className="flex items-center gap-1">
-                              <a
-                                href={`/explore/${effectiveChainId || CHAINS.MAINNET}/resolve/${domain.name}`}
-                                className="font-mono text-sm text-blue-600 dark:text-blue-200 truncate px-2 hover:underline hover:text-blue-800 dark:hover:text-blue-100"
-                                onClick={(e) =>
-                                  handleENSNameClick(domain.name, e)
-                                }
-                              >
+                              <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
                                 {domain.name}
-                              </a>
+                              </span>
                               <Button
                                 variant="ghost"
                                 size="sm"
