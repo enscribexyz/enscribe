@@ -11,6 +11,7 @@ import {
   InformationCircleIcon,
   DocumentIcon,
   MagnifyingGlassIcon,
+  UserIcon
 } from '@heroicons/react/24/outline'
 import AddressSearch from './AddressSearch'
 import ChainSelector from './ChainSelector'
@@ -21,22 +22,29 @@ interface LayoutProps {
   children: React.ReactNode
 }
 
-const navigation = [
-  { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
-  { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
-  { name: 'My Contracts', href: '/history', icon: ClockIcon },
-]
 
 const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { isConnected, chain, connector } = useAccount()
+  const { isConnected, chain, connector, address: walletAddress } = useAccount()
   const [selectedChain, setSelectedChain] = useState<number>(1)
   const [manuallyChanged, setManuallyChanged] = useState(false)
   const [prevConnected, setPrevConnected] = useState(false)
   const [prevChain, setPrevChain] = useState<number | undefined>()
   const router = useRouter()
+
+  const navigation = [
+    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
+    { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
+    ...(isConnected
+      ? [
+        { name: 'My Account', href: `/explore/${chain?.id}/${walletAddress}`, icon: UserIcon },
+        { name: 'My Contracts', href: '/history', icon: ClockIcon },
+      ]
+      : []),
+
+  ]
 
   // Initialize selectedChain from URL on first load only
   useEffect(() => {
