@@ -50,7 +50,7 @@ export default function ContractHistory() {
   const chainId = useChainId()
 
   const { data: walletClient } = useWalletClient()
-  const config = chain?.id ? CONTRACTS[chain.id] : undefined
+  const config = chainId ? CONTRACTS[chainId] : undefined
 
   const [withENS, setWithENS] = useState<Contract[]>([])
   const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -62,7 +62,7 @@ export default function ContractHistory() {
   const [pageWithout, setPageWithout] = useState(1)
   const itemsPerPage = 10
 
-  const etherscanApi = `${ETHERSCAN_API}&chainid=${chain?.id}&module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=999999999999&sort=asc`
+  const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=999999999999&sort=asc`
   const etherscanUrl = config!.ETHERSCAN_URL
   const blockscoutUrl = config!.BLOCKSCOUT_URL
   const chainlensUrl = config!.CHAINLENS_URL
@@ -93,8 +93,10 @@ export default function ContractHistory() {
         setProcessing(true)
 
         for (const tx of data.result || []) {
-          if (signal.aborted || !isMounted)
+          if (signal.aborted || !isMounted || !walletClient) {
+            console.log(`signal aborted: ${signal.aborted}, isMounted: ${isMounted}, walletClient: ${walletClient}`)
             break
+          }
 
           const txHash = tx.hash
           let isOwnable = false
@@ -112,7 +114,7 @@ export default function ContractHistory() {
               isOwnable = await checkIfReverseClaimable(contractAddr)
             }
 
-            const result = await getContractStatus(chain?.id, contractAddr, signal)
+            const result = await getContractStatus(chainId, contractAddr, signal)
             const sourcifyVerification = result.sourcify_verification
             const etherscanVerification = result.etherscan_verification
             const blockscoutVerification = result.blockscout_verification
@@ -132,10 +134,11 @@ export default function ContractHistory() {
               attestation,
             }
             // const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
-            console.log('contract - ', contract)
+            // console.log('contract - ', contract)
 
             if (isMounted) {
               if (ensName) {
+                console.log(`setWithENS`)
                 setWithENS((prev) => {
                   const alreadyExists = prev.some(
                     (c) => c.contractAddress === contract.contractAddress,
@@ -143,6 +146,7 @@ export default function ContractHistory() {
                   return alreadyExists ? prev : [contract, ...prev]
                 })
               } else {
+                console.log(`setWithoutENS`)
                 setWithoutENS((prev) => {
                   const alreadyExists = prev.some(
                     (c) => c.contractAddress === contract.contractAddress,
@@ -150,6 +154,8 @@ export default function ContractHistory() {
                   return alreadyExists ? prev : [contract, ...prev]
                 })
               }
+            } else {
+              console.log('not mounted')
             }
           } else if (
             ['0xacd71554', '0x04917062', '0x7ed7e08c', '0x5a0dac49'].includes(
@@ -163,7 +169,7 @@ export default function ContractHistory() {
                 isOwnable = await checkIfReverseClaimable(deployed)
               }
 
-              const result = await getContractStatus(chain?.id, deployed, signal)
+              const result = await getContractStatus(chainId, deployed, signal)
               const sourcifyVerification = result.sourcify_verification
               const etherscanVerification = result.etherscan_verification
               const blockscoutVerification = result.blockscout_verification
@@ -205,7 +211,8 @@ export default function ContractHistory() {
             }
           }
         }
-        if(isMounted)setProcessing(false)
+
+        setProcessing(false)
       } catch (e) {
         if (!signal.aborted) {
           setError('Failed to fetch transactions: ' + e)
@@ -225,7 +232,7 @@ export default function ContractHistory() {
       isMounted = false
       controller.abort()
     };
-  }, [chainId])
+  }, [chainId, walletClient])
 
   const extractDeployed = async (txHash: string): Promise<string | null> => {
     if (!walletClient) return null
@@ -251,10 +258,14 @@ export default function ContractHistory() {
    * @param addr
    */
   const getENS = async (addr: string): Promise<string> => {
-    if (!config?.REVERSE_REGISTRAR || !walletClient) return ''
+    if (!config?.REVERSE_REGISTRAR || !walletClient) {
+      console.log(`!config?.REVERSE_REGISTRAR: ${!config?.REVERSE_REGISTRAR} || !walletClient: ${!walletClient}`)
+      return ''
+    }
 
-    if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
+    if (chainId === CHAINS.MAINNET || chainId === CHAINS.SEPOLIA) {
       try {
+        console.log('fetching getEnsName')
         return (
           (await getEnsName(walletClient, {
             address: addr as `0x${string}`,
@@ -430,7 +441,6 @@ export default function ContractHistory() {
                         <div className="flex items-center gap-2">
                           <Link
                             href={`${etherscanUrl}address/${c.contractAddress}`}
-                            // href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
                             target="_blank"
                             className="text-blue-600 hover:underline"
                           >
@@ -447,7 +457,7 @@ export default function ContractHistory() {
                                 className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
                               >
                                 <Link
-                                  href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
+                                  href={`${SOURCIFY_URL}${chainId}/${c.contractAddress.toLowerCase()}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="cursor-pointer"
@@ -763,7 +773,7 @@ export default function ContractHistory() {
                                 className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
                               >
                                 <Link
-                                  href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
+                                  href={`${SOURCIFY_URL}${chainId}/${c.contractAddress.toLowerCase()}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="cursor-pointer"
