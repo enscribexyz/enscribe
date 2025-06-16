@@ -12,6 +12,8 @@ const config = {
   url: "https://www.enscribe.xyz",
   baseUrl: "/",
 
+  trailingSlash: false,
+
   // GitHub pages deployment config
   organizationName: "enscribexyz",
   projectName: "enscribe",
@@ -150,8 +152,12 @@ const config = {
             title: "Docs",
             items: [
               {
+                label: "Introduction",
+                to: "/docs",
+              },
+              {
                 label: "Getting Started",
-                to: "/docs/",
+                to: "/docs/getting-started",
               },
             ],
           },
