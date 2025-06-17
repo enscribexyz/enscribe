@@ -32,6 +32,9 @@ import { getEnsName, namehash } from 'viem/ens'
 import { readContract, waitForTransactionReceipt } from 'viem/actions'
 import type { Address } from 'viem'
 import { getDeployedAddress } from '@/components/componentUtils'
+import { ethers } from 'ethers'
+import reverseRegistrarABI from '../contracts/ReverseRegistrar'
+import publicResolverABI from '../contracts/PublicResolver'
 
 interface Contract {
   ensName: string
@@ -51,6 +54,7 @@ export default function ContractHistory() {
 
   const { data: walletClient } = useWalletClient()
   const config = chainId ? CONTRACTS[chainId] : undefined
+  const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
   const [withENS, setWithENS] = useState<Contract[]>([])
   const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -258,38 +262,19 @@ export default function ContractHistory() {
    * @param addr
    */
   const getENS = async (addr: string): Promise<string> => {
-    if (!config?.REVERSE_REGISTRAR || !walletClient) {
-      console.log(`!config?.REVERSE_REGISTRAR: ${!config?.REVERSE_REGISTRAR} || !walletClient: ${!walletClient}`)
-      return ''
-    }
-
-    if (chainId === CHAINS.MAINNET || chainId === CHAINS.SEPOLIA) {
+    if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
       try {
-        console.log('fetching getEnsName')
-        return (
-          (await getEnsName(walletClient, {
-            address: addr as `0x${string}`,
-          })) || ''
-        )
+        return (await (await signer)?.provider.lookupAddress(addr)) || ''
       } catch {
         return ''
       }
     } else {
       try {
-        const reversedNode = await readContract(walletClient, {
-          address: config.REVERSE_REGISTRAR as `0x${string}`,
-          abi: ['function node(address) view returns (bytes32)'],
-          functionName: 'node',
-          args: [walletAddress],
-        })
-        const name = (await readContract(walletClient, {
-          address: config.PUBLIC_RESOLVER as `0x${string}`,
-          abi: ['function name(bytes32) view returns (string)'],
-          functionName: 'name',
-          args: [reversedNode],
-        })) as string
-
-        return name || ''
+        const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
+        const reversedNode = await reverseRegistrarContract.node(addr)
+        const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
+        const name = await resolverContract.name(reversedNode)
+        return name || '';
       } catch (error) {
         return ''
       }
