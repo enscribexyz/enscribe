@@ -534,7 +534,7 @@ export default function NameContract() {
     }
   }
 
-  const setPrimaryName = async (setPrimary: boolean) => {
+  const setPrimaryName = async () => {
     setError('')
     if (!walletClient || !walletAddress) return
 
@@ -814,74 +814,76 @@ export default function NameContract() {
       }
 
       // Step 3: Set Reverse Resolution (if Primary)
-      if (setPrimary) {
-        if (isReverseClaimable) {
-          setIsPrimaryNameSet(true)
-          const addrLabel = existingContractAddress.slice(2).toLowerCase()
-          const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
-          steps.push({
-            title: 'Set reverse resolution',
-            action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setName',
-                args: [reversedNode, `${label}.${parentName}`],
-                account: walletAddress,
-              })
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
+      if (isReverseClaimable) {
+        setIsPrimaryNameSet(true)
+        const addrLabel = existingContractAddress.slice(2).toLowerCase()
+        const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
+        steps.push({
+          title: 'Set reverse resolution',
+          action: async () => {
+            const txn = await writeContract(walletClient, {
+              address: publicResolverAddress,
+              abi: publicResolverABI,
+              functionName: 'setName',
+              args: [reversedNode, `${label}.${parentName}`],
+              account: walletAddress,
+            })
+            await logMetric(
+              corelationId,
+              Date.now(),
+              chainId,
+              existingContractAddress,
+              walletAddress,
+              name,
+              'revres::setName',
+              txn,
+              'ReverseClaimer',
+              opType,
+            )
+            return txn
+          },
+        })
+      } else if (isContractOwner && isOwnable) {
+        setIsPrimaryNameSet(true)
+        steps.push({
+          title: 'Set reverse resolution',
+          action: async () => {
+            const txn = await writeContract(walletClient, {
+              address: config.REVERSE_REGISTRAR as `0x${string}`,
+              abi: reverseRegistrarABI,
+              functionName: 'setNameForAddr',
+              args: [
                 existingContractAddress,
                 walletAddress,
-                name,
-                'revres::setName',
-                txn,
-                'ReverseClaimer',
-                opType,
-              )
-              return txn
-            },
-          })
-        } else {
-          setIsPrimaryNameSet(true)
-          steps.push({
-            title: 'Set reverse resolution',
-            action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: config.REVERSE_REGISTRAR as `0x${string}`,
-                abi: reverseRegistrarABI,
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress,
-                  walletAddress,
-                  publicResolverAddress,
-                  `${label}.${parentName}`,
-                ],
-                account: walletAddress,
-              })
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'revres::setNameForAddr',
-                txn,
-                'Ownable',
-                opType,
-              )
-              return txn
-            },
-          })
-        }
+                publicResolverAddress,
+                `${label}.${parentName}`,
+              ],
+              account: walletAddress,
+            })
+            await logMetric(
+              corelationId,
+              Date.now(),
+              chainId,
+              existingContractAddress,
+              walletAddress,
+              name,
+              'revres::setNameForAddr',
+              txn,
+              'Ownable',
+              opType,
+            )
+            return txn
+          },
+        })
       } else {
         setIsPrimaryNameSet(false)
       }
 
-      setModalTitle(setPrimary ? 'Set Primary Name' : 'Set Forward Resolution')
+      setModalTitle(
+        (isContractOwner && isOwnable) || isReverseClaimable
+          ? 'Set Primary Name'
+          : 'Set Forward Resolution',
+      )
       setModalSubtitle('Running each step to finish naming this contract')
       setModalSteps(steps)
       setModalOpen(true)
@@ -964,19 +966,19 @@ export default function NameContract() {
               </Link>
             </p>
           )}
-        <div className="flex flex-col space-y-1">
-          {!isAddressEmpty && !isContractOwner && (
-            <>
+        {((!isAddressEmpty && !isContractOwner) ||
+          isOwnable ||
+          (isReverseClaimable && !isOwnable)) && (
+          <div className="flex flex-col space-y-1">
+            {!isAddressEmpty && !isContractOwner && isOwnable && (
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
                 <p className="text-gray-600 inline ml-1">
                   You are not the contract owner and cannot set its primary name
                 </p>
               </div>
-            </>
-          )}
-          {
-            <>
+            )}
+            {(isOwnable || (isReverseClaimable && !isOwnable)) && (
               <div className="justify-between">
                 {isOwnable && (
                   <>
@@ -1007,9 +1009,9 @@ export default function NameContract() {
                   </>
                 )}
               </div>
-            </>
-          }
-        </div>
+            )}
+          </div>
+        )}
         <label className="block text-gray-700 dark:text-gray-300">
           Contract Name
         </label>
@@ -1259,45 +1261,7 @@ export default function NameContract() {
 
       <div className="flex gap-4 mt-6">
         <Button
-          onClick={() => setPrimaryName(true)}
-          disabled={
-            !isContractOwner ||
-            !isConnected ||
-            loading ||
-            isAddressEmpty ||
-            !(isOwnable || isReverseClaimable) ||
-            isEmpty(label)
-          }
-          className="w-1/2"
-        >
-          {loading ? (
-            <svg
-              className="animate-spin h-5 w-5 mr-3 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              ></path>
-            </svg>
-          ) : (
-            'Set Primary Name'
-          )}
-        </Button>
-
-        <Button
-          onClick={() => setPrimaryName(false)}
+          onClick={() => setPrimaryName()}
           disabled={
             !isConnected ||
             loading ||
@@ -1305,7 +1269,7 @@ export default function NameContract() {
             isAddressInvalid ||
             isEmpty(label)
           }
-          className="w-1/2"
+          className="w-full"
         >
           {loading ? (
             <svg
@@ -1329,7 +1293,7 @@ export default function NameContract() {
               ></path>
             </svg>
           ) : (
-            'Set Forward Resolution'
+            'Set Name'
           )}
         </Button>
       </div>
