@@ -1030,9 +1030,13 @@ export default function NameContract() {
           />
           <Button
             onClick={populateName}
-            className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
           >
-            ✨Generate Name
+            <span className="relative z-10 p-2">✨Generate Name</span>
+            {/* Glow effect on hover */}
+            <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+            {/* Outer glow */}
+            <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
           </Button>
         </div>
 
@@ -1103,11 +1107,11 @@ export default function NameContract() {
         {/* Full ENS Name Preview */}
         {!isEmpty(label) && !isEmpty(parentName) && (
           <div className="mt-4 mb-4">
-            <label className="block text-gray-700 dark:text-gray-300 mb-2">
+            <label className="block text-gray-700 dark:text-gray-300 mb-5">
               Full ENS Name
             </label>
-            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center">
-              <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-lg break-all">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
+              <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
                 {`${label}.${parentName}`}
               </div>
             </div>
@@ -1283,14 +1287,14 @@ export default function NameContract() {
             isAddressInvalid ||
             isEmpty(label)
           }
-          className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group animate-gradient-x"
+          className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group"
           style={{
             backgroundSize: '200% 100%',
           }}
         >
           {/* Background animation elements */}
-          <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer"></span>
-          <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse"></span>
+          <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 group-hover:animate-shimmer pointer-events-none"></span>
+          <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl group-hover:animate-pulse pointer-events-none"></span>
 
           {loading ? (
             <div className="flex items-center justify-center relative z-10">
@@ -1318,7 +1322,6 @@ export default function NameContract() {
             </div>
           ) : (
             <div className="flex items-center justify-center relative z-10">
-              {/* <span className="mr-2 animate-bounce inline-block">✨</span> */}
               <span className="group-hover:scale-105 transition-transform duration-300">
                 Name Your Contract
               </span>
@@ -1326,8 +1329,8 @@ export default function NameContract() {
             </div>
           )}
 
-          {/* Edge glow effect */}
-          <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/0 via-blue-500/40 to-blue-500/0 animate-shine"></span>
+          {/* Edge glow effect – only on hover */}
+          <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/0 via-blue-500/40 to-blue-500/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none"></span>
         </Button>
       </div>
 
