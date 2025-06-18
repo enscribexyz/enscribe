@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { useAccount, useWalletClient } from 'wagmi'
+import { useAccount, useChainId, useWalletClient } from 'wagmi'
 import {
   Table,
   TableBody,
@@ -32,6 +32,9 @@ import { getEnsName, namehash } from 'viem/ens'
 import { readContract, waitForTransactionReceipt } from 'viem/actions'
 import type { Address } from 'viem'
 import { getDeployedAddress } from '@/components/componentUtils'
+import { ethers } from 'ethers'
+import reverseRegistrarABI from '../contracts/ReverseRegistrar'
+import publicResolverABI from '../contracts/PublicResolver'
 
 interface Contract {
   ensName: string
@@ -47,8 +50,11 @@ interface Contract {
 
 export default function ContractHistory() {
   const { address: walletAddress, isConnected, chain } = useAccount()
+  const chainId = useChainId()
+
   const { data: walletClient } = useWalletClient()
-  const config = chain?.id ? CONTRACTS[chain.id] : undefined
+  const config = chainId ? CONTRACTS[chainId] : undefined
+  const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
 
   const [withENS, setWithENS] = useState<Contract[]>([])
   const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -60,7 +66,7 @@ export default function ContractHistory() {
   const [pageWithout, setPageWithout] = useState(1)
   const itemsPerPage = 10
 
-  const etherscanApi = `${ETHERSCAN_API}&chainid=${chain?.id}&module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=999999999999&sort=asc`
+  const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=account&action=txlist&address=${walletAddress}&startblock=0&endblock=999999999999&sort=asc`
   const etherscanUrl = config!.ETHERSCAN_URL
   const blockscoutUrl = config!.BLOCKSCOUT_URL
   const chainlensUrl = config!.CHAINLENS_URL
@@ -68,106 +74,61 @@ export default function ContractHistory() {
   const topic0 = TOPIC0
 
   useEffect(() => {
-    if (!isConnected || !walletAddress || !walletClient) return
-    fetchTxs()
-  }, [walletAddress, isConnected, walletClient])
-
-  const fetchTxs = async () => {
-    setLoading(true)
-    setError(null)
-    setWithENS([])
-    setWithoutENS([])
-
+    // if (!isConnected || !walletAddress || !walletClient) return
+    console.log(`use effect called, chain: ${chainId}`)
+    const controller = new AbortController()
+    const signal = controller.signal
     let isMounted = true
 
-    try {
-      // const url = `${etherscanApi}&action=txlist&address=${address}`
+    const fetchTxs = async () => {
+      setLoading(true)
+      setError(null)
+      setWithENS([])
+      setWithoutENS([])
 
-      console.log('etherscan api - ', etherscanApi)
-      const res = await fetch(etherscanApi)
-      const data = await res.json()
 
-      setProcessing(true)
+      try {
+        // const url = `${etherscanApi}&action=txlist&address=${address}`
 
-      for (const tx of data.result || []) {
-        const txHash = tx.hash
-        let isOwnable = false
+        console.log('etherscan api - ', etherscanApi)
+        const res = await fetch(etherscanApi, {signal})
+        const data = await res.json()
 
-        const contractCreated = new Date(
-          parseInt(tx.timeStamp) * 1000,
-        ).toLocaleString()
-        // const contractCreated = `${date.getDate().toString().padStart(2, '0')}/${date.toLocaleString('default', { month: 'long' })}/${date.getFullYear()}`;
+        setProcessing(true)
 
-        if (tx.to === '') {
-          const contractAddr = tx.contractAddress
-
-          isOwnable = await checkIfOwnable(contractAddr)
-          if (!isOwnable) {
-            isOwnable = await checkIfReverseClaimable(contractAddr)
+        for (const tx of data.result || []) {
+          if (signal.aborted || !isMounted || !walletClient) {
+            console.log(`signal aborted: ${signal.aborted}, isMounted: ${isMounted}, walletClient: ${walletClient}`)
+            break
           }
 
-          const result = await getContractStatus(chain?.id, contractAddr)
-          const sourcifyVerification = result.sourcify_verification
-          const etherscanVerification = result.etherscan_verification
-          const blockscoutVerification = result.blockscout_verification
-          const attestation = result.audit_status
-          // const ensName = result.ens_name
-          const ensName = await getENS(contractAddr)
+          const txHash = tx.hash
+          let isOwnable = false
 
-          const contract: Contract = {
-            ensName,
-            contractAddress: contractAddr,
-            txHash,
-            contractCreated,
-            isOwnable,
-            sourcifyVerification,
-            etherscanVerification,
-            blockscoutVerification,
-            attestation,
-          }
-          // const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
-          console.log('contract - ', contract)
+          const contractCreated = new Date(
+            parseInt(tx.timeStamp) * 1000,
+          ).toLocaleString()
+          // const contractCreated = `${date.getDate().toString().padStart(2, '0')}/${date.toLocaleString('default', { month: 'long' })}/${date.getFullYear()}`;
 
-          if (isMounted) {
-            if (ensName) {
-              setWithENS((prev) => {
-                const alreadyExists = prev.some(
-                  (c) => c.contractAddress === contract.contractAddress,
-                )
-                return alreadyExists ? prev : [contract, ...prev]
-              })
-            } else {
-              setWithoutENS((prev) => {
-                const alreadyExists = prev.some(
-                  (c) => c.contractAddress === contract.contractAddress,
-                )
-                return alreadyExists ? prev : [contract, ...prev]
-              })
-            }
-          }
-        } else if (
-          ['0xacd71554', '0x04917062', '0x7ed7e08c', '0x5a0dac49'].includes(
-            tx.methodId,
-          )
-        ) {
-          const deployed = (await extractDeployed(txHash)) || ''
-          if (deployed) {
-            isOwnable = await checkIfOwnable(deployed)
+          if (tx.to === '') {
+            const contractAddr = tx.contractAddress
+
+            isOwnable = await checkIfOwnable(contractAddr)
             if (!isOwnable) {
-              isOwnable = await checkIfReverseClaimable(deployed)
+              isOwnable = await checkIfReverseClaimable(contractAddr)
             }
 
-            const result = await getContractStatus(chain?.id, deployed)
+            const result = await getContractStatus(chainId, contractAddr, signal)
             const sourcifyVerification = result.sourcify_verification
             const etherscanVerification = result.etherscan_verification
             const blockscoutVerification = result.blockscout_verification
             const attestation = result.audit_status
             // const ensName = result.ens_name
-            const ensName = await getENS(deployed)
+            const ensName = await getENS(contractAddr)
 
             const contract: Contract = {
               ensName,
-              contractAddress: deployed,
+              contractAddress: contractAddr,
               txHash,
               contractCreated,
               isOwnable,
@@ -176,11 +137,12 @@ export default function ContractHistory() {
               blockscoutVerification,
               attestation,
             }
-
-            console.log('contract - ', contract)
+            // const contract: Contract = { ensName, contractAddress: contractAddr, txHash, isOwnable }
+            // console.log('contract - ', contract)
 
             if (isMounted) {
               if (ensName) {
+                console.log(`setWithENS`)
                 setWithENS((prev) => {
                   const alreadyExists = prev.some(
                     (c) => c.contractAddress === contract.contractAddress,
@@ -188,6 +150,7 @@ export default function ContractHistory() {
                   return alreadyExists ? prev : [contract, ...prev]
                 })
               } else {
+                console.log(`setWithoutENS`)
                 setWithoutENS((prev) => {
                   const alreadyExists = prev.some(
                     (c) => c.contractAddress === contract.contractAddress,
@@ -195,21 +158,85 @@ export default function ContractHistory() {
                   return alreadyExists ? prev : [contract, ...prev]
                 })
               }
+            } else {
+              console.log('not mounted')
+            }
+          } else if (
+            ['0xacd71554', '0x04917062', '0x7ed7e08c', '0x5a0dac49'].includes(
+              tx.methodId,
+            )
+          ) {
+            const deployed = (await extractDeployed(txHash)) || ''
+            if (deployed) {
+              isOwnable = await checkIfOwnable(deployed)
+              if (!isOwnable) {
+                isOwnable = await checkIfReverseClaimable(deployed)
+              }
+
+              const result = await getContractStatus(chainId, deployed, signal)
+              const sourcifyVerification = result.sourcify_verification
+              const etherscanVerification = result.etherscan_verification
+              const blockscoutVerification = result.blockscout_verification
+              const attestation = result.audit_status
+              // const ensName = result.ens_name
+              const ensName = await getENS(deployed)
+
+              const contract: Contract = {
+                ensName,
+                contractAddress: deployed,
+                txHash,
+                contractCreated,
+                isOwnable,
+                sourcifyVerification,
+                etherscanVerification,
+                blockscoutVerification,
+                attestation,
+              }
+
+              console.log('contract - ', contract)
+
+              if (isMounted) {
+                if (ensName) {
+                  setWithENS((prev) => {
+                    const alreadyExists = prev.some(
+                      (c) => c.contractAddress === contract.contractAddress,
+                    )
+                    return alreadyExists ? prev : [contract, ...prev]
+                  })
+                } else {
+                  setWithoutENS((prev) => {
+                    const alreadyExists = prev.some(
+                      (c) => c.contractAddress === contract.contractAddress,
+                    )
+                    return alreadyExists ? prev : [contract, ...prev]
+                  })
+                }
+              }
             }
           }
         }
+
+        setProcessing(false)
+      } catch (e) {
+        if (!signal.aborted) {
+          setError('Failed to fetch transactions: ' + e)
+        }
+      } finally {
+        if (isMounted) setLoading(false)
       }
-      setProcessing(false)
-    } catch (e) {
-      setError('Failed to fetch transactions')
-    } finally {
-      if (isMounted) setLoading(false)
+
+      return () => {
+        isMounted = false
+      }
     }
+
+    fetchTxs()
 
     return () => {
       isMounted = false
-    }
-  }
+      controller.abort()
+    };
+  }, [chainId, walletClient])
 
   const extractDeployed = async (txHash: string): Promise<string | null> => {
     if (!walletClient) return null
@@ -235,34 +262,19 @@ export default function ContractHistory() {
    * @param addr
    */
   const getENS = async (addr: string): Promise<string> => {
-    if (!config?.REVERSE_REGISTRAR || !walletClient) return ''
-
     if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
       try {
-        return (
-          (await getEnsName(walletClient, {
-            address: addr as `0x${string}`,
-          })) || ''
-        )
+        return (await (await signer)?.provider.lookupAddress(addr)) || ''
       } catch {
         return ''
       }
     } else {
       try {
-        const reversedNode = await readContract(walletClient, {
-          address: config.REVERSE_REGISTRAR as `0x${string}`,
-          abi: ['function node(address) view returns (bytes32)'],
-          functionName: 'node',
-          args: [walletAddress],
-        })
-        const name = (await readContract(walletClient, {
-          address: config.PUBLIC_RESOLVER as `0x${string}`,
-          abi: ['function name(bytes32) view returns (string)'],
-          functionName: 'name',
-          args: [reversedNode],
-        })) as string
-
-        return name || ''
+        const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
+        const reversedNode = await reverseRegistrarContract.node(addr)
+        const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
+        const name = await resolverContract.name(reversedNode)
+        return name || '';
       } catch (error) {
         return ''
       }
@@ -309,6 +321,7 @@ export default function ContractHistory() {
   const getContractStatus = async (
     chainId: number | undefined,
     address: string,
+    signal: AbortSignal
   ) => {
     const defaultStatus = {
       sourcify_verification: 'unverified',
@@ -322,6 +335,7 @@ export default function ContractHistory() {
     try {
       const res = await fetch(
         `/api/v1/verification/${chainId}/${address.toLowerCase()}`,
+        {signal}
       )
       if (!res.ok) return defaultStatus
 
@@ -412,7 +426,6 @@ export default function ContractHistory() {
                         <div className="flex items-center gap-2">
                           <Link
                             href={`${etherscanUrl}address/${c.contractAddress}`}
-                            // href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
                             target="_blank"
                             className="text-blue-600 hover:underline"
                           >
@@ -429,7 +442,7 @@ export default function ContractHistory() {
                                 className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
                               >
                                 <Link
-                                  href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
+                                  href={`${SOURCIFY_URL}${chainId}/${c.contractAddress.toLowerCase()}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="cursor-pointer"
@@ -745,7 +758,7 @@ export default function ContractHistory() {
                                 className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
                               >
                                 <Link
-                                  href={`${SOURCIFY_URL}${chain?.id}/${c.contractAddress.toLowerCase()}`}
+                                  href={`${SOURCIFY_URL}${chainId}/${c.contractAddress.toLowerCase()}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="cursor-pointer"
