@@ -534,7 +534,7 @@ export default function NameContract() {
     }
   }
 
-  const setPrimaryName = async (setPrimary: boolean) => {
+  const setPrimaryName = async () => {
     setError('')
     if (!walletClient || !walletAddress) return
 
@@ -814,74 +814,76 @@ export default function NameContract() {
       }
 
       // Step 3: Set Reverse Resolution (if Primary)
-      if (setPrimary) {
-        if (isReverseClaimable) {
-          setIsPrimaryNameSet(true)
-          const addrLabel = existingContractAddress.slice(2).toLowerCase()
-          const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
-          steps.push({
-            title: 'Set reverse resolution',
-            action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setName',
-                args: [reversedNode, `${label}.${parentName}`],
-                account: walletAddress,
-              })
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
+      if (isReverseClaimable) {
+        setIsPrimaryNameSet(true)
+        const addrLabel = existingContractAddress.slice(2).toLowerCase()
+        const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
+        steps.push({
+          title: 'Set reverse resolution',
+          action: async () => {
+            const txn = await writeContract(walletClient, {
+              address: publicResolverAddress,
+              abi: publicResolverABI,
+              functionName: 'setName',
+              args: [reversedNode, `${label}.${parentName}`],
+              account: walletAddress,
+            })
+            await logMetric(
+              corelationId,
+              Date.now(),
+              chainId,
+              existingContractAddress,
+              walletAddress,
+              name,
+              'revres::setName',
+              txn,
+              'ReverseClaimer',
+              opType,
+            )
+            return txn
+          },
+        })
+      } else if (isContractOwner && isOwnable) {
+        setIsPrimaryNameSet(true)
+        steps.push({
+          title: 'Set reverse resolution',
+          action: async () => {
+            const txn = await writeContract(walletClient, {
+              address: config.REVERSE_REGISTRAR as `0x${string}`,
+              abi: reverseRegistrarABI,
+              functionName: 'setNameForAddr',
+              args: [
                 existingContractAddress,
                 walletAddress,
-                name,
-                'revres::setName',
-                txn,
-                'ReverseClaimer',
-                opType,
-              )
-              return txn
-            },
-          })
-        } else {
-          setIsPrimaryNameSet(true)
-          steps.push({
-            title: 'Set reverse resolution',
-            action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: config.REVERSE_REGISTRAR as `0x${string}`,
-                abi: reverseRegistrarABI,
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress,
-                  walletAddress,
-                  publicResolverAddress,
-                  `${label}.${parentName}`,
-                ],
-                account: walletAddress,
-              })
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'revres::setNameForAddr',
-                txn,
-                'Ownable',
-                opType,
-              )
-              return txn
-            },
-          })
-        }
+                publicResolverAddress,
+                `${label}.${parentName}`,
+              ],
+              account: walletAddress,
+            })
+            await logMetric(
+              corelationId,
+              Date.now(),
+              chainId,
+              existingContractAddress,
+              walletAddress,
+              name,
+              'revres::setNameForAddr',
+              txn,
+              'Ownable',
+              opType,
+            )
+            return txn
+          },
+        })
       } else {
         setIsPrimaryNameSet(false)
       }
 
-      setModalTitle(setPrimary ? 'Set Primary Name' : 'Set Forward Resolution')
+      setModalTitle(
+        (isContractOwner && isOwnable) || isReverseClaimable
+          ? 'Set Primary Name'
+          : 'Set Forward Resolution',
+      )
       setModalSubtitle('Running each step to finish naming this contract')
       setModalSteps(steps)
       setModalOpen(true)
@@ -964,19 +966,19 @@ export default function NameContract() {
               </Link>
             </p>
           )}
-        <div className="flex flex-col space-y-1">
-          {!isAddressEmpty && !isContractOwner && (
-            <>
+        {((!isAddressEmpty && !isContractOwner) ||
+          isOwnable ||
+          (isReverseClaimable && !isOwnable)) && (
+          <div className="flex flex-col space-y-1">
+            {!isAddressEmpty && !isContractOwner && isOwnable && (
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
                 <p className="text-gray-600 inline ml-1">
                   You are not the contract owner and cannot set its primary name
                 </p>
               </div>
-            </>
-          )}
-          {
-            <>
+            )}
+            {(isOwnable || (isReverseClaimable && !isOwnable)) && (
               <div className="justify-between">
                 {isOwnable && (
                   <>
@@ -1007,9 +1009,9 @@ export default function NameContract() {
                   </>
                 )}
               </div>
-            </>
-          }
-        </div>
+            )}
+          </div>
+        )}
         <label className="block text-gray-700 dark:text-gray-300">
           Contract Name
         </label>
@@ -1023,14 +1025,18 @@ export default function NameContract() {
               setError('')
             }}
             onBlur={checkENSReverseResolution}
-            placeholder="my label"
+            placeholder="label"
             className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
           />
           <Button
             onClick={populateName}
-            className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
           >
-            ✨Generate Name
+            <span className="relative z-10 p-2">✨Generate Name</span>
+            {/* Glow effect on hover */}
+            <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+            {/* Outer glow */}
+            <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
           </Button>
         </div>
 
@@ -1096,6 +1102,20 @@ export default function NameContract() {
               </div>
             )}
           </>
+        )}
+
+        {/* Full ENS Name Preview */}
+        {!isEmpty(label) && !isEmpty(parentName) && (
+          <div className="mt-4 mb-4">
+            <label className="block text-gray-700 dark:text-gray-300 mb-5">
+              Full ENS Name
+            </label>
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
+              <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
+                {`${label}.${parentName}`}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -1259,45 +1279,7 @@ export default function NameContract() {
 
       <div className="flex gap-4 mt-6">
         <Button
-          onClick={() => setPrimaryName(true)}
-          disabled={
-            !isContractOwner ||
-            !isConnected ||
-            loading ||
-            isAddressEmpty ||
-            !(isOwnable || isReverseClaimable) ||
-            isEmpty(label)
-          }
-          className="w-1/2"
-        >
-          {loading ? (
-            <svg
-              className="animate-spin h-5 w-5 mr-3 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              ></path>
-            </svg>
-          ) : (
-            'Set Primary Name'
-          )}
-        </Button>
-
-        <Button
-          onClick={() => setPrimaryName(false)}
+          onClick={() => setPrimaryName()}
           disabled={
             !isConnected ||
             loading ||
@@ -1305,32 +1287,50 @@ export default function NameContract() {
             isAddressInvalid ||
             isEmpty(label)
           }
-          className="w-1/2"
+          className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group"
+          style={{
+            backgroundSize: '200% 100%',
+          }}
         >
+          {/* Background animation elements */}
+          <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 group-hover:animate-shimmer pointer-events-none"></span>
+          <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl group-hover:animate-pulse pointer-events-none"></span>
+
           {loading ? (
-            <svg
-              className="animate-spin h-5 w-5 mr-3 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              ></path>
-            </svg>
+            <div className="flex items-center justify-center relative z-10">
+              <svg
+                className="animate-spin h-6 w-6 mr-3 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+              <span className="animate-pulse">Processing...</span>
+            </div>
           ) : (
-            'Set Forward Resolution'
+            <div className="flex items-center justify-center relative z-10">
+              <span className="group-hover:scale-105 transition-transform duration-300">
+                Name Your Contract
+              </span>
+              <span className="ml-2 inline-block animate-rocket">🚀</span>
+            </div>
           )}
+
+          {/* Edge glow effect – only on hover */}
+          <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/0 via-blue-500/40 to-blue-500/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none"></span>
         </Button>
       </div>
 

@@ -1608,9 +1608,13 @@ export default function DeployForm() {
           />
           <Button
             onClick={populateName}
-            className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:opacity-90 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
           >
-            ✨Generate Name
+            <span className="relative z-10 p-2">✨Generate Name</span>
+            {/* Glow effect on hover */}
+            <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+            {/* Outer glow */}
+            <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
           </Button>
         </div>
 
@@ -1716,6 +1720,20 @@ export default function DeployForm() {
                 </p>
               )}
           </>
+        )}
+
+         {/* Full ENS Name Preview */}
+         {!isEmpty(label) && !isEmpty(parentName) && (
+          <div className="mt-4 mb-4">
+            <label className="block text-gray-700 dark:text-gray-300 mb-5">
+              Full ENS Name
+            </label>
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
+              <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
+                {`${label}.${parentName}`}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
