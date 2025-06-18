@@ -1025,7 +1025,7 @@ export default function NameContract() {
               setError('')
             }}
             onBlur={checkENSReverseResolution}
-            placeholder="my label"
+            placeholder="label"
             className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
           />
           <Button
@@ -1098,6 +1098,20 @@ export default function NameContract() {
               </div>
             )}
           </>
+        )}
+
+        {/* Full ENS Name Preview */}
+        {!isEmpty(label) && !isEmpty(parentName) && (
+          <div className="mt-4 mb-4">
+            <label className="block text-gray-700 dark:text-gray-300 mb-2">
+              Full ENS Name
+            </label>
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center">
+              <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-lg break-all">
+                {`${label}.${parentName}`}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -1269,32 +1283,51 @@ export default function NameContract() {
             isAddressInvalid ||
             isEmpty(label)
           }
-          className="w-full"
+          className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group animate-gradient-x"
+          style={{
+            backgroundSize: '200% 100%',
+          }}
         >
+          {/* Background animation elements */}
+          <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer"></span>
+          <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse"></span>
+
           {loading ? (
-            <svg
-              className="animate-spin h-5 w-5 mr-3 text-white"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8v8H4z"
-              ></path>
-            </svg>
+            <div className="flex items-center justify-center relative z-10">
+              <svg
+                className="animate-spin h-6 w-6 mr-3 text-white"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v8H4z"
+                ></path>
+              </svg>
+              <span className="animate-pulse">Processing...</span>
+            </div>
           ) : (
-            'Set Name'
+            <div className="flex items-center justify-center relative z-10">
+              {/* <span className="mr-2 animate-bounce inline-block">✨</span> */}
+              <span className="group-hover:scale-105 transition-transform duration-300">
+                Name Your Contract
+              </span>
+              <span className="ml-2 inline-block animate-rocket">🚀</span>
+            </div>
           )}
+
+          {/* Edge glow effect */}
+          <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-blue-500/0 via-blue-500/40 to-blue-500/0 animate-shine"></span>
         </Button>
       </div>
 
