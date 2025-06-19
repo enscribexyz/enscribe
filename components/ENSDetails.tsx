@@ -16,6 +16,10 @@ interface ENSDetailsProps {
   address: string
   chainId?: number
   isContract: boolean
+  proxyInfo?: {
+    isProxy: boolean
+    implementationAddress?: string
+  }
 }
 
 interface ENSDomain {
@@ -40,6 +44,7 @@ export default function ENSDetails({
   address,
   chainId,
   isContract,
+  proxyInfo,
 }: ENSDetailsProps) {
   // State for copy feedback
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
@@ -910,9 +915,16 @@ export default function ENSDetails({
           )}
 
           <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {isContract ? 'Contract Address' : 'Account Address'}
-            </h3>
+            <div className="flex items-center">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {isContract ? 'Contract Address' : 'Account Address'}
+              </h3>
+              {isContract && proxyInfo?.isProxy && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300">
+                  Proxy
+                </span>
+              )}
+            </div>
             <div className="flex items-center mt-1">
               <p className="text-gray-900 dark:text-white font-mono text-sm break-all">
                 {address}
@@ -939,8 +951,50 @@ export default function ENSDetails({
                 </a>
               </Button>
             </div>
+            
+            {/* Implementation Address */}
+            {isContract && proxyInfo?.isProxy && proxyInfo.implementationAddress && (
+              <div className="mt-2">
+                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Implementation Address:
+                </span>
+                <div className="flex items-center mt-1">
+                  <code className="text-sm font-mono break-all text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 cursor-pointer">
+                  
+                    <a
+                  href={`/explore/${effectiveChainId}/${proxyInfo.implementationAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >{proxyInfo.implementationAddress}</a>
+                    
+                  </code>
+                  <Button
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+                onClick={() => copyToClipboard(address, 'address')}
+              >
+                {copied['address'] ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+              <Button variant="ghost" size="sm" className="ml-1" asChild>
+                <a
+                  href={`${etherscanUrl}address/${address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+                </div>
+              </div>
+            )}
           </div>
 
+          
           {/* Contract Verification Status */}
           {isContract && verificationStatus && (
             <div>
