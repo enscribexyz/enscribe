@@ -20,7 +20,10 @@ export default function ExploreAddressPage() {
   const [error, setError] = useState<string | null>(null)
   const [client, setClient] = useState<any>(null)
   const [isContract, setIsContract] = useState(false)
-  const [proxyInfo, setProxyInfo] = useState<{ isProxy: boolean; implementationAddress?: string }>({ isProxy: false })
+  const [proxyInfo, setProxyInfo] = useState<{
+    isProxy: boolean
+    implementationAddress?: string
+  }>({ isProxy: false })
   const { chain: walletChain } = useAccount()
 
   // Reset state when URL parameters change
@@ -28,6 +31,7 @@ export default function ExploreAddressPage() {
     if (router.isReady) {
       setIsValidAddress(false)
       setIsContract(false)
+      setProxyInfo({ isProxy: false })
       setClient(null)
       setError(null)
       setIsLoading(true)
@@ -150,12 +154,15 @@ export default function ExploreAddressPage() {
 
           // Update contract status
           setIsContract(isContractAddress)
-          
+
           // If it's a contract, check if it's a proxy
           if (isContractAddress) {
             try {
               console.log('Checking if contract is a proxy...')
-              const proxyData = await checkIfProxy(address as string, Number(chainId))
+              const proxyData = await checkIfProxy(
+                address as string,
+                Number(chainId),
+              )
               setProxyInfo(proxyData)
               console.log('Proxy check result:', proxyData)
             } catch (proxyError) {

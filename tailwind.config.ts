@@ -97,15 +97,15 @@ export default {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
         },
-        'shimmer': {
+        shimmer: {
           '0%': { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
         },
-        'shine': {
+        shine: {
           '0%': { left: '-100%' },
           '100%': { left: '100%' },
         },
-        'rocket': {
+        rocket: {
           '0%': { transform: 'translateX(0)' },
           '50%': { transform: 'translateX(4px)' },
           '100%': { transform: 'translateX(0)' },
@@ -115,9 +115,9 @@ export default {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'gradient-x': 'gradient-x 3s ease infinite',
-        'shimmer': 'shimmer 2s infinite',
-        'shine': 'shine 2s infinite',
-        'rocket': 'rocket 1s ease-in-out infinite',
+        shimmer: 'shimmer 2s infinite',
+        shine: 'shine 2s infinite',
+        rocket: 'rocket 1s ease-in-out infinite',
       },
     },
   },

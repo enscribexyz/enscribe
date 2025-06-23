@@ -84,14 +84,10 @@ export default function AddressSearch({
 
       if (isValidAddress) {
         // It's a valid Ethereum address, redirect to explore page
-        // Use window.location for a full refresh if we're already on an explore page
-        const currentPath = router.asPath
-        if (currentPath.startsWith('/explore/')) {
-          console.log('Already on explore page, using hard redirect')
-          window.location.href = `/explore/${selectedChain}/${cleanedQuery}`
-        } else {
-          router.push(`/explore/${selectedChain}/${cleanedQuery}`)
-        }
+        // Always use window.location for a full refresh to ensure contract status is re-checked
+        // Add a timestamp parameter to prevent caching issues
+        console.log('Using hard redirect to ensure proper contract detection')
+        window.location.href = `/explore/${selectedChain}/${cleanedQuery}`
       } else if (containsDot) {
         // Not a valid address but contains a dot - try ENS resolution
         try {
@@ -120,16 +116,11 @@ export default function AddressSearch({
             await mainnetProvider.resolveName(cleanedQuery)
 
           if (resolvedAddress) {
-            // Use window.location for a full refresh if we're already on an explore page
-            const currentPath = router.asPath
-            if (currentPath.startsWith('/explore/')) {
-              console.log(
-                'Already on explore page, using hard redirect for resolved ENS',
-              )
-              window.location.href = `/explore/${selectedChain}/${resolvedAddress}`
-            } else {
-              router.push(`/explore/${selectedChain}/${resolvedAddress}`)
-            }
+            // Always use window.location for a full refresh to ensure contract status is re-checked
+            console.log(
+              'Using hard redirect for resolved ENS to ensure proper contract detection',
+            )
+            window.location.href = `/explore/${selectedChain}/${resolvedAddress}`
           } else {
             setError("ENS name doesn't resolve to any address")
           }

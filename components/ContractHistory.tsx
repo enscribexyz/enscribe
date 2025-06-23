@@ -54,7 +54,9 @@ export default function ContractHistory() {
 
   const { data: walletClient } = useWalletClient()
   const config = chainId ? CONTRACTS[chainId] : undefined
-  const signer = walletClient ? new ethers.BrowserProvider(window.ethereum).getSigner() : null
+  const signer = walletClient
+    ? new ethers.BrowserProvider(window.ethereum).getSigner()
+    : null
 
   const [withENS, setWithENS] = useState<Contract[]>([])
   const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -86,19 +88,20 @@ export default function ContractHistory() {
       setWithENS([])
       setWithoutENS([])
 
-
       try {
         // const url = `${etherscanApi}&action=txlist&address=${address}`
 
         console.log('etherscan api - ', etherscanApi)
-        const res = await fetch(etherscanApi, {signal})
+        const res = await fetch(etherscanApi, { signal })
         const data = await res.json()
 
         setProcessing(true)
 
         for (const tx of data.result || []) {
           if (signal.aborted || !isMounted || !walletClient) {
-            console.log(`signal aborted: ${signal.aborted}, isMounted: ${isMounted}, walletClient: ${walletClient}`)
+            console.log(
+              `signal aborted: ${signal.aborted}, isMounted: ${isMounted}, walletClient: ${walletClient}`,
+            )
             break
           }
 
@@ -118,7 +121,11 @@ export default function ContractHistory() {
               isOwnable = await checkIfReverseClaimable(contractAddr)
             }
 
-            const result = await getContractStatus(chainId, contractAddr, signal)
+            const result = await getContractStatus(
+              chainId,
+              contractAddr,
+              signal,
+            )
             const sourcifyVerification = result.sourcify_verification
             const etherscanVerification = result.etherscan_verification
             const blockscoutVerification = result.blockscout_verification
@@ -235,7 +242,7 @@ export default function ContractHistory() {
     return () => {
       isMounted = false
       controller.abort()
-    };
+    }
   }, [chainId, walletClient])
 
   const extractDeployed = async (txHash: string): Promise<string | null> => {
@@ -270,11 +277,19 @@ export default function ContractHistory() {
       }
     } else {
       try {
-        const reverseRegistrarContract = new ethers.Contract(config?.REVERSE_REGISTRAR!, reverseRegistrarABI, (await signer)?.provider);
+        const reverseRegistrarContract = new ethers.Contract(
+          config?.REVERSE_REGISTRAR!,
+          reverseRegistrarABI,
+          (await signer)?.provider,
+        )
         const reversedNode = await reverseRegistrarContract.node(addr)
-        const resolverContract = new ethers.Contract(config?.PUBLIC_RESOLVER!, publicResolverABI, (await signer)?.provider);
+        const resolverContract = new ethers.Contract(
+          config?.PUBLIC_RESOLVER!,
+          publicResolverABI,
+          (await signer)?.provider,
+        )
         const name = await resolverContract.name(reversedNode)
-        return name || '';
+        return name || ''
       } catch (error) {
         return ''
       }
@@ -321,7 +336,7 @@ export default function ContractHistory() {
   const getContractStatus = async (
     chainId: number | undefined,
     address: string,
-    signal: AbortSignal
+    signal: AbortSignal,
   ) => {
     const defaultStatus = {
       sourcify_verification: 'unverified',
@@ -335,7 +350,7 @@ export default function ContractHistory() {
     try {
       const res = await fetch(
         `/api/v1/verification/${chainId}/${address.toLowerCase()}`,
-        {signal}
+        { signal },
       )
       if (!res.ok) return defaultStatus
 

@@ -6,34 +6,37 @@ import { ETHERSCAN_API } from '@/utils/constants'
  * @param chainId The chain ID of the network
  * @returns Object containing isProxy flag and implementationAddress if it's a proxy
  */
-export async function checkIfProxy(address: string, chainId: number): Promise<{
-  isProxy: boolean;
-  implementationAddress?: string;
+export async function checkIfProxy(
+  address: string,
+  chainId: number,
+): Promise<{
+  isProxy: boolean
+  implementationAddress?: string
 }> {
   try {
     // Construct the API URL with chainId parameter
-    const url = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getsourcecode&address=${address}`;
-    console.log('Checking if proxy contract:', url);
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    
+    const url = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getsourcecode&address=${address}`
+    console.log('Checking if proxy contract:', url)
+
+    const response = await fetch(url)
+    const data = await response.json()
+
     if (data.status === '1' && data.result && data.result.length > 0) {
-      const contractInfo = data.result[0];
-      
+      const contractInfo = data.result[0]
+
       // Check if it's identified as a proxy
       if (contractInfo.Proxy === '1' && contractInfo.Implementation) {
-        console.log('Proxy contract detected:', contractInfo.Implementation);
+        console.log('Proxy contract detected:', contractInfo.Implementation)
         return {
           isProxy: true,
-          implementationAddress: contractInfo.Implementation
-        };
+          implementationAddress: contractInfo.Implementation,
+        }
       }
     }
-    
-    return { isProxy: false };
+
+    return { isProxy: false }
   } catch (error) {
-    console.error('Error checking if contract is proxy:', error);
-    return { isProxy: false };
+    console.error('Error checking if contract is proxy:', error)
+    return { isProxy: false }
   }
 }
