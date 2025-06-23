@@ -4,12 +4,29 @@ import { useAccount, usePublicClient } from 'wagmi'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AlertCircle, Check, CheckCircle, Copy, ExternalLink, XCircle } from 'lucide-react'
+import {
+  AlertCircle,
+  Check,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  ExternalLink,
+  ShieldCheck,
+  XCircle,
+} from 'lucide-react'
 import { CHAINS, CONTRACTS } from '@/utils/constants'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
 import ensRegistryABI from '@/contracts/ENSRegistry'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip'
+import { checkIfProxy } from '@/utils/proxy'
 // import { EnsRainbowApiClient } from '@ensnode/ensrainbow-sdk'
 
 interface ENSDetailsProps {
@@ -20,6 +37,12 @@ interface ENSDetailsProps {
     isProxy: boolean
     implementationAddress?: string
   }
+  isNestedView?: boolean
+}
+
+interface ImplementationDetailsProps {
+  implementationAddress: string
+  chainId: number
 }
 
 interface ENSDomain {
@@ -38,6 +61,9 @@ interface VerificationStatus {
   audit_status: string
   attestation_tx_hash: string
   ens_name: string
+  diligence_audit: string
+  openZepplin_audit: string
+  cyfrin_audit: string
 }
 
 export default function ENSDetails({
@@ -45,9 +71,12 @@ export default function ENSDetails({
   chainId,
   isContract,
   proxyInfo,
+  isNestedView = false,
 }: ENSDetailsProps) {
   // State for copy feedback
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
+  // State for implementation details expansion
+  const [implementationExpanded, setImplementationExpanded] = useState(false)
 
   // Function to copy text to clipboard
   const copyToClipboard = (text: string, id: string) => {
@@ -522,7 +551,7 @@ export default function ENSDetails({
                     : undefined,
                 }
               },
-            )
+            ),
           )
         }
 
@@ -777,9 +806,41 @@ export default function ENSDetails({
           {primaryName && (
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
-                  Primary ENS Name
-                </h3>
+                <div className="flex items-center gap-1">
+                  <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
+                    Primary ENS Name
+                  </h3>
+                  <TooltipProvider>
+                    {isContract &&
+                      verificationStatus &&
+                      primaryName &&
+                      (verificationStatus.sourcify_verification ===
+                        'exact_match' ||
+                        verificationStatus.sourcify_verification === 'match' ||
+                        verificationStatus.etherscan_verification ===
+                          'verified' ||
+                        verificationStatus.blockscout_verification ===
+                          'exact_match' ||
+                        verificationStatus.blockscout_verification ===
+                          'match') &&
+                      (verificationStatus.diligence_audit ||
+                        verificationStatus.openZepplin_audit ||
+                        verificationStatus.cyfrin_audit) && (
+                        <div className="relative group">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                Trusted - Named, Verified and Audited Contract
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      )}
+                  </TooltipProvider>
+                </div>
                 <div className="flex items-center mt-1">
                   <p className="text-gray-900 dark:text-white">{primaryName}</p>
                   <Button
@@ -951,50 +1012,95 @@ export default function ENSDetails({
                 </a>
               </Button>
             </div>
-            
-            {/* Implementation Address */}
-            {isContract && proxyInfo?.isProxy && proxyInfo.implementationAddress && (
-              <div className="mt-2">
-                <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  Implementation Address:
-                </span>
-                <div className="flex items-center mt-1">
-                  <code className="text-sm font-mono break-all text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 cursor-pointer">
-                  
-                    <a
-                  href={`/explore/${effectiveChainId}/${proxyInfo.implementationAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >{proxyInfo.implementationAddress}</a>
-                    
-                  </code>
-                  <Button
-                variant="ghost"
-                size="sm"
-                className="ml-2"
-                onClick={() => copyToClipboard(address, 'address')}
-              >
-                {copied['address'] ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-              <Button variant="ghost" size="sm" className="ml-1" asChild>
-                <a
-                  href={`${etherscanUrl}address/${address}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
+
+            {/* Implementation Address with Collapsible Details */}
+            {isContract &&
+              proxyInfo?.isProxy &&
+              proxyInfo.implementationAddress &&
+              !isNestedView && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Implementation Address:
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        setImplementationExpanded(!implementationExpanded)
+                      }
+                      className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400"
+                    >
+                      {implementationExpanded ? 'Hide Details' : 'Show Details'}
+                      {implementationExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  <div className="flex items-center mt-1">
+                    <code className="text-sm font-mono break-all text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 cursor-pointer">
+                      <Link
+                        href={`/explore/${effectiveChainId}/${proxyInfo.implementationAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {proxyInfo.implementationAddress}
+                      </Link>
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2"
+                      onClick={() =>
+                        proxyInfo.implementationAddress &&
+                        copyToClipboard(
+                          proxyInfo.implementationAddress,
+                          'implementation',
+                        )
+                      }
+                    >
+                      {copied['implementation'] ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="ml-1" asChild>
+                      <a
+                        href={`${etherscanUrl}address/${proxyInfo.implementationAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+
+                  {/* Collapsible Implementation Details */}
+                  {implementationExpanded && (
+                    <div className="mt-4 border-l-2 border-blue-300 dark:border-blue-700 pl-4 py-1">
+                      <div className="mb-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+                        Implementation Contract Details
+                      </div>
+                      {/* <Card>
+                      <CardContent className="p-4"> */}
+                      <ENSDetails
+                        address={proxyInfo.implementationAddress}
+                        chainId={effectiveChainId}
+                        isContract={true}
+                        isNestedView={true}
+                      />
+                      {/* </CardContent>
+                    </Card> */}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
-          
           {/* Contract Verification Status */}
           {isContract && verificationStatus && (
             <div>
@@ -1150,6 +1256,93 @@ export default function ENSDetails({
               </div>
             </div>
           )}
+
+          {/* Contract Security Audits */}
+          {isContract &&
+            verificationStatus &&
+            (verificationStatus.diligence_audit ||
+              verificationStatus.openZepplin_audit ||
+              verificationStatus.cyfrin_audit) && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Contract Security Audits
+                </h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {verificationStatus.diligence_audit && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      >
+                        <Link
+                          href={verificationStatus.diligence_audit}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/consensys.svg"
+                            alt="ConsenSys Diligence"
+                            className="w-4 h-4"
+                          />
+                          ConsenSys Diligence
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {verificationStatus.openZepplin_audit && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      >
+                        <Link
+                          href={verificationStatus.openZepplin_audit}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/oz.svg"
+                            alt="OpenZeppelin"
+                            className="w-4 h-4"
+                          />
+                          OpenZeppelin
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {verificationStatus.cyfrin_audit && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      >
+                        <Link
+                          href={verificationStatus.cyfrin_audit}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/cyfrin.svg"
+                            alt="Cyfrin"
+                            className="w-4 h-4"
+                          />
+                          Cyfrin
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           <div>
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
