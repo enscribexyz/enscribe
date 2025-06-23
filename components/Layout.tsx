@@ -11,7 +11,7 @@ import {
   InformationCircleIcon,
   DocumentIcon,
   MagnifyingGlassIcon,
-  UserIcon
+  UserIcon,
 } from '@heroicons/react/24/outline'
 import AddressSearch from './AddressSearch'
 import ChainSelector from './ChainSelector'
@@ -21,7 +21,6 @@ import { useRouter } from 'next/router'
 interface LayoutProps {
   children: React.ReactNode
 }
-
 
 const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL
 
@@ -39,11 +38,14 @@ export default function Layout({ children }: LayoutProps) {
     { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
     ...(isConnected
       ? [
-        { name: 'My Account', href: `/explore/${chain?.id}/${walletAddress}`, icon: UserIcon },
-        { name: 'My Contracts', href: '/history', icon: ClockIcon },
-      ]
+          {
+            name: 'My Account',
+            href: `/explore/${chain?.id}/${walletAddress}`,
+            icon: UserIcon,
+          },
+          { name: 'My Contracts', href: '/history', icon: ClockIcon },
+        ]
       : []),
-
   ]
 
   // Initialize selectedChain from URL on first load only
@@ -97,12 +99,12 @@ export default function Layout({ children }: LayoutProps) {
       chain.id !== prevChain &&
       router.query.address
     ) {
-      // User changed wallet chain while on explore page, update URL
+      // User changed wallet chain while on explore page, perform hard refresh
       const address = router.query.address as string
       console.log(
-        `Wallet chain changed from ${prevChain} to ${chain.id}. Updating URL.`,
+        `Wallet chain changed from ${prevChain} to ${chain.id}. Performing hard refresh.`,
       )
-      router.push(`/explore/${chain.id}/${address}`)
+      window.location.href = `/explore/${chain.id}/${address}`
     }
 
     // Update previous states for next comparison
@@ -363,13 +365,13 @@ export default function Layout({ children }: LayoutProps) {
                   setManuallyChanged(true)
                   setSelectedChain(chainId)
 
-                  // If there's a chainId in the URL, redirect to new chain URL
+                  // If there's a chainId in the URL, perform a hard refresh to new chain URL
                   if (router.query.chainId && router.query.address) {
                     const address = router.query.address as string
                     console.log(
-                      `Redirecting to chain ${chainId} for address ${address}`,
+                      `Hard refreshing to chain ${chainId} for address ${address}`,
                     )
-                    router.push(`/explore/${chainId}/${address}`)
+                    window.location.href = `/explore/${chainId}/${address}`
                   }
                 }}
               />

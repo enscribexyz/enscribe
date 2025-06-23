@@ -1722,8 +1722,8 @@ export default function DeployForm() {
           </>
         )}
 
-         {/* Full ENS Name Preview */}
-         {!isEmpty(label) && !isEmpty(parentName) && (
+        {/* Full ENS Name Preview */}
+        {!isEmpty(label) && !isEmpty(parentName) && (
           <div className="mt-4 mb-4">
             <label className="block text-gray-700 dark:text-gray-300 mb-5">
               Full ENS Name

@@ -66,10 +66,14 @@ export default function AddressSearch({
     setError('')
 
     try {
-      const cleanedQuery = searchQuery.trim()
+      // Get the cleaned search query and ensure it's treated as a string
+      const cleanedQuery: string = searchQuery.trim()
       const isValidAddress = isAddress(cleanedQuery)
+      const containsDot = cleanedQuery.includes('.')
+
       console.log('Search query:', cleanedQuery)
       console.log('Is valid address:', isValidAddress)
+      console.log('Contains dot (possible ENS):', containsDot)
       console.log('Using chain for search:', selectedChain)
 
       // Make sure Layout knows this chain selection is intentional
@@ -80,20 +84,18 @@ export default function AddressSearch({
 
       if (isValidAddress) {
         // It's a valid Ethereum address, redirect to explore page
-        // Use window.location for a full refresh if we're already on an explore page
-        const currentPath = router.asPath
-        if (currentPath.startsWith('/explore/')) {
-          console.log('Already on explore page, using hard redirect')
-          window.location.href = `/explore/${selectedChain}/${cleanedQuery}`
-        } else {
-          router.push(`/explore/${selectedChain}/${cleanedQuery}`)
-        }
-      } else {
+        // Always use window.location for a full refresh to ensure contract status is re-checked
+        // Add a timestamp parameter to prevent caching issues
+        console.log('Using hard redirect to ensure proper contract detection')
+        window.location.href = `/explore/${selectedChain}/${cleanedQuery}`
+      } else if (containsDot) {
+        // Not a valid address but contains a dot - try ENS resolution
         try {
           console.log(
-            'Not a valid address, trying to resolve as ENS name:',
+            'Input contains a dot, trying to resolve as ENS name:',
             cleanedQuery,
           )
+
           // Determine if we're on a testnet
           const isTestnet = [
             CHAINS.SEPOLIA,
@@ -114,23 +116,21 @@ export default function AddressSearch({
             await mainnetProvider.resolveName(cleanedQuery)
 
           if (resolvedAddress) {
-            // Use window.location for a full refresh if we're already on an explore page
-            const currentPath = router.asPath
-            if (currentPath.startsWith('/explore/')) {
-              console.log(
-                'Already on explore page, using hard redirect for resolved ENS',
-              )
-              window.location.href = `/explore/${selectedChain}/${resolvedAddress}`
-            } else {
-              router.push(`/explore/${selectedChain}/${resolvedAddress}`)
-            }
+            // Always use window.location for a full refresh to ensure contract status is re-checked
+            console.log(
+              'Using hard redirect for resolved ENS to ensure proper contract detection',
+            )
+            window.location.href = `/explore/${selectedChain}/${resolvedAddress}`
           } else {
-            setError('Invalid address or ENS name')
+            setError("ENS name doesn't resolve to any address")
           }
         } catch (ensError) {
           console.error('Error resolving ENS name:', ensError)
-          setError('Invalid address or ENS name')
+          setError("ENS name doesn't resolve to any address")
         }
+      } else {
+        // Not a valid address and doesn't contain a dot
+        setError('Invalid Address')
       }
     } catch (error: any) {
       setError(error.message || 'An error occurred')
@@ -151,7 +151,7 @@ export default function AddressSearch({
       <div className="flex-1">
         <Input
           type="text"
-          placeholder="Search address"
+          placeholder="Search address or ENS name"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}

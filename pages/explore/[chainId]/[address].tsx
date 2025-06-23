@@ -5,9 +5,11 @@ import { createPublicClient, http } from 'viem'
 import Layout from '@/components/Layout'
 import ENSDetails from '@/components/ENSDetails'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { CONTRACTS } from '@/utils/constants'
 import { useAccount } from 'wagmi'
+import { checkIfProxy } from '@/utils/proxy'
+import Link from 'next/link'
 
 export default function ExploreAddressPage() {
   const router = useRouter()
@@ -18,6 +20,10 @@ export default function ExploreAddressPage() {
   const [error, setError] = useState<string | null>(null)
   const [client, setClient] = useState<any>(null)
   const [isContract, setIsContract] = useState(false)
+  const [proxyInfo, setProxyInfo] = useState<{
+    isProxy: boolean
+    implementationAddress?: string
+  }>({ isProxy: false })
   const { chain: walletChain } = useAccount()
 
   // Reset state when URL parameters change
@@ -25,6 +31,7 @@ export default function ExploreAddressPage() {
     if (router.isReady) {
       setIsValidAddress(false)
       setIsContract(false)
+      setProxyInfo({ isProxy: false })
       setClient(null)
       setError(null)
       setIsLoading(true)
@@ -147,6 +154,22 @@ export default function ExploreAddressPage() {
 
           // Update contract status
           setIsContract(isContractAddress)
+
+          // If it's a contract, check if it's a proxy
+          if (isContractAddress) {
+            try {
+              console.log('Checking if contract is a proxy...')
+              const proxyData = await checkIfProxy(
+                address as string,
+                Number(chainId),
+              )
+              setProxyInfo(proxyData)
+              console.log('Proxy check result:', proxyData)
+            } catch (proxyError) {
+              console.error('Error checking if contract is proxy:', proxyError)
+              // Don't set an error, just log it
+            }
+          }
         } catch (bytecodeError) {
           console.error('Error getting bytecode:', bytecodeError)
           setError('Failed to verify if the address is a contract')
@@ -213,6 +236,7 @@ export default function ExploreAddressPage() {
           address={address as string}
           chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
           isContract={isContract}
+          proxyInfo={proxyInfo}
         />
       )}
     </Layout>
