@@ -7,11 +7,12 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Loader2, XCircle, Twitter } from 'lucide-react'
+import { CheckCircle, Loader2, XCircle } from 'lucide-react'
 import { ethers } from 'ethers'
 import { CONTRACTS, TOPIC0 } from '../utils/constants'
 import { useAccount, useWalletClient } from 'wagmi'
 import { useRouter } from 'next/router'
+import Image from 'next/image'
 import {
   getEnsAddress,
   getTransactionReceipt,
@@ -20,6 +21,8 @@ import {
   writeContract,
 } from 'viem/actions'
 import { getDeployedAddress } from '@/components/componentUtils'
+
+
 
 export interface Step {
   title: string
@@ -226,10 +229,16 @@ export default function SetNameStepsModal({
 
   const handleDialogChange = (isOpen: boolean) => {
     if (!isOpen) {
-      if (allStepsCompleted) {
+      if (allStepsCompleted && !errorMessage) {
+        // Navigate to the explore page when closing a successful modal
+        const address = internalContractAddress || contractAddress
+        if (address && chain?.id) {
+          console.log('Redirecting to explore page:', `/explore/${chain.id}/${address}`)
+          router.push(`/explore/${chain.id}/${address}`)
+        }
         onClose(lastTxHash)
       } else {
-        onClose('INCOMPLETE')
+        onClose(errorMessage ? `ERROR: ${errorMessage}` : 'INCOMPLETE')
       }
     }
   }
@@ -342,7 +351,7 @@ export default function SetNameStepsModal({
             )}
 
             {/* View on Enscribe */}
-            {(internalContractAddress || contractAddress) && (
+            {/* {(internalContractAddress || contractAddress) && (
               <Button
                 asChild
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
@@ -355,10 +364,10 @@ export default function SetNameStepsModal({
                   View Contract
                 </a>
               </Button>
-            )}
+            )} */}
 
             {/* View on ENS App */}
-            {config?.ENS_APP_URL && ensName && (
+            {/* {config?.ENS_APP_URL && ensName && (
               <Button
                 asChild
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
@@ -371,30 +380,30 @@ export default function SetNameStepsModal({
                   View Name in ENS App
                 </a>
               </Button>
-            )}
+            )} */}
             
             {/* Share on X/Twitter */}
             {ensName && (internalContractAddress || contractAddress) && (
               <Button
                 asChild
-                className="w-full bg-[#1DA1F2] hover:bg-[#0d8ed9] text-white flex items-center justify-center gap-2"
+                className="w-full text-white flex items-center justify-center gap-2"
               >
                 <a
                   href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                    `I named my contract with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`
+                    `I named my contract ${ensName} with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Twitter size={18} />
-                  Share on X
+                  <Image src="/x-white.png" alt="X logo" width={20} height={20} className="mr-1" />
+                  Share Your Name on <b>X</b>
                 </a>
               </Button>
             )}
           </div>
         )}
 
-        {errorMessage ? (
+        {errorMessage && (
           <div className="mt-6 space-y-2">
             <Button
               onClick={() => onClose(`ERROR: ${errorMessage}`)}
@@ -403,23 +412,6 @@ export default function SetNameStepsModal({
               Close
             </Button>
           </div>
-        ) : (
-          allStepsCompleted && (
-            <div className="mt-6 space-y-2">
-              <Button
-                onClick={() => {
-                  const address = internalContractAddress || contractAddress
-                  if (address && chain?.id) {
-                    router.push(`/explore/${chain.id}/${address}`)
-                  }
-                  onClose()
-                }}
-                className="w-full"
-              >
-                Done
-              </Button>
-            </div>
-          )
         )}
       </DialogContent>
     </Dialog>
