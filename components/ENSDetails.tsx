@@ -28,7 +28,6 @@ import {
 } from './ui/tooltip'
 import { ProfileCard } from 'ethereum-identity-kit'
 import { FullWidthProfile } from 'ethereum-identity-kit'
-
 import { checkIfProxy } from '@/utils/proxy'
 // import { EnsRainbowApiClient } from '@ensnode/ensrainbow-sdk'
 
@@ -768,11 +767,6 @@ export default function ENSDetails({
   if (isLoading) {
     return (
       <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-        {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                    <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                        ENS Information
-                    </CardTitle>
-                </CardHeader> */}
         <CardContent className="p-6 space-y-4">
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-3/4" />
@@ -785,11 +779,6 @@ export default function ENSDetails({
   if (error) {
     return (
       <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-        {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                    <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                        ENS Information
-                    </CardTitle>
-                </CardHeader> */}
         <CardContent className="p-6">
           <div className="text-red-500 dark:text-red-400">{error}</div>
         </CardContent>
@@ -799,258 +788,163 @@ export default function ENSDetails({
 
   return (
     <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-      {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                    ENS Information
-                </CardTitle>
-            </CardHeader> */}
-   <CardContent className="p-6">
-  <div className="space-y-8">
-    {/* Top Section: Info Left + ProfileCard Right */}
-    <div className="flex flex-col md:flex-row md:items-start md:gap-8 w-full">
-      {/* LEFT SIDE */}
-      <div className="flex-1 min-w-0">
-        {/* --- PRIMARY ENS NAME BLOCK --- */}
-        {primaryName && (
-  <div className="mb-6">
-    {/* Heading + expiry badge in one line */}
-    <div className="flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
-          Primary ENS Name
-        </h3>
-        <TooltipProvider>
-          {isContract &&
-            verificationStatus &&
-            primaryName &&
-            (verificationStatus.sourcify_verification === 'exact_match' ||
-              verificationStatus.sourcify_verification === 'match' ||
-              verificationStatus.etherscan_verification === 'verified' ||
-              verificationStatus.blockscout_verification === 'exact_match' ||
-              verificationStatus.blockscout_verification === 'match') &&
-            (verificationStatus.diligence_audit ||
-              verificationStatus.openZepplin_audit ||
-              verificationStatus.cyfrin_audit) && (
-              <div className="relative group">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      Trusted - Named, Verified and Audited Contract
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            )}
-        </TooltipProvider>
-      </div>
-      {/* Expiry status badge */}
-      {primaryNameExpiryDate &&
-        (() => {
-          const nameParts = primaryName.split('.')
-          const tld = nameParts[nameParts.length - 1]
-          const sld = nameParts[nameParts.length - 2]
-          const isLineaOrBase = effectiveChainId
-            ? [
-                CHAINS.LINEA,
-                CHAINS.LINEA_SEPOLIA,
-                CHAINS.BASE,
-                CHAINS.BASE_SEPOLIA,
-              ].includes(effectiveChainId)
-            : false
+      <CardContent className="p-6">
+        <div className="space-y-4">
+          {primaryName && (
+            <div className="space-y-6">
+              {/* Full width profile card */}
+              {!isContract && <FullWidthProfile addressOrName={primaryName} />}
 
-          let domainToShow
-          if (isLineaOrBase && nameParts.length >= 3) {
-            const tld3 = nameParts[nameParts.length - 1]
-            const sld3 = nameParts[nameParts.length - 2]
-            const thirdLevel = nameParts[nameParts.length - 3]
-            domainToShow = `${thirdLevel}.${sld3}.${tld3}`
-          } else {
-            domainToShow = `${sld}.${tld}`
-          }
+              {/* Details section */}
+              <div className="space-y-2">
+                {/* Heading + Expiry badge in a single row */}
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
+                      Primary ENS Name
+                    </h3>
+                    <TooltipProvider>
+                      {isContract &&
+                        verificationStatus &&
+                        primaryName &&
+                        (verificationStatus.sourcify_verification ===
+                          'exact_match' ||
+                          verificationStatus.sourcify_verification ===
+                            'match' ||
+                          verificationStatus.etherscan_verification ===
+                            'verified' ||
+                          verificationStatus.blockscout_verification ===
+                            'exact_match' ||
+                          verificationStatus.blockscout_verification ===
+                            'match') &&
+                        (verificationStatus.diligence_audit ||
+                          verificationStatus.openZepplin_audit ||
+                          verificationStatus.cyfrin_audit) && (
+                          <div className="relative group">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  Trusted - Named, Verified and Audited Contract
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )}
+                    </TooltipProvider>
+                  </div>
+                  {/* Expiry badge always at end of row */}
+                  {primaryNameExpiryDate &&
+                    (() => {
+                      const nameParts = primaryName.split('.')
+                      const tld = nameParts[nameParts.length - 1]
+                      const sld = nameParts[nameParts.length - 2]
 
-          const now = new Date()
-          const expiryDate = new Date(primaryNameExpiryDate * 1000)
-          const threeMonthsFromNow = new Date()
-          threeMonthsFromNow.setMonth(now.getMonth() + 3)
+                      const isLineaOrBase = effectiveChainId
+                        ? [
+                            CHAINS.LINEA,
+                            CHAINS.LINEA_SEPOLIA,
+                            CHAINS.BASE,
+                            CHAINS.BASE_SEPOLIA,
+                          ].includes(effectiveChainId)
+                        : false
 
-          const isExpired = expiryDate < now
-          const isWithinThreeMonths = !isExpired && expiryDate < threeMonthsFromNow
-          const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
-          const isInGracePeriod = isExpired && now.getTime() - expiryDate.getTime() < ninetyDaysInMs
+                      let domainToShow
+                      if (isLineaOrBase && nameParts.length >= 3) {
+                        const tld3 = nameParts[nameParts.length - 1]
+                        const sld3 = nameParts[nameParts.length - 2]
+                        const thirdLevel = nameParts[nameParts.length - 3]
+                        domainToShow = `${thirdLevel}.${sld3}.${tld3}`
+                      } else {
+                        domainToShow = `${sld}.${tld}`
+                      }
 
-          let statusIcon
-          let statusText
-          let bgColorClass = 'bg-green-50 dark:bg-green-900/20'
-          let textColorClass = 'text-green-600 dark:text-green-400'
+                      const now = new Date()
+                      const expiryDate = new Date(primaryNameExpiryDate * 1000)
+                      const threeMonthsFromNow = new Date()
+                      threeMonthsFromNow.setMonth(now.getMonth() + 3)
 
-          if (isExpired && isInGracePeriod) {
-            statusIcon = (
-              <XCircle
-                className="inline-block mr-1 text-red-600 dark:text-red-400"
-                size={16}
-              />
-            )
-            statusText = `expired on ${expiryDate.toLocaleDateString()}`
-            bgColorClass = 'bg-red-50 dark:bg-red-900/20'
-            textColorClass = 'text-red-600 dark:text-red-400'
-          } else if (isWithinThreeMonths) {
-            statusIcon = (
-              <AlertCircle
-                className="inline-block mr-1 text-yellow-600 dark:text-yellow-400"
-                size={16}
-              />
-            )
-            statusText = `expires on ${expiryDate.toLocaleDateString()}`
-            bgColorClass = 'bg-yellow-50 dark:bg-yellow-900/20'
-            textColorClass = 'text-yellow-600 dark:text-yellow-400'
-          } else {
-            statusIcon = (
-              <CheckCircle
-                className="inline-block mr-1 text-green-600 dark:text-green-400"
-                size={16}
-              />
-            )
-            statusText = `valid until ${expiryDate.toLocaleDateString()}`
-            bgColorClass = 'bg-green-50 dark:bg-green-900/20'
-            textColorClass = 'text-green-600 dark:text-green-400'
-          }
+                      const isExpired = expiryDate < now
+                      const isWithinThreeMonths =
+                        !isExpired && expiryDate < threeMonthsFromNow
+                      const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
+                      const isInGracePeriod =
+                        isExpired &&
+                        now.getTime() - expiryDate.getTime() < ninetyDaysInMs
 
-          const showDomainSeparately = domainToShow !== primaryName
+                      let statusIcon
+                      let statusText
+                      let bgColorClass = 'bg-green-50 dark:bg-green-900/20'
+                      let textColorClass = 'text-green-600 dark:text-green-400'
 
-          return (
-            <div className="flex items-center">
-              {showDomainSeparately && (
-                <span className="text-gray-800 dark:text-gray-400 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm mr-2">
-                  {domainToShow}
-                </span>
-              )}
-              <span className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${bgColorClass} ${textColorClass}`}>
-                {statusIcon}
-                <span className="whitespace-nowrap">{statusText}</span>
-              </span>
-            </div>
-          )
-        })()}
-    </div>
+                      if (isExpired && isInGracePeriod) {
+                        statusIcon = (
+                          <XCircle
+                            className="inline-block mr-1 text-red-600 dark:text-red-400"
+                            size={16}
+                          />
+                        )
+                        statusText = `expired on ${expiryDate.toLocaleDateString()}`
+                        bgColorClass = 'bg-red-50 dark:bg-red-900/20'
+                        textColorClass = 'text-red-600 dark:text-red-400'
+                      } else if (isWithinThreeMonths) {
+                        statusIcon = (
+                          <AlertCircle
+                            className="inline-block mr-1 text-yellow-600 dark:text-yellow-400"
+                            size={16}
+                          />
+                        )
+                        statusText = `expires on ${expiryDate.toLocaleDateString()}`
+                        bgColorClass = 'bg-yellow-50 dark:bg-yellow-900/20'
+                        textColorClass = 'text-yellow-600 dark:text-yellow-400'
+                      } else {
+                        statusIcon = (
+                          <CheckCircle
+                            className="inline-block mr-1 text-green-600 dark:text-green-400"
+                            size={16}
+                          />
+                        )
+                        statusText = `valid until ${expiryDate.toLocaleDateString()}`
+                        bgColorClass = 'bg-green-50 dark:bg-green-900/20'
+                        textColorClass = 'text-green-600 dark:text-green-400'
+                      }
 
-    {/* ENS Name and buttons below heading+badge */}
-    <div className="flex items-center gap-x-2 mt-2 flex-wrap">
-      <span className="text-gray-900 dark:text-white">{primaryName}</span>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="ml-1"
-        onClick={() => copyToClipboard(primaryName, 'primary-name')}
-      >
-        {copied['primary-name'] ? (
-          <Check className="h-4 w-4 text-green-500" />
-        ) : (
-          <Copy className="h-4 w-4" />
-        )}
-      </Button>
-      <Button variant="ghost" size="sm" className="ml-1" asChild>
-        <a
-          href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </Button>
-    </div>
-  </div>
-)}
+                      const showDomainSeparately = domainToShow !== primaryName
 
-        {/* --- ADDRESS BLOCK --- */}
-        <div>
-          <div className="flex items-center">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {isContract ? 'Contract Address' : 'Account Address'}
-            </h3>
-            {isContract && proxyInfo?.isProxy && (
-              <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300">
-                Proxy
-              </span>
-            )}
-          </div>
-          <div className="flex items-center mt-1">
-            <p className="text-gray-900 dark:text-white font-mono text-sm break-all">
-              {address}
-            </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="ml-2"
-              onClick={() => copyToClipboard(address, 'address')}
-            >
-              {copied['address'] ? (
-                <Check className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
-            <Button variant="ghost" size="sm" className="ml-1" asChild>
-              <a
-                href={`${etherscanUrl}address/${address}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-          </div>
-          {/* Implementation Address with Collapsible Details */}
-          {isContract &&
-            proxyInfo?.isProxy &&
-            proxyInfo.implementationAddress &&
-            !isNestedView && (
-              <div className="mt-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Implementation Address:
+                      return (
+                        <div className="flex items-center">
+                          {showDomainSeparately && (
+                            <span className="text-gray-800 dark:text-gray-400 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm mr-2">
+                              {domainToShow}
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${bgColorClass} ${textColorClass}`}
+                          >
+                            {statusIcon}
+                            <span className="whitespace-nowrap">
+                              {statusText}
+                            </span>
+                          </span>
+                        </div>
+                      )
+                    })()}
+                </div>
+
+                {/* ENS Name + copy + link below */}
+                <div className="flex items-center gap-x-2 mt-1 flex-wrap">
+                  <span className="text-gray-900 dark:text-white">
+                    {primaryName}
                   </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() =>
-                      setImplementationExpanded(!implementationExpanded)
-                    }
-                    className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400"
+                    className="ml-1"
+                    onClick={() => copyToClipboard(primaryName, 'primary-name')}
                   >
-                    {implementationExpanded ? 'Hide Details' : 'Show Details'}
-                    {implementationExpanded ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="flex items-center mt-1">
-                  <code className="text-sm font-mono break-all text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 cursor-pointer">
-                    <Link
-                      href={`/explore/${effectiveChainId}/${proxyInfo.implementationAddress}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {proxyInfo.implementationAddress}
-                    </Link>
-                  </code>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-2"
-                    onClick={() =>
-                      proxyInfo.implementationAddress &&
-                      copyToClipboard(
-                        proxyInfo.implementationAddress,
-                        'implementation',
-                      )
-                    }
-                  >
-                    {copied['implementation'] ? (
+                    {copied['primary-name'] ? (
                       <Check className="h-4 w-4 text-green-500" />
                     ) : (
                       <Copy className="h-4 w-4" />
@@ -1058,7 +952,7 @@ export default function ENSDetails({
                   </Button>
                   <Button variant="ghost" size="sm" className="ml-1" asChild>
                     <a
-                      href={`${etherscanUrl}address/${proxyInfo.implementationAddress}`}
+                      href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
@@ -1066,480 +960,627 @@ export default function ENSDetails({
                     </a>
                   </Button>
                 </div>
-                {/* Collapsible Implementation Details */}
-                {implementationExpanded && (
-                  <div className="mt-4 border-l-2 border-blue-300 dark:border-blue-700 pl-4 py-1">
-                    <div className="mb-2 text-sm font-medium text-blue-600 dark:text-blue-400">
-                      Implementation Contract Details
-                    </div>
-                    <ENSDetails
-                      address={proxyInfo.implementationAddress}
-                      chainId={effectiveChainId}
-                      isContract={true}
-                      isNestedView={true}
-                    />
-                  </div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="flex items-center">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                {isContract ? 'Contract Address' : 'Account Address'}
+              </h3>
+              {isContract && proxyInfo?.isProxy && (
+                <span className="ml-2 px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300">
+                  Proxy
+                </span>
+              )}
+            </div>
+            <div className="flex items-center mt-1">
+              <p className="text-gray-900 dark:text-white font-mono text-sm break-all">
+                {address}
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+                onClick={() => copyToClipboard(address, 'address')}
+              >
+                {copied['address'] ? (
+                  <Check className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
                 )}
-              </div>
-            )}
-        </div>
-      </div>
+              </Button>
+              <Button variant="ghost" size="sm" className="ml-1" asChild>
+                <a
+                  href={`${etherscanUrl}address/${address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
 
-      {/* RIGHT SIDE: EFP PROFILE CARD */}{ primaryName && !isContract && (
-      <div className="w-full md:w-[340px] shrink-0 mt-8 md:mt-0 flex justify-end">
-        <ProfileCard addressOrName={primaryName!} />
-      </div>)}
-    </div>
-
-    {/* --- CONTRACT VERIFICATION STATUS --- */}
-    {isContract && verificationStatus && (
-      <div>
-        <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Contract Verification
-        </h3>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {(verificationStatus.sourcify_verification === 'exact_match' ||
-            verificationStatus.sourcify_verification === 'match') && (
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-              >
-                <Link
-                  href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <img
-                    src="/sourcify.svg"
-                    alt="Sourcify"
-                    className="w-4 h-4"
-                  />
-                  Verified
-                </Link>
-              </Button>
-            </div>
-          )}
-          {verificationStatus.etherscan_verification === 'verified' && (
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-              >
-                <Link
-                  href={`${etherscanUrl}address/${address}#code`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src="/etherscan.svg"
-                    alt="Etherscan"
-                    className="w-4 h-4"
-                  />
-                  Verified
-                </Link>
-              </Button>
-            </div>
-          )}
-          {(verificationStatus.blockscout_verification === 'exact_match' ||
-            verificationStatus.blockscout_verification === 'match') && (
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-              >
-                <Link
-                  href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <img
-                    src="/blockscout.svg"
-                    alt="Blockscout"
-                    className="w-4 h-4"
-                  />
-                  Verified
-                </Link>
-              </Button>
-            </div>
-          )}
-          {verificationStatus.sourcify_verification === 'unverified' && (
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-              >
-                <Link
-                  href={`https://sourcify.dev/#/verifier`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src="/sourcify.svg"
-                    alt="Sourcify"
-                    className="w-4 h-4"
-                  />
-                  Verify
-                </Link>
-              </Button>
-            </div>
-          )}
-          {verificationStatus.etherscan_verification === 'unverified' && (
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-              >
-                <Link
-                  href={`${etherscanUrl}address/${address}#code`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src="/etherscan.svg"
-                    alt="Etherscan"
-                    className="w-4 h-4"
-                  />
-                  Verify
-                </Link>
-              </Button>
-            </div>
-          )}
-          {verificationStatus.blockscout_verification === 'unverified' && (
-            <div className="flex items-center gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-              >
-                <Link
-                  href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="cursor-pointer"
-                >
-                  <img
-                    src="/blockscout.svg"
-                    alt="Blockscout"
-                    className="w-4 h-4"
-                  />
-                  Verify
-                </Link>
-              </Button>
-            </div>
-          )}
-        </div>
-      </div>
-    )}
-
-    {/* Contract Security Audits */}
-    {isContract && verificationStatus &&
-      (verificationStatus.diligence_audit ||
-        verificationStatus.openZepplin_audit ||
-        verificationStatus.cyfrin_audit) && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Contract Security Audits
-          </h3>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {verificationStatus.diligence_audit && (
-              <div className="flex items-center gap-2">
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                >
-                  <Link
-                    href={verificationStatus.diligence_audit}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cursor-pointer"
-                  >
-                    <img
-                      src="/consensys.svg"
-                      alt="ConsenSys Diligence"
-                      className="w-4 h-4"
-                    />
-                    ConsenSys Diligence
-                  </Link>
-                </Button>
-              </div>
-            )}
-            {verificationStatus.openZepplin_audit && (
-              <div className="flex items-center gap-2">
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                >
-                  <Link
-                    href={verificationStatus.openZepplin_audit}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cursor-pointer"
-                  >
-                    <img
-                      src="/oz.svg"
-                      alt="OpenZeppelin"
-                      className="w-4 h-4"
-                    />
-                    OpenZeppelin
-                  </Link>
-                </Button>
-              </div>
-            )}
-            {verificationStatus.cyfrin_audit && (
-              <div className="flex items-center gap-2">
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                >
-                  <Link
-                    href={verificationStatus.cyfrin_audit}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cursor-pointer"
-                  >
-                    <img
-                      src="/cyfrin.svg"
-                      alt="Cyfrin"
-                      className="w-4 h-4"
-                    />
-                    Cyfrin
-                  </Link>
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-    {/* --- ASSOCIATED ENS NAMES --- */}
-    <div>
-      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-        Associated ENS Names ({ensNames.length})
-      </h3>
-      {ensNames.length > 0 ? (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-          <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-            <div className="space-y-2">
-              {ensNames.map((domain, index) => (
-                <div
-                  key={index}
-                  className={`flex items-center justify-between p-2 rounded ${
-                    domain.isPrimary
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                      : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-1">
-                    <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
-                      {domain.name}
+            {/* Implementation Address with Collapsible Details */}
+            {isContract &&
+              proxyInfo?.isProxy &&
+              proxyInfo.implementationAddress &&
+              !isNestedView && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Implementation Address:
                     </span>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-5 w-5 p-0 flex-shrink-0"
-                      onClick={e => {
-                        e.stopPropagation()
-                        copyToClipboard(domain.name, `associated-${index}`)
-                      }}
+                      onClick={() =>
+                        setImplementationExpanded(!implementationExpanded)
+                      }
+                      className="flex items-center gap-1 text-xs text-blue-600 dark:text-blue-400"
                     >
-                      {copied[`associated-${index}`] ? (
-                        <Check className="h-3 w-3 text-green-500" />
+                      {implementationExpanded ? 'Hide Details' : 'Show Details'}
+                      {implementationExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
                       ) : (
-                        <Copy className="h-3 w-3" />
+                        <ChevronDown className="h-4 w-4" />
                       )}
                     </Button>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {domain.expiryDate && (
-                      <span className="text-xs whitespace-nowrap">
-                        {(() => {
-                          const now = new Date()
-                          const expiryDate = new Date(domain.expiryDate * 1000)
-                          const threeMonthsFromNow = new Date()
-                          threeMonthsFromNow.setMonth(now.getMonth() + 3)
 
-                          const isExpired = expiryDate < now
-                          const isWithinThreeMonths = !isExpired && expiryDate < threeMonthsFromNow
-                          const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
-                          const isInGracePeriod = isExpired && now.getTime() - expiryDate.getTime() < ninetyDaysInMs
-
-                          let textColorClass = 'text-green-600 dark:text-green-400'
-                          if (isWithinThreeMonths) {
-                            textColorClass = 'text-yellow-600 dark:text-yellow-400'
-                          } else if (isExpired && isInGracePeriod) {
-                            textColorClass = 'text-red-600 dark:text-red-400'
-                          } else if (isExpired) {
-                            textColorClass = 'text-red-600 dark:text-red-400'
-                          }
-
-                          return (
-                            <span className={textColorClass}>
-                              {isExpired ? 'Expired' : 'Expires'}: {expiryDate.toLocaleDateString()}
-                            </span>
-                          )
-                        })()}
-                      </span>
-                    )}
-                    {domain.isPrimary && (
-                      <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                        Primary
-                      </span>
-                    )}
+                  <div className="flex items-center mt-1">
+                    <code className="text-sm font-mono break-all text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 cursor-pointer">
+                      <Link
+                        href={`/explore/${effectiveChainId}/${proxyInfo.implementationAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {proxyInfo.implementationAddress}
+                      </Link>
+                    </code>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="ml-1 h-6 w-6 p-0 flex-shrink-0"
-                      asChild
+                      className="ml-2"
+                      onClick={() =>
+                        proxyInfo.implementationAddress &&
+                        copyToClipboard(
+                          proxyInfo.implementationAddress,
+                          'implementation',
+                        )
+                      }
                     >
+                      {copied['implementation'] ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button variant="ghost" size="sm" className="ml-1" asChild>
                       <a
-                        href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
+                        href={`${etherscanUrl}address/${proxyInfo.implementationAddress}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                       >
-                        <ExternalLink className="h-3 w-3" />
+                        <ExternalLink className="h-4 w-4" />
                       </a>
                     </Button>
                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
-          No Associated ENS names found for this address
-        </p>
-      )}
-    </div>
 
-    {/* --- OWNED ENS NAMES --- */}
-    <div>
-      <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-        Owned ENS Names
-        {userOwnedDomains.length > 0 && ` (${userOwnedDomains.length})`}
-      </h3>
-      {userOwnedDomains.length > 0 ? (
-        <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-          <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-            <div className="space-y-2">
-              {(() => {
-                let currentParent2LD = ''
-                return userOwnedDomains.map((domain, index) => {
-                  const isNewGroup = domain.parent2LD !== currentParent2LD
-                  if (isNewGroup && domain.parent2LD) {
-                    currentParent2LD = domain.parent2LD
-                  }
-                  const indentLevel = domain.level && domain.level > 2 ? domain.level - 2 : 0
-                  const indentClass = indentLevel > 0 ? `pl-${indentLevel * 4}` : ''
-                  return (
-                    <div
-                      key={domain.name}
-                      className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
-                          {domain.name}
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-5 w-5 p-0 flex-shrink-0"
-                          onClick={e => {
-                            e.stopPropagation()
-                            copyToClipboard(domain.name, `owned-${index}`)
-                          }}
-                        >
-                          {copied[`owned-${index}`] ? (
-                            <Check className="h-3 w-3 text-green-500" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
+                  {/* Collapsible Implementation Details */}
+                  {implementationExpanded && (
+                    <div className="mt-4 border-l-2 border-blue-300 dark:border-blue-700 pl-4 py-1">
+                      <div className="mb-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+                        Implementation Contract Details
                       </div>
-                      <div className="flex items-center gap-2">
-                        {domain.expiryDate && (
-                          <span className="text-xs whitespace-nowrap">
-                            {(() => {
-                              const now = new Date()
-                              const expiryDate = new Date(domain.expiryDate * 1000)
-                              const threeMonthsFromNow = new Date()
-                              threeMonthsFromNow.setMonth(now.getMonth() + 3)
-
-                              const isExpired = expiryDate < now
-                              const isWithinThreeMonths = !isExpired && expiryDate < threeMonthsFromNow
-                              const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
-                              const isInGracePeriod = isExpired && now.getTime() - expiryDate.getTime() < ninetyDaysInMs
-
-                              let textColorClass = 'text-green-600 dark:text-green-400'
-                              if (isWithinThreeMonths) {
-                                textColorClass = 'text-yellow-600 dark:text-yellow-400'
-                              } else if (isExpired && isInGracePeriod) {
-                                textColorClass = 'text-red-600 dark:text-red-400'
-                              } else if (isExpired) {
-                                textColorClass = 'text-red-600 dark:text-red-400'
-                              }
-                              return (
-                                <span className={textColorClass}>
-                                  {isExpired ? 'Expired' : 'Expires'}: {expiryDate.toLocaleDateString()}
-                                </span>
-                              )
-                            })()}
-                          </span>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-2 h-6 w-6 p-0 flex-shrink-0"
-                          asChild
-                        >
-                          <a
-                            href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={e => e.stopPropagation()}
-                            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      </div>
+                      {/* <Card>
+                      <CardContent className="p-4"> */}
+                      <ENSDetails
+                        address={proxyInfo.implementationAddress}
+                        chainId={effectiveChainId}
+                        isContract={true}
+                        isNestedView={true}
+                      />
+                      {/* </CardContent>
+                    </Card> */}
                     </div>
-                  )
-                })
-              })()}
+                  )}
+                </div>
+              )}
+          </div>
+
+          {/* Contract Verification Status */}
+          {isContract && verificationStatus && (
+            <div>
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Contract Verification
+              </h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {(verificationStatus.sourcify_verification === 'exact_match' ||
+                  verificationStatus.sourcify_verification === 'match') && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer"
+                      >
+                        <img
+                          src="/sourcify.svg"
+                          alt="Sourcify"
+                          className="w-4 h-4"
+                        />
+                        Verified
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+                {verificationStatus.etherscan_verification === 'verified' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${etherscanUrl}address/${address}#code`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src="/etherscan.svg"
+                          alt="Etherscan"
+                          className="w-4 h-4"
+                        />
+                        Verified
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+                {(verificationStatus.blockscout_verification ===
+                  'exact_match' ||
+                  verificationStatus.blockscout_verification === 'match') && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer"
+                      >
+                        <img
+                          src="/blockscout.svg"
+                          alt="Blockscout"
+                          className="w-4 h-4"
+                        />
+                        Verified
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+                {verificationStatus.sourcify_verification === 'unverified' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`https://sourcify.dev/#/verifier`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src="/sourcify.svg"
+                          alt="Sourcify"
+                          className="w-4 h-4"
+                        />
+                        Verify
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+                {verificationStatus.etherscan_verification === 'unverified' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${etherscanUrl}address/${address}#code`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <img
+                          src="/etherscan.svg"
+                          alt="Etherscan"
+                          className="w-4 h-4"
+                        />
+                        Verify
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+                {verificationStatus.blockscout_verification ===
+                  'unverified' && (
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer"
+                      >
+                        <img
+                          src="/blockscout.svg"
+                          alt="Blockscout"
+                          className="w-4 h-4"
+                        />
+                        Verify
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
+          )}
+
+          {/* Contract Security Audits */}
+          {isContract &&
+            verificationStatus &&
+            (verificationStatus.diligence_audit ||
+              verificationStatus.openZepplin_audit ||
+              verificationStatus.cyfrin_audit) && (
+              <div className="mt-4">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Contract Security Audits
+                </h3>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {verificationStatus.diligence_audit && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      >
+                        <Link
+                          href={verificationStatus.diligence_audit}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/consensys.svg"
+                            alt="ConsenSys Diligence"
+                            className="w-4 h-4"
+                          />
+                          ConsenSys Diligence
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {verificationStatus.openZepplin_audit && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      >
+                        <Link
+                          href={verificationStatus.openZepplin_audit}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/oz.svg"
+                            alt="OpenZeppelin"
+                            className="w-4 h-4"
+                          />
+                          OpenZeppelin
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {verificationStatus.cyfrin_audit && (
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      >
+                        <Link
+                          href={verificationStatus.cyfrin_audit}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/cyfrin.svg"
+                            alt="Cyfrin"
+                            className="w-4 h-4"
+                          />
+                          Cyfrin
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+              Associated ENS Names ({ensNames.length})
+            </h3>
+            {ensNames.length > 0 ? (
+              <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                  <div className="space-y-2">
+                    {ensNames.map((domain, index) => (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-2 rounded ${
+                          domain.isPrimary
+                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1">
+                          <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
+                            {domain.name}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 flex-shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              copyToClipboard(
+                                domain.name,
+                                `associated-${index}`,
+                              )
+                            }}
+                          >
+                            {copied[`associated-${index}`] ? (
+                              <Check className="h-3 w-3 text-green-500" />
+                            ) : (
+                              <Copy className="h-3 w-3" />
+                            )}
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {domain.expiryDate && (
+                            <span className="text-xs whitespace-nowrap">
+                              {(() => {
+                                const now = new Date()
+                                const expiryDate = new Date(
+                                  domain.expiryDate * 1000,
+                                )
+                                const threeMonthsFromNow = new Date()
+                                threeMonthsFromNow.setMonth(now.getMonth() + 3)
+
+                                const isExpired = expiryDate < now
+                                const isWithinThreeMonths =
+                                  !isExpired && expiryDate < threeMonthsFromNow
+                                const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
+                                const isInGracePeriod =
+                                  isExpired &&
+                                  now.getTime() - expiryDate.getTime() <
+                                    ninetyDaysInMs
+
+                                let textColorClass =
+                                  'text-green-600 dark:text-green-400'
+                                if (isWithinThreeMonths) {
+                                  textColorClass =
+                                    'text-yellow-600 dark:text-yellow-400'
+                                } else if (isExpired && isInGracePeriod) {
+                                  textColorClass =
+                                    'text-red-600 dark:text-red-400'
+                                } else if (isExpired) {
+                                  textColorClass =
+                                    'text-red-600 dark:text-red-400'
+                                }
+
+                                return (
+                                  <span className={textColorClass}>
+                                    {isExpired ? 'Expired' : 'Expires'}:{' '}
+                                    {expiryDate.toLocaleDateString()}
+                                  </span>
+                                )
+                              })()}
+                            </span>
+                          )}
+                          {domain.isPrimary && (
+                            <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              Primary
+                            </span>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ml-1 h-6 w-6 p-0 flex-shrink-0"
+                            asChild
+                          >
+                            <a
+                              href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                No Associated ENS names found for this address
+              </p>
+            )}
+          </div>
+
+          {/* Owned ENS Names */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+              Owned ENS Names
+              {userOwnedDomains.length > 0 && ` (${userOwnedDomains.length})`}
+            </h3>
+            {userOwnedDomains.length > 0 ? (
+              <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
+                <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                  <div className="space-y-2">
+                    {(() => {
+                      let currentParent2LD = ''
+                      return userOwnedDomains.map((domain, index) => {
+                        // Check if we're starting a new 2LD group
+                        const isNewGroup = domain.parent2LD !== currentParent2LD
+                        if (isNewGroup && domain.parent2LD) {
+                          currentParent2LD = domain.parent2LD
+                        }
+
+                        // Calculate indentation for subdomains
+                        const indentLevel =
+                          domain.level && domain.level > 2
+                            ? domain.level - 2
+                            : 0
+                        const indentClass =
+                          indentLevel > 0 ? `pl-${indentLevel * 4}` : ''
+
+                        return (
+                          <div
+                            key={domain.name}
+                            className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
+                          >
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
+                                {domain.name}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 flex-shrink-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  copyToClipboard(domain.name, `owned-${index}`)
+                                }}
+                              >
+                                {copied[`owned-${index}`] ? (
+                                  <Check className="h-3 w-3 text-green-500" />
+                                ) : (
+                                  <Copy className="h-3 w-3" />
+                                )}
+                              </Button>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {domain.expiryDate && (
+                                <span className="text-xs whitespace-nowrap">
+                                  {(() => {
+                                    const now = new Date()
+                                    const expiryDate = new Date(
+                                      domain.expiryDate * 1000,
+                                    )
+                                    const threeMonthsFromNow = new Date()
+                                    threeMonthsFromNow.setMonth(
+                                      now.getMonth() + 3,
+                                    )
+
+                                    const isExpired = expiryDate < now
+                                    const isWithinThreeMonths =
+                                      !isExpired &&
+                                      expiryDate < threeMonthsFromNow
+                                    const ninetyDaysInMs =
+                                      90 * 24 * 60 * 60 * 1000
+                                    const isInGracePeriod =
+                                      isExpired &&
+                                      now.getTime() - expiryDate.getTime() <
+                                        ninetyDaysInMs
+
+                                    let textColorClass =
+                                      'text-green-600 dark:text-green-400'
+                                    if (isWithinThreeMonths) {
+                                      textColorClass =
+                                        'text-yellow-600 dark:text-yellow-400'
+                                    } else if (isExpired && isInGracePeriod) {
+                                      textColorClass =
+                                        'text-red-600 dark:text-red-400'
+                                    } else if (isExpired) {
+                                      textColorClass =
+                                        'text-red-600 dark:text-red-400'
+                                    }
+
+                                    return (
+                                      <span className={textColorClass}>
+                                        {isExpired ? 'Expired' : 'Expires'}:{' '}
+                                        {expiryDate.toLocaleDateString()}
+                                      </span>
+                                    )
+                                  })()}
+                                </span>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-2 h-6 w-6 p-0 flex-shrink-0"
+                                asChild
+                              >
+                                <a
+                                  href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                No Owned ENS names found for this address
+              </p>
+            )}
           </div>
         </div>
-      ) : (
-        <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
-          No Owned ENS names found for this address
-        </p>
-      )}
-    </div>
-  </div>
-</CardContent>
+      </CardContent>
     </Card>
   )
 }

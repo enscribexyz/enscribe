@@ -8,9 +8,9 @@ const nextConfig: NextConfig = {
     // This is necessary for the ethereum-identity-kit package to be handled correctly
     config.resolve.extensionAlias = {
       '.js': ['.js', '.ts', '.tsx'],
-      '.jsx': ['.jsx', '.tsx']
-    };
-    return config;
+      '.jsx': ['.jsx', '.tsx'],
+    }
+    return config
   },
 }
 
