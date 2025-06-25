@@ -64,9 +64,6 @@ export default function SetNameStepsModal({
     ('pending' | 'completed' | 'error')[]
   >(Array(steps?.length || 0).fill('pending'))
 
-  // Track whether user has shared on X
-  const [hasSharedOnX, setHasSharedOnX] = useState(false)
-
   const [stepTxHashes, setStepTxHashes] = useState<(string | null)[]>(
     Array(steps?.length || 0).fill(null),
   )
@@ -105,19 +102,8 @@ export default function SetNameStepsModal({
       setCurrentStep(0)
       setExecuting(false)
       setAllStepsCompleted(false)
-      // Reset share state when modal closes
-      setHasSharedOnX(false)
     }
   }, [open, steps])
-
-  // Handle when user clicks share on X
-  const handleShareOnX = useCallback(() => {
-    // Set a timeout to simulate the user sharing and coming back
-    // In a real implementation, you might want to use a more robust way to track this
-    setTimeout(() => {
-      setHasSharedOnX(true)
-    }, 500)
-  }, [])
 
   // Add keyframes for glow animation
   const keyframes = `
@@ -411,86 +397,86 @@ export default function SetNameStepsModal({
             )}
 
             {/* ENS Resolution Message */}
-            {isPrimaryNameSet !== undefined && (
+            {isPrimaryNameSet !== undefined && !isPrimaryNameSet && (
               <div className="text-red-500 dark:text-white font-semibold text-sm mt-4">
-                {isPrimaryNameSet
-                  ? 'Primary ENS Name set for the contract Address'
-                  : 'Only Forward Resolution of ENS name set for the contract address'}
+                Only Forward Resolution of ENS name set for the contract address
               </div>
             )}
 
-            {/* Share on X/Twitter */}
+            {/* Share on X/Twitter and Farcaster */}
             {ensName && (internalContractAddress || contractAddress) && (
               <>
-                <Button
-                  asChild
-                  className="w-full text-white flex items-center justify-center gap-2"
-                  onClick={handleShareOnX}
-                >
-                  <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                      `I named my contract ${ensName} with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <Button
+                    asChild
+                    className="text-white flex items-center justify-center gap-2 bg-black hover:bg-gray-800"
                   >
-                    <Image
-                      src="/x-white.png"
-                      alt="X logo"
-                      width={20}
-                      height={20}
-                      className="mr-1"
-                    />
-                    Share Your Name on <b>X</b>
-                  </a>
-                </Button>
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `I named my contract ${ensName} with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="flex items-center">
+                        <Image
+                          src="/x-white.png"
+                          alt="X logo"
+                          width={18}
+                          height={18}
+                          className="mr-2"
+                        />
+                        <span>Share on X</span>
+                      </span>
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    className="text-white flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-700"
+                  >
+                    <a
+                      href={`https://warpcast.com/~/compose?text=${encodeURIComponent(
+                        `I named my contract ${ensName} with @enscribe, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="flex items-center">
+                        <Image
+                          src="/farcaster.svg"
+                          alt="Farcaster logo"
+                          width={18}
+                          height={18}
+                          className="mr-2"
+                        />
+                        <span>Share on Farcaster</span>
+                      </span>
+                    </a>
+                  </Button>
+                </div>
 
                 {/* Claim POAP Button */}
                 <div className="mt-4">
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="w-full cursor-pointer">
-                          <Button
-                            disabled={!hasSharedOnX}
-                            className={`w-full py-6 text-lg font-medium relative overflow-hidden ${hasSharedOnX ? 'shadow-lg hover:shadow-indigo-500/30' : 'opacity-70'}`}
-                            style={{
-                              background:
-                                'linear-gradient(90deg, #ff6b6b 0%, #8a2be2 50%, #4b6cb7 100%)',
-                              backgroundSize: '200% 100%',
-                              animation: hasSharedOnX
-                                ? 'glow 1.5s infinite alternate'
-                                : 'none',
-                            }}
-                          >
-                            {/* Background animation elements */}
-                            {hasSharedOnX && (
-                              <>
-                                <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer pointer-events-none"></span>
-                                <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse pointer-events-none"></span>
-                                <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-indigo-500/0 via-indigo-500/40 to-indigo-500/0 animate-shine pointer-events-none"></span>
-                              </>
-                            )}
-                            <div className="flex items-center justify-center relative z-10">
-                              <span
-                                className={`${hasSharedOnX ? 'scale-105' : ''} transition-transform duration-300`}
-                              >
-                                Claim my POAP
-                              </span>
-                              {hasSharedOnX && (
-                                <span className="ml-2 inline-block">🏆</span>
-                              )}
-                            </div>
-                          </Button>
-                        </div>
-                      </TooltipTrigger>
-                      {!hasSharedOnX && (
-                        <TooltipContent>
-                          <p>To enable, kindly share us on X</p>
-                        </TooltipContent>
-                      )}
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    className="w-full py-6 text-lg font-medium relative overflow-hidden shadow-lg hover:shadow-indigo-500/30"
+                    style={{
+                      background:
+                        'linear-gradient(90deg, #ff6b6b 0%, #8a2be2 50%, #4b6cb7 100%)',
+                      backgroundSize: '200% 100%',
+                      animation: 'glow 1.5s infinite alternate',
+                    }}
+                  >
+                    {/* Background animation elements */}
+                    <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer pointer-events-none"></span>
+                    <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse pointer-events-none"></span>
+                    <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-indigo-500/0 via-indigo-500/40 to-indigo-500/0 animate-shine pointer-events-none"></span>
+                    <div className="flex items-center justify-center relative z-10">
+                      <span className="scale-105 transition-transform duration-300">
+                        Claim my POAP
+                      </span>
+                      <span className="ml-2 inline-block">🏆</span>
+                    </div>
+                  </Button>
                 </div>
               </>
             )}
