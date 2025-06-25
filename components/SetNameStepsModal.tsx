@@ -450,37 +450,39 @@ export default function SetNameStepsModal({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button
-                          disabled={!hasSharedOnX}
-                          className={`w-full py-6 text-lg font-medium relative overflow-hidden ${hasSharedOnX ? 'shadow-lg hover:shadow-indigo-500/30' : ''}`}
-                          style={{
-                            background:
-                              'linear-gradient(90deg, #ff6b6b 0%, #8a2be2 50%, #4b6cb7 100%)',
-                            backgroundSize: '200% 100%',
-                            animation: hasSharedOnX
-                              ? 'glow 1.5s infinite alternate'
-                              : 'none',
-                          }}
-                        >
-                          {/* Background animation elements */}
-                          {hasSharedOnX && (
-                            <>
-                              <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer pointer-events-none"></span>
-                              <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse pointer-events-none"></span>
-                              <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-indigo-500/0 via-indigo-500/40 to-indigo-500/0 animate-shine pointer-events-none"></span>
-                            </>
-                          )}
-                          <div className="flex items-center justify-center relative z-10">
-                            <span
-                              className={`${hasSharedOnX ? 'scale-105' : ''} transition-transform duration-300`}
-                            >
-                              Claim my POAP
-                            </span>
+                        <div className="w-full cursor-pointer">
+                          <Button
+                            disabled={!hasSharedOnX}
+                            className={`w-full py-6 text-lg font-medium relative overflow-hidden ${hasSharedOnX ? 'shadow-lg hover:shadow-indigo-500/30' : 'opacity-70'}`}
+                            style={{
+                              background:
+                                'linear-gradient(90deg, #ff6b6b 0%, #8a2be2 50%, #4b6cb7 100%)',
+                              backgroundSize: '200% 100%',
+                              animation: hasSharedOnX
+                                ? 'glow 1.5s infinite alternate'
+                                : 'none',
+                            }}
+                          >
+                            {/* Background animation elements */}
                             {hasSharedOnX && (
-                              <span className="ml-2 inline-block">🏆</span>
+                              <>
+                                <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer pointer-events-none"></span>
+                                <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse pointer-events-none"></span>
+                                <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-indigo-500/0 via-indigo-500/40 to-indigo-500/0 animate-shine pointer-events-none"></span>
+                              </>
                             )}
-                          </div>
-                        </Button>
+                            <div className="flex items-center justify-center relative z-10">
+                              <span
+                                className={`${hasSharedOnX ? 'scale-105' : ''} transition-transform duration-300`}
+                              >
+                                Claim my POAP
+                              </span>
+                              {hasSharedOnX && (
+                                <span className="ml-2 inline-block">🏆</span>
+                              )}
+                            </div>
+                          </Button>
+                        </div>
                       </TooltipTrigger>
                       {!hasSharedOnX && (
                         <TooltipContent>
