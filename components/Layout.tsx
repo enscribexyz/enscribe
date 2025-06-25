@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Toaster } from '@/components/ui/toaster'
+import 'ethereum-identity-kit/css'
 import {
   PencilSquareIcon,
   ClockIcon,

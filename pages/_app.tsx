@@ -10,6 +10,7 @@ import {
 } from 'wagmi/chains'
 import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { TransactionProvider } from 'ethereum-identity-kit'
 import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
@@ -27,7 +28,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider>
-          <Component {...pageProps} />
+          <TransactionProvider>
+            <Component {...pageProps} />
+          </TransactionProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
