@@ -860,7 +860,12 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
-                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
+                args: [
+                  finalBytecode,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })
@@ -939,7 +944,12 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
-                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
+                args: [
+                  finalBytecode,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })
@@ -1069,7 +1079,12 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
-                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
+                args: [
+                  finalBytecode,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })
@@ -1208,7 +1223,12 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeployReverseSetter',
-                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
+                args: [
+                  finalBytecode,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })
@@ -1344,7 +1364,12 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeployReverseClaimer',
-                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
+                args: [
+                  finalBytecode,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })

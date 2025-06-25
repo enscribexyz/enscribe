@@ -647,7 +647,12 @@ export default function NameContract() {
                 address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: contractABI,
                 functionName: 'setName',
-                args: [existingContractAddress, labelNormalized, parentNameNormalized, parentNode],
+                args: [
+                  existingContractAddress,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })
@@ -827,7 +832,10 @@ export default function NameContract() {
               address: publicResolverAddress,
               abi: publicResolverABI,
               functionName: 'setName',
-              args: [reversedNode, `${labelNormalized}.${parentNameNormalized}`],
+              args: [
+                reversedNode,
+                `${labelNormalized}.${parentNameNormalized}`,
+              ],
               account: walletAddress,
             })
             await logMetric(
