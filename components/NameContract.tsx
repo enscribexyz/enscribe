@@ -579,11 +579,12 @@ export default function NameContract() {
       }
 
       const labelNormalized = normalize(label)
-      const name = normalize(`${labelNormalized}.${parentName}`)
+      const parentNameNormalized = normalize(parentName)
+      const name = normalize(`${labelNormalized}.${parentNameNormalized}`)
       const chainId = chain?.id!
 
-      const parentNode = getParentNode(parentName)
-      const node = namehash(labelNormalized + '.' + parentName)
+      const parentNode = getParentNode(parentNameNormalized)
+      const node = namehash(labelNormalized + '.' + parentNameNormalized)
       const labelHash = keccak256(toBytes(labelNormalized))
 
       const nameExist = (await readContract(walletClient, {
@@ -610,7 +611,7 @@ export default function NameContract() {
 
       console.log('label - ', labelNormalized)
       console.log('label hash - ', labelHash)
-      console.log('parentName - ', parentName)
+      console.log('parentName - ', parentNameNormalized)
       console.log('parentNode - ', parentNode)
       console.log('name node - ', node)
 
@@ -646,7 +647,7 @@ export default function NameContract() {
                 address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: contractABI,
                 functionName: 'setName',
-                args: [existingContractAddress, labelNormalized, parentName, parentNode],
+                args: [existingContractAddress, labelNormalized, parentNameNormalized, parentNode],
                 value: txCost,
                 account: walletAddress,
               })
@@ -826,7 +827,7 @@ export default function NameContract() {
               address: publicResolverAddress,
               abi: publicResolverABI,
               functionName: 'setName',
-              args: [reversedNode, `${labelNormalized}.${parentName}`],
+              args: [reversedNode, `${labelNormalized}.${parentNameNormalized}`],
               account: walletAddress,
             })
             await logMetric(
@@ -857,7 +858,7 @@ export default function NameContract() {
                 existingContractAddress,
                 walletAddress,
                 publicResolverAddress,
-                `${labelNormalized}.${parentName}`,
+                `${labelNormalized}.${parentNameNormalized}`,
               ],
               account: walletAddress,
             })

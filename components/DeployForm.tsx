@@ -827,13 +827,15 @@ export default function DeployForm() {
         return
       }
 
-      const parentNode = getParentNode(parentName)
+      const labelNormalized = normalize(label)
+      const parentNameNormalized = normalize(parentName)
+      const parentNode = getParentNode(parentNameNormalized)
 
       const finalBytecode = encodeConstructorArgs(bytecode, args, setError)
       const steps: Step[] = []
 
-      console.log('label - ', label)
-      console.log('parentName - ', parentName)
+      console.log('label - ', labelNormalized)
+      console.log('parentName - ', parentNameNormalized)
       console.log('parentNode - ', parentNode)
 
       const txCost = (await readContract(walletClient, {
@@ -844,7 +846,7 @@ export default function DeployForm() {
       })) as bigint
 
       console.log('txCost - ', txCost)
-      let name = `${label}.${parentName}`
+      let name = `${labelNormalized}.${parentNameNormalized}`
 
       if (isOwnable) {
         if (parentType === 'web3labs') {
@@ -858,7 +860,7 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
-                args: [finalBytecode, label, parentName, parentNode],
+                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
                 value: txCost,
                 account: walletAddress,
               })
@@ -937,7 +939,7 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
-                args: [finalBytecode, label, parentName, parentNode],
+                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
                 value: txCost,
                 account: walletAddress,
               })
@@ -1067,7 +1069,7 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeploy',
-                args: [finalBytecode, label, parentName, parentNode],
+                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
                 value: txCost,
                 account: walletAddress,
               })
@@ -1206,7 +1208,7 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeployReverseSetter',
-                args: [finalBytecode, label, parentName, parentNode],
+                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
                 value: txCost,
                 account: walletAddress,
               })
@@ -1342,7 +1344,7 @@ export default function DeployForm() {
                 address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: enscribeContractABI,
                 functionName: 'setNameAndDeployReverseClaimer',
-                args: [finalBytecode, label, parentName, parentNode],
+                args: [finalBytecode, labelNormalized, parentNameNormalized, parentNode],
                 value: txCost,
                 account: walletAddress,
               })
