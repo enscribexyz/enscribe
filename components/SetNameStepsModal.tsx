@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle, Loader2, XCircle, Twitter } from 'lucide-react'
 import { ethers } from 'ethers'
 import { CONTRACTS, TOPIC0 } from '../utils/constants'
 import { useAccount, useWalletClient } from 'wagmi'
@@ -369,6 +369,25 @@ export default function SetNameStepsModal({
                   rel="noopener noreferrer"
                 >
                   View Name in ENS App
+                </a>
+              </Button>
+            )}
+            
+            {/* Share on X/Twitter */}
+            {ensName && (internalContractAddress || contractAddress) && (
+              <Button
+                asChild
+                className="w-full bg-[#1DA1F2] hover:bg-[#0d8ed9] text-white flex items-center justify-center gap-2"
+              >
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                    `I named my contract with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Twitter size={18} />
+                  Share on X
                 </a>
               </Button>
             )}
