@@ -793,7 +793,11 @@ export default function ENSDetails({
           {primaryName && (
             <div className="space-y-6">
               {/* Full width profile card */}
-              {!isContract && <FullWidthProfile addressOrName={primaryName} />}
+              {!isContract && (
+                <div className="w-full scale-100 transform origin-top">
+                  <FullWidthProfile addressOrName={primaryName} />
+                </div>
+              )}
 
               {/* Details section */}
               <div className="space-y-2">

@@ -124,9 +124,11 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
-      {/* Sidebar for Large Screens */}
-      <aside className="hidden lg:flex lg:w-66 bg-gray-900 text-white shadow-md flex-col">
-        <div>
+      {/* Sidebar for Large Screens - Fixed position */}
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-66 bg-gray-900 text-white shadow-md z-10">
+        {/* Main sidebar content with scroll */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Logo and site name */}
           <div className="px-6 py-4 flex items-center space-x-2 border-b border-gray-700">
             <Link href="/" legacyBehavior>
               <a className="flex items-center space-x-2">
@@ -167,6 +169,8 @@ export default function Layout({ children }: LayoutProps) {
               </a>
             </Link>
           </div>
+
+          {/* Navigation menu */}
           <nav className="px-4 py-6">
             <ul className="space-y-2">
               {navigation.map((item) => (
@@ -183,8 +187,8 @@ export default function Layout({ children }: LayoutProps) {
           </nav>
         </div>
 
-        {/* Push buttons to the bottom */}
-        <div className="mt-auto px-4 py-4 flex space-x-4">
+        {/* Footer buttons - always visible at bottom */}
+        <div className="px-4 py-4 flex space-x-4 bg-gray-900 shadow-inner">
           <Link href={productLink || '/'} legacyBehavior>
             <a
               className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
@@ -296,6 +300,9 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
         </div>
       </div>
+
+      {/* Static sidebar placeholder to create space for the fixed sidebar */}
+      <div className="hidden lg:block lg:min-w-[240px] lg:w-66 flex-shrink-0"></div>
 
       {/* Main content area */}
       <div className="flex flex-1 flex-col">
