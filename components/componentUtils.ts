@@ -1,4 +1,4 @@
-import { METRICS_URL, NAME_GEN_URL, TOPIC0 } from '../utils/constants'
+import { CHAINS, METRICS_URL, NAME_GEN_URL, TOPIC0 } from '../utils/constants'
 import {
   concatHex,
   encodeAbiParameters,
@@ -121,4 +121,15 @@ export async function getDeployedAddress(
   }
 
   return undefined
+}
+
+export function isTestNet(chainId: number): boolean {
+  switch (chainId) {
+    case CHAINS.SEPOLIA:
+    case CHAINS.LINEA_SEPOLIA:
+    case CHAINS.BASE_SEPOLIA:
+      return true
+    default:
+      return false
+  }
 }
