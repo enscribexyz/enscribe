@@ -26,6 +26,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './ui/tooltip'
+import { ProfileCard } from 'ethereum-identity-kit'
+import { FullWidthProfile } from 'ethereum-identity-kit'
 import { checkIfProxy } from '@/utils/proxy'
 // import { EnsRainbowApiClient } from '@ensnode/ensrainbow-sdk'
 
@@ -765,11 +767,6 @@ export default function ENSDetails({
   if (isLoading) {
     return (
       <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-        {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                    <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                        ENS Information
-                    </CardTitle>
-                </CardHeader> */}
         <CardContent className="p-6 space-y-4">
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-3/4" />
@@ -782,11 +779,6 @@ export default function ENSDetails({
   if (error) {
     return (
       <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-        {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                    <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                        ENS Information
-                    </CardTitle>
-                </CardHeader> */}
         <CardContent className="p-6">
           <div className="text-red-500 dark:text-red-400">{error}</div>
         </CardContent>
@@ -796,57 +788,164 @@ export default function ENSDetails({
 
   return (
     <Card className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl">
-      {/* <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-                <CardTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-                    ENS Information
-                </CardTitle>
-            </CardHeader> */}
       <CardContent className="p-6">
         <div className="space-y-4">
           {primaryName && (
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="flex items-center gap-1">
-                  <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
-                    Primary ENS Name
-                  </h3>
-                  <TooltipProvider>
-                    {isContract &&
-                      verificationStatus &&
-                      primaryName &&
-                      (verificationStatus.sourcify_verification ===
-                        'exact_match' ||
-                        verificationStatus.sourcify_verification === 'match' ||
-                        verificationStatus.etherscan_verification ===
-                          'verified' ||
-                        verificationStatus.blockscout_verification ===
-                          'exact_match' ||
-                        verificationStatus.blockscout_verification ===
-                          'match') &&
-                      (verificationStatus.diligence_audit ||
-                        verificationStatus.openZepplin_audit ||
-                        verificationStatus.cyfrin_audit) && (
-                        <div className="relative group">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                Trusted - Named, Verified and Audited Contract
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      )}
-                  </TooltipProvider>
+            <div className="space-y-6">
+              {/* Full width profile card */}
+              {!isContract && (
+                <div className="w-full scale-100 transform origin-top">
+                  <FullWidthProfile addressOrName={primaryName} />
                 </div>
-                <div className="flex items-center mt-1">
-                  <p className="text-gray-900 dark:text-white">{primaryName}</p>
+              )}
+
+              {/* Details section */}
+              <div className="space-y-2">
+                {/* Heading + Expiry badge in a single row */}
+                <div className="flex flex-wrap justify-between items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
+                      Primary ENS Name
+                    </h3>
+                    <TooltipProvider>
+                      {isContract &&
+                        verificationStatus &&
+                        primaryName &&
+                        (verificationStatus.sourcify_verification ===
+                          'exact_match' ||
+                          verificationStatus.sourcify_verification ===
+                            'match' ||
+                          verificationStatus.etherscan_verification ===
+                            'verified' ||
+                          verificationStatus.blockscout_verification ===
+                            'exact_match' ||
+                          verificationStatus.blockscout_verification ===
+                            'match') &&
+                        (verificationStatus.diligence_audit ||
+                          verificationStatus.openZepplin_audit ||
+                          verificationStatus.cyfrin_audit) && (
+                          <div className="relative group">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <ShieldCheck className="w-5 h-5 text-green-500 cursor-pointer" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>
+                                  Trusted - Named, Verified and Audited Contract
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )}
+                    </TooltipProvider>
+                  </div>
+                  {/* Expiry badge always at end of row */}
+                  {primaryNameExpiryDate &&
+                    (() => {
+                      const nameParts = primaryName.split('.')
+                      const tld = nameParts[nameParts.length - 1]
+                      const sld = nameParts[nameParts.length - 2]
+
+                      const isLineaOrBase = effectiveChainId
+                        ? [
+                            CHAINS.LINEA,
+                            CHAINS.LINEA_SEPOLIA,
+                            CHAINS.BASE,
+                            CHAINS.BASE_SEPOLIA,
+                          ].includes(effectiveChainId)
+                        : false
+
+                      let domainToShow
+                      if (isLineaOrBase && nameParts.length >= 3) {
+                        const tld3 = nameParts[nameParts.length - 1]
+                        const sld3 = nameParts[nameParts.length - 2]
+                        const thirdLevel = nameParts[nameParts.length - 3]
+                        domainToShow = `${thirdLevel}.${sld3}.${tld3}`
+                      } else {
+                        domainToShow = `${sld}.${tld}`
+                      }
+
+                      const now = new Date()
+                      const expiryDate = new Date(primaryNameExpiryDate * 1000)
+                      const threeMonthsFromNow = new Date()
+                      threeMonthsFromNow.setMonth(now.getMonth() + 3)
+
+                      const isExpired = expiryDate < now
+                      const isWithinThreeMonths =
+                        !isExpired && expiryDate < threeMonthsFromNow
+                      const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
+                      const isInGracePeriod =
+                        isExpired &&
+                        now.getTime() - expiryDate.getTime() < ninetyDaysInMs
+
+                      let statusIcon
+                      let statusText
+                      let bgColorClass = 'bg-green-50 dark:bg-green-900/20'
+                      let textColorClass = 'text-green-600 dark:text-green-400'
+
+                      if (isExpired && isInGracePeriod) {
+                        statusIcon = (
+                          <XCircle
+                            className="inline-block mr-1 text-red-600 dark:text-red-400"
+                            size={16}
+                          />
+                        )
+                        statusText = `expired on ${expiryDate.toLocaleDateString()}`
+                        bgColorClass = 'bg-red-50 dark:bg-red-900/20'
+                        textColorClass = 'text-red-600 dark:text-red-400'
+                      } else if (isWithinThreeMonths) {
+                        statusIcon = (
+                          <AlertCircle
+                            className="inline-block mr-1 text-yellow-600 dark:text-yellow-400"
+                            size={16}
+                          />
+                        )
+                        statusText = `expires on ${expiryDate.toLocaleDateString()}`
+                        bgColorClass = 'bg-yellow-50 dark:bg-yellow-900/20'
+                        textColorClass = 'text-yellow-600 dark:text-yellow-400'
+                      } else {
+                        statusIcon = (
+                          <CheckCircle
+                            className="inline-block mr-1 text-green-600 dark:text-green-400"
+                            size={16}
+                          />
+                        )
+                        statusText = `valid until ${expiryDate.toLocaleDateString()}`
+                        bgColorClass = 'bg-green-50 dark:bg-green-900/20'
+                        textColorClass = 'text-green-600 dark:text-green-400'
+                      }
+
+                      const showDomainSeparately = domainToShow !== primaryName
+
+                      return (
+                        <div className="flex items-center">
+                          {showDomainSeparately && (
+                            <span className="text-gray-800 dark:text-gray-400 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm mr-2">
+                              {domainToShow}
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${bgColorClass} ${textColorClass}`}
+                          >
+                            {statusIcon}
+                            <span className="whitespace-nowrap">
+                              {statusText}
+                            </span>
+                          </span>
+                        </div>
+                      )
+                    })()}
+                </div>
+
+                {/* ENS Name + copy + link below */}
+                <div className="flex items-center gap-x-2 mt-1 flex-wrap">
+                  <span className="text-gray-900 dark:text-white">
+                    {primaryName}
+                  </span>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="ml-2"
+                    className="ml-1"
                     onClick={() => copyToClipboard(primaryName, 'primary-name')}
                   >
                     {copied['primary-name'] ? (
@@ -862,116 +961,10 @@ export default function ENSDetails({
                       rel="noopener noreferrer"
                     >
                       <ExternalLink className="h-4 w-4" />
-                      {/* <img src="/ens-logo.svg" alt="View on ENS" className="h-4 w-4" /> */}
                     </a>
                   </Button>
                 </div>
               </div>
-              {primaryNameExpiryDate &&
-                (() => {
-                  // Extract domain parts from the primary name
-                  const nameParts = primaryName.split('.')
-                  const tld = nameParts[nameParts.length - 1]
-                  const sld = nameParts[nameParts.length - 2]
-
-                  // Check if we're on Linea, Base, or their testnets
-                  const isLineaOrBase = effectiveChainId
-                    ? [
-                        CHAINS.LINEA,
-                        CHAINS.LINEA_SEPOLIA,
-                        CHAINS.BASE,
-                        CHAINS.BASE_SEPOLIA,
-                      ].includes(effectiveChainId)
-                    : false
-
-                  // For Linea and Base networks, use 3LD if available
-                  let domainToShow
-                  if (isLineaOrBase && nameParts.length >= 3) {
-                    // Use 3LD (e.g., "mydomain.eth.linea")
-                    const tld3 = nameParts[nameParts.length - 1]
-                    const sld3 = nameParts[nameParts.length - 2]
-                    const thirdLevel = nameParts[nameParts.length - 3]
-                    domainToShow = `${thirdLevel}.${sld3}.${tld3}`
-                  } else {
-                    // Use 2LD for other networks (e.g., "mydomain.eth")
-                    domainToShow = `${sld}.${tld}`
-                  }
-
-                  // Calculate expiry status
-                  const now = new Date()
-                  const expiryDate = new Date(primaryNameExpiryDate * 1000)
-                  const threeMonthsFromNow = new Date()
-                  threeMonthsFromNow.setMonth(now.getMonth() + 3)
-
-                  const isExpired = expiryDate < now
-                  const isWithinThreeMonths =
-                    !isExpired && expiryDate < threeMonthsFromNow
-
-                  // Check if in grace period (expired but within 90 days)
-                  const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
-                  const isInGracePeriod =
-                    isExpired &&
-                    now.getTime() - expiryDate.getTime() < ninetyDaysInMs
-
-                  let statusIcon
-                  let statusText
-                  let bgColorClass = 'bg-green-50 dark:bg-green-900/20'
-                  let textColorClass = 'text-green-600 dark:text-green-400'
-
-                  if (isExpired && isInGracePeriod) {
-                    // Red cross for expired domains in grace period
-                    statusIcon = (
-                      <XCircle
-                        className="inline-block mr-1 text-red-600 dark:text-red-400"
-                        size={16}
-                      />
-                    )
-                    statusText = `expired on ${expiryDate.toLocaleDateString()}`
-                    bgColorClass = 'bg-red-50 dark:bg-red-900/20'
-                    textColorClass = 'text-red-600 dark:text-red-400'
-                  } else if (isWithinThreeMonths) {
-                    // Yellow exclamation for domains expiring soon
-                    statusIcon = (
-                      <AlertCircle
-                        className="inline-block mr-1 text-yellow-600 dark:text-yellow-400"
-                        size={16}
-                      />
-                    )
-                    statusText = `expires on ${expiryDate.toLocaleDateString()}`
-                    bgColorClass = 'bg-yellow-50 dark:bg-yellow-900/20'
-                    textColorClass = 'text-yellow-600 dark:text-yellow-400'
-                  } else {
-                    // Green check for valid domains
-                    statusIcon = (
-                      <CheckCircle
-                        className="inline-block mr-1 text-green-600 dark:text-green-400"
-                        size={16}
-                      />
-                    )
-                    statusText = `valid until ${expiryDate.toLocaleDateString()}`
-                    bgColorClass = 'bg-green-50 dark:bg-green-900/20'
-                    textColorClass = 'text-green-600 dark:text-green-400'
-                  }
-
-                  // Check if domain to show is the same as primary name
-                  const showDomainSeparately = domainToShow !== primaryName
-
-                  return (
-                    <div className="flex items-center justify-end">
-                      {showDomainSeparately && (
-                        <span className="text-gray-800 dark:text-gray-400 px-2 py-1 rounded-md bg-gray-100 dark:bg-gray-800 text-sm mr-2">
-                          {domainToShow}
-                        </span>
-                      )}
-                      <div
-                        className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${bgColorClass} ${textColorClass}`}
-                      >
-                        {statusIcon}
-                        <span className="whitespace-nowrap">{statusText}</span>
-                      </div>
-                    </div>
-                  )
-                })()}
             </div>
           )}
 
