@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,10 +8,18 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Loader2, XCircle } from 'lucide-react'
-import { ethers } from 'ethers'
 import { CONTRACTS, TOPIC0 } from '../utils/constants'
 import { useAccount, useWalletClient } from 'wagmi'
 import { useRouter } from 'next/router'
+import Image from 'next/image'
+import { X } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+
 import {
   getEnsAddress,
   getTransactionReceipt,
@@ -19,7 +27,8 @@ import {
   waitForTransactionReceipt,
   writeContract,
 } from 'viem/actions'
-import { getDeployedAddress } from '@/components/componentUtils'
+import { getDeployedAddress, isTestNet } from '@/components/componentUtils'
+import { method } from 'es-toolkit/compat'
 
 export interface Step {
   title: string
@@ -52,6 +61,7 @@ export default function SetNameStepsModal({
   const [lastTxHash, setLastTxHash] = useState<string | null>(null)
   const [allStepsCompleted, setAllStepsCompleted] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [poapMintLink, setPoapMintLink] = useState<string | null>(null)
   const [stepStatuses, setStepStatuses] = useState<
     ('pending' | 'completed' | 'error')[]
   >(Array(steps?.length || 0).fill('pending'))
@@ -96,6 +106,26 @@ export default function SetNameStepsModal({
       setAllStepsCompleted(false)
     }
   }, [open, steps])
+
+  // Add keyframes for glow animation
+  const keyframes = `
+@keyframes glow {
+  0% { box-shadow: 0 0 5px #ff6b6b, 0 0 10px #ff6b6b; }
+  100% { box-shadow: 0 0 20px #ff6b6b, 0 0 30px #4b6cb7; }
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(100%) skewX(-15deg); }
+}
+@keyframes shine {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  100% { transform: scale(1.05); opacity: 0.8; }
+}
+`
 
   // Auto-start the first step when modal opens
   useEffect(() => {
@@ -180,6 +210,8 @@ export default function SetNameStepsModal({
       } else {
         setCurrentStep(steps.length)
         setAllStepsCompleted(true)
+        const link = await getPoapMintLink()
+        setPoapMintLink(link)
       }
     } catch (error: any) {
       console.error('Step failed:', error)
@@ -194,6 +226,19 @@ export default function SetNameStepsModal({
     } finally {
       setExecuting(false)
     }
+  }
+
+  const getPoapMintLink = async (): Promise<string | null> => {
+    try {
+      let res = await fetch(`/api/v1/mint`, {method: 'POST'})
+      if (res.ok) {
+        const data = await res.json()
+        return data.link
+      }
+    } catch (err) {
+      console.error('POAP mint link fetch failed:', err)
+    }
+    return null
   }
 
   const updateStepStatus = (
@@ -226,17 +271,53 @@ export default function SetNameStepsModal({
 
   const handleDialogChange = (isOpen: boolean) => {
     if (!isOpen) {
-      if (allStepsCompleted) {
+      if (allStepsCompleted && !errorMessage) {
+        // Navigate to the explore page when closing a successful modal
+        const address = internalContractAddress || contractAddress
+        if (address && chain?.id) {
+          console.log(
+            'Redirecting to explore page:',
+            `/explore/${chain.id}/${address}`,
+          )
+          router.push(`/explore/${chain.id}/${address}`)
+        }
         onClose(lastTxHash)
       } else {
-        onClose('INCOMPLETE')
+        onClose(errorMessage ? `ERROR: ${errorMessage}` : 'INCOMPLETE')
       }
     }
   }
 
+  // Inject CSS keyframes
+  useEffect(() => {
+    // Create style element if it doesn't exist
+    let styleEl = document.getElementById('animation-keyframes')
+    if (!styleEl) {
+      styleEl = document.createElement('style')
+      styleEl.id = 'animation-keyframes'
+      styleEl.innerHTML = keyframes
+      document.head.appendChild(styleEl)
+    }
+
+    // Clean up when component unmounts
+    return () => {
+      const styleEl = document.getElementById('animation-keyframes')
+      if (styleEl) {
+        document.head.removeChild(styleEl)
+      }
+    }
+  }, [])
+
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
-      <DialogContent className="bg-white dark:bg-gray-900 rounded-lg max-w-lg">
+      <DialogContent className="bg-white dark:bg-gray-900 rounded-lg max-w-lg sm:max-w-lg">
+        <button
+          onClick={() => handleDialogChange(false)}
+          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4 text-black dark:text-white" />
+        </button>
         <DialogHeader>
           <DialogTitle className="text-xl text-gray-900 dark:text-white">
             {errorMessage
@@ -333,49 +414,102 @@ export default function SetNameStepsModal({
             )}
 
             {/* ENS Resolution Message */}
-            {isPrimaryNameSet !== undefined && (
+            {isPrimaryNameSet !== undefined && !isPrimaryNameSet && (
               <div className="text-red-500 dark:text-white font-semibold text-sm mt-4">
-                {isPrimaryNameSet
-                  ? 'Primary ENS Name set for the contract Address'
-                  : 'Only Forward Resolution of ENS name set for the contract address'}
+                Only Forward Resolution of ENS name set for the contract address
               </div>
             )}
 
-            {/* View on Enscribe */}
-            {(internalContractAddress || contractAddress) && (
-              <Button
-                asChild
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <a
-                  href={`/explore/${chain?.id}/${internalContractAddress || contractAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Contract
-                </a>
-              </Button>
-            )}
+            {/* Share on X/Twitter and Farcaster */}
+            {ensName && (internalContractAddress || contractAddress) && (
+              <>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <Button
+                    asChild
+                    className="text-white flex items-center justify-center gap-2 bg-black hover:bg-gray-800"
+                  >
+                    <a
+                      href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                        `I named my contract ${ensName} with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="flex items-center">
+                        <Image
+                          src="/x-white.png"
+                          alt="X logo"
+                          width={18}
+                          height={18}
+                          className="mr-2"
+                        />
+                        <span>Share on X</span>
+                      </span>
+                    </a>
+                  </Button>
+                  <Button
+                    asChild
+                    className="text-white flex items-center justify-center gap-2 bg-purple-500 hover:bg-purple-700"
+                  >
+                    <a
+                      href={`https://warpcast.com/~/compose?text=${encodeURIComponent(
+                        `I named my contract ${ensName} with @enscribe, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
+                      )}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span className="flex items-center">
+                        <Image
+                          src="/farcaster.svg"
+                          alt="Farcaster logo"
+                          width={18}
+                          height={18}
+                          className="mr-2"
+                        />
+                        <span>Share on Farcaster</span>
+                      </span>
+                    </a>
+                  </Button>
+                </div>
 
-            {/* View on ENS App */}
-            {config?.ENS_APP_URL && ensName && (
-              <Button
-                asChild
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-              >
-                <a
-                  href={`${config.ENS_APP_URL}${ensName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Name in ENS App
-                </a>
-              </Button>
+                {/* Claim POAP Button */}
+                {poapMintLink != null && chain != undefined && !isTestNet(chain.id) && (
+                  <div className="mt-4">
+                    <Button
+                      className="w-full py-6 text-lg font-medium relative overflow-hidden shadow-lg hover:shadow-indigo-500/30"
+                      style={{
+                        background:
+                          'linear-gradient(90deg, #ff6b6b 0%, #8a2be2 50%, #4b6cb7 100%)',
+                        backgroundSize: '200% 100%',
+                        animation: 'glow 1.5s infinite alternate',
+                      }}
+                    >
+                      <a
+                        href={poapMintLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {/* Background animation elements */}
+                        <span className="absolute top-0 left-0 w-full h-full bg-white/10 transform -skew-x-12 animate-shimmer pointer-events-none"></span>
+                        <span className="absolute bottom-0 right-0 w-12 h-12 bg-white/20 rounded-full blur-xl animate-pulse pointer-events-none"></span>
+                        <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-indigo-500/0 via-indigo-500/40 to-indigo-500/0 animate-shine pointer-events-none"></span>
+                        <div className="flex items-center justify-center relative z-10">
+                      <span className="scale-105 transition-transform duration-300">
+                        Claim my POAP
+                      </span>
+                          <span className="ml-2 inline-block">🏆</span>
+                        </div>
+                      </a>
+                    </Button>
+                  </div>
+                )
+                }
+              </>
             )}
           </div>
         )}
 
-        {errorMessage ? (
+        {errorMessage && (
           <div className="mt-6 space-y-2">
             <Button
               onClick={() => onClose(`ERROR: ${errorMessage}`)}
@@ -384,23 +518,6 @@ export default function SetNameStepsModal({
               Close
             </Button>
           </div>
-        ) : (
-          allStepsCompleted && (
-            <div className="mt-6 space-y-2">
-              <Button
-                onClick={() => {
-                  const address = internalContractAddress || contractAddress
-                  if (address && chain?.id) {
-                    router.push(`/explore/${chain.id}/${address}`)
-                  }
-                  onClose()
-                }}
-                className="w-full"
-              >
-                Done
-              </Button>
-            </div>
-          )
         )}
       </DialogContent>
     </Dialog>

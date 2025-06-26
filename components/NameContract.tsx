@@ -578,12 +578,14 @@ export default function NameContract() {
         return
       }
 
-      const name = `${label}.${parentName}`
+      const labelNormalized = normalize(label)
+      const parentNameNormalized = normalize(parentName)
+      const name = normalize(`${labelNormalized}.${parentNameNormalized}`)
       const chainId = chain?.id!
 
-      const parentNode = getParentNode(parentName)
-      const node = namehash(label + '.' + parentName)
-      const labelHash = keccak256(toBytes(label))
+      const parentNode = getParentNode(parentNameNormalized)
+      const node = namehash(labelNormalized + '.' + parentNameNormalized)
+      const labelHash = keccak256(toBytes(labelNormalized))
 
       const nameExist = (await readContract(walletClient, {
         address: config.ENS_REGISTRY as `0x${string}`,
@@ -607,9 +609,9 @@ export default function NameContract() {
         setError('Failed to get public resolver')
       }
 
-      console.log('label - ', label)
+      console.log('label - ', labelNormalized)
       console.log('label hash - ', labelHash)
-      console.log('parentName - ', parentName)
+      console.log('parentName - ', parentNameNormalized)
       console.log('parentNode - ', parentNode)
       console.log('name node - ', node)
 
@@ -645,7 +647,12 @@ export default function NameContract() {
                 address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: contractABI,
                 functionName: 'setName',
-                args: [existingContractAddress, label, parentName, parentNode],
+                args: [
+                  existingContractAddress,
+                  labelNormalized,
+                  parentNameNormalized,
+                  parentNode,
+                ],
                 value: txCost,
                 account: walletAddress,
               })
@@ -714,7 +721,7 @@ export default function NameContract() {
                   functionName: 'setSubnodeRecord',
                   args: [
                     parentNode,
-                    label,
+                    labelNormalized,
                     walletAddress,
                     publicResolverAddress,
                     0,
@@ -825,7 +832,10 @@ export default function NameContract() {
               address: publicResolverAddress,
               abi: publicResolverABI,
               functionName: 'setName',
-              args: [reversedNode, `${label}.${parentName}`],
+              args: [
+                reversedNode,
+                `${labelNormalized}.${parentNameNormalized}`,
+              ],
               account: walletAddress,
             })
             await logMetric(
@@ -856,7 +866,7 @@ export default function NameContract() {
                 existingContractAddress,
                 walletAddress,
                 publicResolverAddress,
-                `${label}.${parentName}`,
+                `${labelNormalized}.${parentNameNormalized}`,
               ],
               account: walletAddress,
             })
