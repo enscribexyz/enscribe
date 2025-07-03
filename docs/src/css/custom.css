@@ -128,6 +128,16 @@ html:not(.enscribe-landing-page) .main-wrapper {
   padding-top: var(--ifm-navbar-height);
 }
 
+/* Override colour for landing page in light mode*/
+html[data-theme="light"] .enscribe-landing h1,
+html[data-theme="light"] .enscribe-landing h2,
+html[data-theme="light"] .enscribe-landing h3,
+html[data-theme="light"] .enscribe-landing h4,
+html[data-theme="light"] .enscribe-landing h5,
+html[data-theme="light"] .enscribe-landing h6 {
+  color: white !important;
+}
+
 /* Additional styles for better dark mode appearance */
 html[data-theme="dark"] .navbar {
   border-bottom: 1px solid #334155;

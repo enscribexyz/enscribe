@@ -35,21 +35,6 @@ export default function EnscribeLandingPage() {
     siteConfig: {customFields},
   } = useDocusaurusContext();
 
-  useEffect(() => {
-    const root = document.documentElement;
-
-    // Save original theme
-    const originalTheme = root.getAttribute("data-theme");
-
-    // Force dark theme
-    root.setAttribute("data-theme", "dark");
-
-    // Revert on unmount
-    return () => {
-      root.setAttribute("data-theme", originalTheme);
-    };
-  }, []);
-
   const [menuOpen, setMenuOpen] = useState(false);
 
   const faqs = [
@@ -112,7 +97,7 @@ export default function EnscribeLandingPage() {
   ]
 
   return (
-    <div className="bg-slate-900 text-white font-sans min-h-screen">
+    <div className="enscribe-landing bg-slate-900 text-white font-sans min-h-screen">
       {/* Custom Header for Landing Page */}
       <header className="sticky top-0 z-50 w-full border-b border-slate-700 bg-slate-900/95 backdrop-blur">
         <div className="container mx-auto px-4 md:px-6 flex h-16 items-center justify-between">
