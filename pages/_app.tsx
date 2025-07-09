@@ -15,8 +15,8 @@ import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
 export const wagmiConfig = getDefaultConfig({
-  appName: 'Enscribe',
-  projectId: '1106',
+  appName: 'enscribe',
+  projectId: '6dfc28e3bd034be8e0d5ceaf0ee5c224',
   chains: [mainnet, linea, base, sepolia, lineaSepolia, baseSepolia],
   ssr: true,
 })
