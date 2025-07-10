@@ -1,0 +1,46 @@
+---
+slug: rev-registrar-in-alloy
+title: "ENS Reverse Registrar Support in Alloy for Rust Developers"
+authors: [abhi]
+tags: [ens, alloy, foundry]
+---
+
+[Foundry](https://github.com/foundry-rs/foundry) and [Alloy](https://github.com/alloy-rs/alloy) are foundational tools in the smart contract development stack, and we want smart contract naming to be integrated into all core developer workflows.
+
+Foundry is referred to as the smart contract development toolchain while Alloy, used by Foundry as a dependency, provides a range of functionality for interfacing with any Ethereum-based blockchain.
+
+Before Alloy, there was [ethers-rs](https://github.com/gakonst/ethers-rs), which became deprecated in favour of Alloy. It had a small ENS utility crate support that was added in Foundry. The Enscribe team recently [migrated this ENS crate over to Alloy from Foundry](https://github.com/alloy-rs/alloy/pull/2376).
+
+By extending Alloy and Foundry with ENS-focused tools, we're making it easier for developers to use these tools and enabling them to easily name their smart contracts. With the recent merge of [PR #2676](https://github.com/alloy-rs/alloy/pull/2676) in the Alloy codebase, reverse resolution, a critical part of smart contracts naming, just got simpler.
+
+This update introduces support for retrieving the ENS Reverse Registrar address using the ENS Registry. That’s the key contract responsible for mapping an Ethereum hex address back to a name like [v0.app.enscribe.xyz](https://app.enscribe.xyz/explore/1/0xD14360D477EF49182B5141952FE67b007688725A).
+
+## Why Reverse Resolution Matters
+
+Forward resolution (e.g., `alice.eth → 0xabc...`) is familiar. But reverse resolution (`0xabc... → alice.eth`) is what allows user-interfaces to show names instead of raw addresses.
+
+Under the hood, reverse resolution works by:
+- namehashing the address (as `addr.reverse`),
+- querying the ENS registry for the resolver, and then
+- calling `name(node)` on the resolver.
+
+This PR makes that logic easily accessible via the `EnsRegistry::owner` method, allowing you to fetch the reverse registrar address directly using the ENS registry..
+
+## Simple Integration
+With this change, any Alloy-based app or library can now perform Reverse Registrar discovery. Here’s the high-level call pattern in Rust:
+```Rust
+let provider = ProviderBuilder::new()
+    .connect_http("https://reth-ethereum.ithaca.xyz/rpc".parse().unwrap());
+
+let rr = provider.get_reverse_registrar().await?;
+assert_eq!(rr.address(), address!("0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb"));
+```
+
+Once you have that address, you can construct a `ReverseRegistrarInstance` and query names from addresses or just interact with the `ReverseRegistrar` contract however you like.
+
+## On the Road to Contract Naming Support in Foundry
+This PR is a small but crucial step toward full ENS tooling support in the Alloy and Foundry ecosystem. By baking in access to one of the core ENS smart contracts like the Reverse Registrar, we make it one step closer to naming your smart contracts with Foundry.
+
+Happy naming! 🚀
+
+
