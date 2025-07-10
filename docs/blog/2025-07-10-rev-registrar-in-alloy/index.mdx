@@ -36,7 +36,7 @@ let rr = provider.get_reverse_registrar().await?;
 assert_eq!(rr.address(), address!("0xa58E81fe9b61B5c3fE2AFD33CF304c454AbFc7Cb"));
 ```
 
-Once you have that address, you can construct a ReverseRegistrarInstance and query names from addresses or just interact with the ReverseRegistrar contract however you like.
+Once you have that address, you can construct a ReverseRegistrarInstance and query names from addresses or just interact with the `ReverseRegistrar` contract however you like.
 
 ## On the Road to Contract Naming Support in Foundry
 This PR is a small but crucial step toward full ENS tooling support in the Alloy and Foundry ecosystem. By baking in access to one of the core ENS smart contracts like the Reverse Registrar, we make it one step closer to naming your smart contracts with Foundry.
