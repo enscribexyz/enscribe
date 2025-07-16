@@ -6,7 +6,7 @@ import Layout from '@/components/Layout'
 import ENSDetails from '@/components/ENSDetails'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
-import { CONTRACTS } from '@/utils/constants'
+import { CONTRACTS, ETHERSCAN_API } from '@/utils/constants'
 import { useAccount } from 'wagmi'
 import { checkIfProxy } from '@/utils/proxy'
 import Link from 'next/link'
@@ -24,7 +24,19 @@ export default function ExploreAddressPage() {
     isProxy: boolean
     implementationAddress?: string
   }>({ isProxy: false })
+  const [contractDeployerAddress, setContractDeployerAddress] = useState<string | null>(null)
   const { chain: walletChain } = useAccount()
+
+  const fetchContractCreator = async(contractAddress: string, chainId: number): Promise<string | null> => {
+    const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getcontractcreation&contractaddresses=${contractAddress}`
+    const response = await fetch(etherscanApi)
+    const data = await response.json()
+    if (data.result !== undefined && data.result.length > 0 ) {
+      return data.result[0].contractCreator
+    } else {
+      return null
+    }
+  }
 
   // Reset state when URL parameters change
   useEffect(() => {
@@ -158,6 +170,10 @@ export default function ExploreAddressPage() {
           // If it's a contract, check if it's a proxy
           if (isContractAddress) {
             try {
+              console.log('fetching contract deployer details ...')
+              const creatorAddress = await fetchContractCreator(address, Number(chainId))
+              setContractDeployerAddress(creatorAddress)
+
               console.log('Checking if contract is a proxy...')
               const proxyData = await checkIfProxy(
                 address as string,
@@ -234,6 +250,7 @@ export default function ExploreAddressPage() {
       {isValidAddress && isValidChain && (
         <ENSDetails
           address={address as string}
+          contractDeployerAddress={contractDeployerAddress!}
           chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
           isContract={isContract}
           proxyInfo={proxyInfo}
