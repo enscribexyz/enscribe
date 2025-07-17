@@ -34,6 +34,7 @@ import { checkIfProxy } from '@/utils/proxy'
 interface ENSDetailsProps {
   address: string
   contractDeployerAddress: string
+  contractDeployerName: string | null
   chainId?: number
   isContract: boolean
   proxyInfo?: {
@@ -72,6 +73,7 @@ interface VerificationStatus {
 export default function ENSDetails({
   address,
   contractDeployerAddress,
+  contractDeployerName,
   chainId,
   isContract,
   proxyInfo,
@@ -417,25 +419,6 @@ export default function ENSDetails({
     }
   }, [address, customProvider])
 
-  const fetchPrimaryNameForContractDeployer = useCallback(async () => {
-    if (!contractDeployerAddress || !customProvider) return
-
-    try {
-      console.log(`[ENSDetails] Fetching primary ENS name for ${contractDeployerAddress}`)
-      const primaryENS = await getENS(contractDeployerAddress, customProvider)
-
-      if (primaryENS) {
-        setContractDeployerPrimaryName(primaryENS)
-        console.log(`[ENSDetails] Primary ENS name found for contract deployer: ${primaryENS}`)
-      } else {
-        console.log(`[ENSDetails] No primary ENS name found for contract deployer ${address}`)
-        setContractDeployerPrimaryName(null)
-      }
-    } catch (error) {
-      console.error('[ENSDetails] Error fetching primary ENS name for contract deployer:', error)
-      setContractDeployerPrimaryName(null)
-    }
-  }, [address, customProvider])
 
   // Function to fetch expiry date for a primary name's 2LD
   const fetchPrimaryNameExpiryDate = async (primaryENS: string) => {
@@ -658,6 +641,7 @@ export default function ENSDetails({
 
   // Main useEffect to trigger data fetching when dependencies change
   useEffect(() => {
+
     // Always clear error on dependency change
     setError(null)
 
@@ -676,17 +660,17 @@ export default function ENSDetails({
     const fetchAllData = async () => {
       setIsLoading(true)
       setError(null)
+      setContractDeployerPrimaryName(contractDeployerName)
 
       try {
         // Fetch data in parallel
-        await fetchPrimaryName()
         await Promise.all([
+          fetchPrimaryName(),
           fetchAssociatedNames(),
           isContract ? fetchVerificationStatus() : Promise.resolve(),
           fetchUserOwnedDomains(),
           fetchAttestationData(),
         ])
-        await fetchPrimaryNameForContractDeployer()
       } catch (err) {
         console.error('[ENSDetails] Error fetching data:', err)
         setError('Failed to fetch data')
@@ -1183,6 +1167,7 @@ export default function ENSDetails({
                       <ENSDetails
                         address={proxyInfo.implementationAddress}
                         contractDeployerAddress={""}
+                        contractDeployerName={""}
                         chainId={effectiveChainId}
                         isContract={true}
                         isNestedView={true}
