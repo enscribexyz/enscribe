@@ -680,13 +680,13 @@ export default function ENSDetails({
       try {
         // Fetch data in parallel
         await fetchPrimaryName()
-        await fetchPrimaryNameForContractDeployer()
         await Promise.all([
           fetchAssociatedNames(),
           isContract ? fetchVerificationStatus() : Promise.resolve(),
           fetchUserOwnedDomains(),
           fetchAttestationData(),
         ])
+        await fetchPrimaryNameForContractDeployer()
       } catch (err) {
         console.error('[ENSDetails] Error fetching data:', err)
         setError('Failed to fetch data')
