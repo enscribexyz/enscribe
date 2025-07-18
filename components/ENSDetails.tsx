@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   XCircle,
 } from 'lucide-react'
-import { CHAINS, CONTRACTS } from '@/utils/constants'
+import { CHAINS, CONTRACTS, OLI_ATTESTATION_URL, OLI_GQL_URL } from '@/utils/constants'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
@@ -33,6 +33,8 @@ import { checkIfProxy } from '@/utils/proxy'
 
 interface ENSDetailsProps {
   address: string
+  contractDeployerAddress: string
+  contractDeployerName: string | null
   chainId?: number
   isContract: boolean
   proxyInfo?: {
@@ -70,6 +72,8 @@ interface VerificationStatus {
 
 export default function ENSDetails({
   address,
+  contractDeployerAddress,
+  contractDeployerName,
   chainId,
   isContract,
   proxyInfo,
@@ -98,11 +102,13 @@ export default function ENSDetails({
   const [error, setError] = useState<string | null>(null)
   const [ensNames, setEnsNames] = useState<ENSDomain[]>([])
   const [primaryName, setPrimaryName] = useState<string | null>(null)
+  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] = useState<string | null>(null)
   const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<
     number | null
   >(null)
   const [verificationStatus, setVerificationStatus] =
     useState<VerificationStatus | null>(null)
+  const [hasAttestations, setHasAttestations] = useState<boolean>(false);
   const [userOwnedDomains, setUserOwnedDomains] = useState<ENSDomain[]>([])
   const { chain, isConnected } = useAccount()
   const walletPublicClient = usePublicClient()
@@ -356,6 +362,38 @@ export default function ENSDetails({
     }
   }
 
+  const fetchAttestationData = useCallback(async() => {
+    const response = await fetch(OLI_GQL_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+           operationName:"Attestations",
+           variables: {
+              where:{
+                 schemaId:{
+                    equals:"0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
+                 },
+                 recipient:{
+                    equals: address
+                 }
+              },
+              take:50,
+              orderBy:[
+                 {
+                    timeCreated: "desc"
+                 }
+              ]
+           },
+        query: `query Attestations($where: AttestationWhereInput, $take: Int, $orderBy: [AttestationOrderByWithRelationInput!]) {\n  attestations(where: $where, take: $take, orderBy: $orderBy) {\n    attester\n    decodedDataJson\n    timeCreated\n    txid\n    revoked\n    revocationTime\n    isOffchain\n    __typename\n  }\n}`
+      }),
+    })
+
+    const attestations = await response.json()
+    setHasAttestations(attestations.data.attestations.length === 0)
+  }, [address])
+
   // Function to fetch primary ENS name for an address
   const fetchPrimaryName = useCallback(async () => {
     if (!address || !customProvider) return
@@ -380,6 +418,7 @@ export default function ENSDetails({
       setPrimaryName(null)
     }
   }, [address, customProvider])
+
 
   // Function to fetch expiry date for a primary name's 2LD
   const fetchPrimaryNameExpiryDate = async (primaryENS: string) => {
@@ -602,6 +641,7 @@ export default function ENSDetails({
 
   // Main useEffect to trigger data fetching when dependencies change
   useEffect(() => {
+
     // Always clear error on dependency change
     setError(null)
 
@@ -620,6 +660,7 @@ export default function ENSDetails({
     const fetchAllData = async () => {
       setIsLoading(true)
       setError(null)
+      setContractDeployerPrimaryName(contractDeployerName)
 
       try {
         // Fetch data in parallel
@@ -628,6 +669,7 @@ export default function ENSDetails({
           fetchAssociatedNames(),
           isContract ? fetchVerificationStatus() : Promise.resolve(),
           fetchUserOwnedDomains(),
+          fetchAttestationData(),
         ])
       } catch (err) {
         console.error('[ENSDetails] Error fetching data:', err)
@@ -1004,7 +1046,49 @@ export default function ENSDetails({
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
+              {/*
+              <Button variant="outline" size="sm" className="ml-1 relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium" asChild>
+                <a
+                  href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Attest on OpenLabelsInitiative
+                </a>
+              </Button>
+              */}
             </div>
+
+            {isContract && (
+              <div>
+                <div className="flex items-center mt-2">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Contract Deployer
+                  </h3>
+                </div>
+                <div className="flex items-center mt-1">
+                  <Link
+                    href={`${window.location.protocol}//${window.location.host}/explore/${chainId}/${contractDeployerAddress}`}
+                    className={'text-blue-600 underline font-mono text-sm break-all'}
+                  >
+                      {contractDeployerPrimaryName !== null && contractDeployerPrimaryName}
+                      {contractDeployerPrimaryName === null && contractDeployerAddress}
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-2"
+                    onClick={() => copyToClipboard(contractDeployerAddress, 'contractDeployerAddress')}
+                  >
+                    {copied['contractDeployerAddress'] ? (
+                      <Check className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* Implementation Address with Collapsible Details */}
             {isContract &&
@@ -1082,6 +1166,8 @@ export default function ENSDetails({
                       <CardContent className="p-4"> */}
                       <ENSDetails
                         address={proxyInfo.implementationAddress}
+                        contractDeployerAddress={""}
+                        contractDeployerName={""}
                         chainId={effectiveChainId}
                         isContract={true}
                         isNestedView={true}

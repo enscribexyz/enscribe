@@ -1,15 +1,19 @@
 import { useRouter } from 'next/router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { isAddress } from 'viem/utils'
 import { createPublicClient, http } from 'viem'
 import Layout from '@/components/Layout'
 import ENSDetails from '@/components/ENSDetails'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
-import { CONTRACTS } from '@/utils/constants'
+import { CHAINS, CONTRACTS, ETHERSCAN_API } from '@/utils/constants'
 import { useAccount } from 'wagmi'
 import { checkIfProxy } from '@/utils/proxy'
 import Link from 'next/link'
+import { ethers } from 'ethers'
+import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
+import ensRegistryABI from '@/contracts/ENSRegistry'
+import publicResolverABI from '@/contracts/PublicResolver'
 
 export default function ExploreAddressPage() {
   const router = useRouter()
@@ -24,7 +28,156 @@ export default function ExploreAddressPage() {
     isProxy: boolean
     implementationAddress?: string
   }>({ isProxy: false })
+  const [contractDeployerAddress, setContractDeployerAddress] = useState<string | null>(null)
+  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] = useState<string | null>(null)
   const { chain: walletChain } = useAccount()
+
+  const getENS = async (
+    addr: string,
+    chainId: number,
+  ): Promise<string> => {
+    const config = CONTRACTS[chainId];
+    const provider = new ethers.JsonRpcProvider(config.RPC_ENDPOINT)
+
+    // Use the effectiveChainId instead of chain?.id to ensure we're using the correct chain
+    // for ENS lookups even when the wallet is not connected
+    if (
+      chainId === CHAINS.MAINNET ||
+      chainId === CHAINS.SEPOLIA
+    ) {
+      try {
+        console.log(
+          `[address] Looking up ENS name for ${addr} on chain ${chainId}`,
+        )
+        return (await provider.lookupAddress(addr)) || ''
+      } catch (error) {
+        console.error('[address] Error looking up ENS name:', error)
+        return ''
+      }
+    } else {
+      try {
+        console.log(
+          `[address] Looking up ENS name for ${addr} on chain ${chainId} using reverse registrar`,
+        )
+
+        // Check if contract addresses are configured
+        if (!config?.REVERSE_REGISTRAR || !config?.PUBLIC_RESOLVER) {
+          console.error(
+            `[address] Missing contract addresses for chain ${chainId}`,
+          )
+          return ''
+        }
+
+        // Get reversed node with error handling
+        let reversedNode
+        try {
+          const reverseRegistrarContract = new ethers.Contract(
+            config.REVERSE_REGISTRAR,
+            reverseRegistrarABI,
+            provider,
+          )
+          reversedNode = await reverseRegistrarContract.node(addr)
+          console.log(`[address] Reversed node for ${addr}: ${reversedNode}`)
+        } catch (nodeError) {
+          console.error('[address] Error getting reversed node:', nodeError)
+          return ''
+        }
+
+        // If we don't have a valid reversed node, return empty
+        if (!reversedNode) {
+          console.log(
+            '[address] No reversed node found, returning empty name',
+          )
+          return ''
+        }
+
+        const ensRegistryContract = new ethers.Contract(
+          config?.ENS_REGISTRY!,
+          ensRegistryABI,
+          provider,
+        )
+
+        let publicResolverAddress = config?.PUBLIC_RESOLVER!
+        try {
+          publicResolverAddress =
+            (await ensRegistryContract.resolver(reversedNode)) ||
+            config?.PUBLIC_RESOLVER!
+        } catch (err) {
+          console.log('err ' + err)
+          setError('Failed to get public resolver')
+        }
+
+        // Get name from resolver with error handling
+        try {
+          const resolverContract = new ethers.Contract(
+            publicResolverAddress,
+            publicResolverABI,
+            provider,
+          )
+
+          try {
+            const name = (await resolverContract.name(reversedNode)) || ''
+            console.log(`[address] ENS name for ${addr}: ${name}`)
+            return name
+          } catch (nameError: any) {
+            // Check for specific BAD_DATA error or empty result
+            if (
+              nameError.code === 'BAD_DATA' ||
+              nameError.message?.includes('could not decode result data')
+            ) {
+              console.log(
+                `[address] Resolver doesn't have a valid name record for ${addr}, this is normal for some addresses`,
+              )
+              return ''
+            }
+            throw nameError
+          }
+        } catch (resolverError: any) {
+          console.error(
+            '[address] Error calling resolver contract:',
+            resolverError,
+          )
+          return ''
+        }
+      } catch (error) {
+        console.error(
+          '[address] Error looking up ENS name using reverse registrar:',
+          error,
+        )
+        return ''
+      }
+    }
+  }
+
+  const fetchPrimaryNameForContractDeployer = async (contractDeployerAddress: string, chainId: number): Promise<string | null> => {
+    try {
+      console.log(`[address] Fetching primary ENS name for ${contractDeployerAddress}`)
+      const primaryENS = await getENS(contractDeployerAddress, chainId)
+
+      if (primaryENS) {
+        console.log(`[address] Primary ENS name found for contract deployer: ${primaryENS}`)
+        return primaryENS
+      } else {
+        console.log(`[address] No primary ENS name found for contract deployer ${contractDeployerAddress}`)
+        return null
+      }
+    } catch (error) {
+      console.error('[address] Error fetching primary ENS name for contract deployer:', error)
+      return null
+    }
+  }
+
+  const fetchContractCreator = async(contractAddress: string, chainId: number): Promise<string | null> => {
+    const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getcontractcreation&contractaddresses=${contractAddress}`
+    const response = await fetch(etherscanApi)
+    const data = await response.json()
+    if (data.result !== undefined && data.result.length > 0 ) {
+      console.log(`cont creator ${data.result[0].contractCreator}`)
+      return data.result[0].contractCreator
+    } else {
+      return null
+    }
+  }
 
   // Reset state when URL parameters change
   useEffect(() => {
@@ -158,6 +311,15 @@ export default function ExploreAddressPage() {
           // If it's a contract, check if it's a proxy
           if (isContractAddress) {
             try {
+              console.log('fetching contract deployer details ...')
+              const creatorAddress = await fetchContractCreator(address, Number(chainId))
+              setContractDeployerAddress(creatorAddress)
+
+              if (creatorAddress !== null) {
+                const creatorPrimaryName = await fetchPrimaryNameForContractDeployer(creatorAddress, Number(chainId))
+                setContractDeployerPrimaryName(creatorPrimaryName)
+              }
+
               console.log('Checking if contract is a proxy...')
               const proxyData = await checkIfProxy(
                 address as string,
@@ -234,6 +396,8 @@ export default function ExploreAddressPage() {
       {isValidAddress && isValidChain && (
         <ENSDetails
           address={address as string}
+          contractDeployerAddress={contractDeployerAddress!}
+          contractDeployerName={contractDeployerPrimaryName}
           chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
           isContract={isContract}
           proxyInfo={proxyInfo}
