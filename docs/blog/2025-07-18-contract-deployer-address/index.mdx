@@ -1,0 +1,40 @@
+---
+slug: contract-deployer-address
+title: "Increasing Trust in Smart Contracts with the Contract Deployer Address in Enscribe"
+authors: [abhi]
+tags: [ens]
+---
+
+We're pleased to announce a small but powerful enhancement to Enscribe: the Contract Details page now includes a link to its deployer's address, taking you directly to the deployer’s account page within Enscribe. This feature, while subtle, reinforces our mission to make smart contracts more trustworthy, transparent and traceable.
+
+![Contract deployer image](contract-deployer-addr.png)
+
+At its core, [Enscribe](https://www.enscribe.xyz/) is about increasing trust for users when interacting with smart contracts and making it simple for users to see information about the safety of contracts. It’s not enough to simply display contract metadata — users should also  understand where the contract is coming from, which is why we believe [ENS](https://ens.domains/) names for contracts are so important.
+
+We also believe users should be able to see which account deployed it.
+
+By displaying the deployer address, we provide additional insight into the provenance of a contract. It links the contract back to its deployer, which helps verify authenticity and allows users to view the deployer account details without using block explorers.
+
+Previously, users would have to manually copy the contract address and search for the deployer using a block explorer or a separate tool. With this update, Enscribe removes that friction. Now, you’re just one click away from understanding more about the deployer.
+
+On the [Contract Details](https://app.enscribe.xyz/explore/1/0xD14360D477EF49182B5141952FE67b007688725A) page, you’ll now see the Contract Deployer field. This contains a hyperlink to either:
+
+- The deployer’s ENS name, if one exists (e.g., `app.enscribe.eth`) OR
+- The raw Ethereum address if no ENS is set (e.g., `0xb21170472acc742d2e788904641c9d4c76261a84`)
+
+Clicking the link takes you directly to the Enscribe [Account Details view](https://app.enscribe.xyz/explore/1/0xb21170472ACC742D2e788904641c9d4C76261a84) for that address. There, you can explore all contracts deployed by the account, their metadata, and any human-readable labels we've indexed.
+
+In addition, thanks to our recent [Ethereum Follow Protocol integration](https://www.enscribe.xyz/blog/efp-in-enscribe) you can also see the social graph and profile associated with the account.
+
+![Account details](account-details.png)
+
+This great new feature is especially helpful for:
+
+- Users who are interested in tracing contract provenance
+- Developers tracking deployments across testnets and mainnet using ENS names
+- Users verifying that a contract comes from a trusted deployer
+
+This is one of many features we’re rolling out to improve contract legibility on Enscribe.
+
+Happy naming! 🚀
+
