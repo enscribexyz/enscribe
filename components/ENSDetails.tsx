@@ -9,13 +9,13 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
-  ChevronUp,
+  ChevronUp, CircleAlert,
   Copy,
   ExternalLink,
   ShieldCheck,
   XCircle,
 } from 'lucide-react'
-import { CHAINS, CONTRACTS, OLI_ATTESTATION_URL, OLI_GQL_URL } from '@/utils/constants'
+import { CHAINS, CONTRACTS, OLI_ATTESTATION_URL, OLI_GQL_URL, OLI_SEARCH_URL } from '@/utils/constants'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
@@ -1046,17 +1046,6 @@ export default function ENSDetails({
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </Button>
-              {/*
-              <Button variant="outline" size="sm" className="ml-1 relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium" asChild>
-                <a
-                  href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Attest on OpenLabelsInitiative
-                </a>
-              </Button>
-              */}
             </div>
 
             {isContract && (
@@ -1422,6 +1411,73 @@ export default function ENSDetails({
                 </div>
               </div>
             )}
+
+          { isContract && (
+            <div className="mt-4">
+              <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Contract Attestations
+              </h3>
+              <div className="flex flex-wrap gap-2 mt-2">
+                { hasAttestations ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                          <Link
+                            href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="cursor-pointer"
+                          >
+                            <img
+                              src="/oli_logo.jpg"
+                              alt="oli"
+                              className="w-4 h-4"
+                            />
+                            Label
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        <p>
+                          Create label on Open Labels Initiative
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  ) : (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                            <Link
+                              href={`${OLI_SEARCH_URL}?address=${address}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="cursor-pointer"
+                            >
+                              <img
+                                src="/oli_logo.jpg"
+                                alt="oli"
+                                className="w-4 h-4"
+                              />
+                              Labelled
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="center">
+                          <p>
+                            View label on Open Labels Initiative
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )
+                }
+              </div>
+            </div>
+          )
+          }
 
           <div>
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">

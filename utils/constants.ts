@@ -161,6 +161,7 @@ export const METRICS_URL = '/api/v1/metrics'
 export const NAME_GEN_URL = '/api/v1/name'
 
 export const OLI_ATTESTATION_URL = 'https://www.openlabelsinitiative.org/attest'
+export const OLI_SEARCH_URL = 'https://www.openlabelsinitiative.org/search'
 export const OLI_GQL_URL = 'https://base.easscan.org/graphql'
 
 export const nouns = [
