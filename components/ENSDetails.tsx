@@ -1434,7 +1434,7 @@ export default function ENSDetails({
                               alt="oli"
                               className="w-4 h-4"
                             />
-                            Label
+                            Label on OLI
                           </Link>
                         </Button>
                       </TooltipTrigger>
@@ -1461,7 +1461,7 @@ export default function ENSDetails({
                                 alt="oli"
                                 className="w-4 h-4"
                               />
-                              Labelled
+                              Labelled on OLI
                             </Link>
                           </Button>
                         </TooltipTrigger>
