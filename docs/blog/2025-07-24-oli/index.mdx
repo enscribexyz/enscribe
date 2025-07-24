@@ -1,0 +1,43 @@
+---
+slug: oli
+title: "Explore Contract Labels with the Open Labels Initiative in Enscribe"
+authors: [abhi]
+tags: [ens, enscribe, oli, open labels initiative]
+---
+
+One of the core objectives of [Enscribe](https://app.enscribe.xyz) is to make smart contracts safer for users. Our latest feature builds on that objective by connecting Enscribe contract details with the Open Labels Initiative (OLI), a project focused on providing smart contract labels via  attestations.
+
+## What Is the Open Labels Initiative?
+
+The Open Labels Initiative is a [standardized framework and data model for address labeling](https://github.com/openlabelsinitiative/OLI?tab=readme-ov-file#open-labels-initiative). Think of OLI as a public bulletin board for contract facts — users can attach signed statements, called attestations, to a contract address. These attestations, also referred to as labels, might indicate different bits and pieces of information such as the Owner Project, Category, Subcategory, etc. Here’s a sample of smart contracts and their labels from [labels.growthepie.com](https://www.google.com/url?q=http://labels.growthepie.com):
+
+![growthepie](growthepie.png)
+
+Attestations on OLI are public and verifiable. Anyone can view them, and anyone can contribute new ones enabling community contributions to the initiative. OLI helps surface credible, onchain or offchain information about contracts.
+
+## How does this help Enscribe users?
+
+On every [Contract Details page](https://app.enscribe.xyz/explore/1/0xd14360d477ef49182b5141952fe67b007688725a) in Enscribe, you’ll now see a new section “Contract Attestations”, under this will be a button ‘Label on OLI’ (or ‘Labelled on OLI’).
+
+![labelled](labelled.png)
+
+In the above image, we see the contract information as usual and the ‘Labelled on OLI’ button since this contract has attestations.
+
+If attestations exist for a contract, clicking the button opens the contract’s attestation page on the OLI website. There, you can review attestations that have been made about the contract such as who made them and time of the attestations.
+
+![attestations](attestations.png)
+
+If no attestations are present, the same button will now say ‘Label on OLI’:
+
+![label](label.png)
+
+Clicking on the button will take you to the attestation submission form. The contract address and chain is pre-filled, so you just need to add any additional information on the attestation submission form.
+
+![form](form.png)
+
+Enscribe’s mission is to make Ethereum safer for users by making apps more trustworthy and easier to navigate. Open, permissionless labels help build trust in contract usage and protocol adoption. Integrating with OLI means anyone can check a contract’s reputation or contribute to its public profile.
+
+To try it out, visit any contract details page on Enscribe and click the OLI button to either see the attestations or add one using the attestation submission form.
+
+Happy naming! 🚀
+
