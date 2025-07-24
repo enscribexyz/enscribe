@@ -1079,7 +1079,6 @@ export default function ENSDetails({
               </div>
             )}
 
-            {/* Implementation Address with Collapsible Details */}
             {isContract &&
               proxyInfo?.isProxy &&
               proxyInfo.implementationAddress &&
@@ -1145,14 +1144,11 @@ export default function ENSDetails({
                     </Button>
                   </div>
 
-                  {/* Collapsible Implementation Details */}
                   {implementationExpanded && (
                     <div className="mt-4 border-l-2 border-blue-300 dark:border-blue-700 pl-4 py-1">
                       <div className="mb-2 text-sm font-medium text-blue-600 dark:text-blue-400">
                         Implementation Contract Details
                       </div>
-                      {/* <Card>
-                      <CardContent className="p-4"> */}
                       <ENSDetails
                         address={proxyInfo.implementationAddress}
                         contractDeployerAddress={""}
@@ -1161,8 +1157,6 @@ export default function ENSDetails({
                         isContract={true}
                         isNestedView={true}
                       />
-                      {/* </CardContent>
-                    </Card> */}
                     </div>
                   )}
                 </div>
