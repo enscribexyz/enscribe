@@ -906,7 +906,7 @@ export default function NameContract() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
+    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8 border border-gray-200 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
         Name Existing Contract
       </h2>

@@ -61,7 +61,7 @@ export default function Home() {
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="p-6 space-y-4 text-gray-700 leading-relaxed">
+          <CardContent className="p-6 space-y-4 text-gray-700 dark:text-gray-200 leading-relaxed">
             <p>
               Enscribe is here to increase trust for users of Ethereum. By
               getting everyone to name their smart contracts with ENS names,
@@ -71,7 +71,7 @@ export default function Home() {
                 href="https://app.ens.domains/v0.app.enscribe.eth"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline mx-1"
+                className="text-blue-600 dark:text-blue-300 hover:underline mx-1"
               >
                 v0.app.enscribe.eth
               </a>
@@ -84,7 +84,7 @@ export default function Home() {
                 <li>
                   <a
                     href="/deploy"
-                    className="text-blue-600 hover:underline mx-1"
+                    className="text-blue-600 dark:text-blue-300 hover:underline mx-1"
                   >
                     Deploy smart contracts with ENS name
                   </a>
@@ -92,7 +92,7 @@ export default function Home() {
                 <li>
                   <a
                     href="/nameContract"
-                    className="text-blue-600 hover:underline mx-1"
+                    className="text-blue-600 dark:text-blue-300 hover:underline mx-1"
                   >
                     Name existing contract with ENS name
                   </a>
@@ -100,7 +100,7 @@ export default function Home() {
                 <li>
                   <a
                     href="/history"
-                    className="text-blue-600 hover:underline mx-1"
+                    className="text-blue-600 dark:text-blue-300 hover:underline mx-1"
                   >
                     View contracts you’ve deployed that can be named
                   </a>
@@ -114,7 +114,7 @@ export default function Home() {
               enhance the safety and UX.
             </p>
 
-            <p className="font-medium">Happy naming!</p>
+            <p className="font-medium text-gray-900 dark:text-white">Happy naming!</p>
           </CardContent>
         </Card>
       </div>

@@ -8,9 +8,11 @@ import {
   base,
   linea,
 } from 'wagmi/chains'
-import { RainbowKitProvider, getDefaultConfig } from '@rainbow-me/rainbowkit'
+import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TransactionProvider } from 'ethereum-identity-kit'
+import { ThemeProvider } from '@/hooks/useTheme'
+import { ThemeAwareRainbowKit } from '@/components/ThemeAwareRainbowKit'
 import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
@@ -25,14 +27,16 @@ const queryClient = new QueryClient()
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   return (
-    <WagmiProvider config={wagmiConfig}>
-      <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider>
-          <TransactionProvider>
-            <Component {...pageProps} />
-          </TransactionProvider>
-        </RainbowKitProvider>
-      </QueryClientProvider>
-    </WagmiProvider>
+    <ThemeProvider defaultTheme="system" storageKey="enscribe-theme">
+      <WagmiProvider config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeAwareRainbowKit>
+            <TransactionProvider>
+              <Component {...pageProps} />
+            </TransactionProvider>
+          </ThemeAwareRainbowKit>
+        </QueryClientProvider>
+      </WagmiProvider>
+    </ThemeProvider>
   )
 }

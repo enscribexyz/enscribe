@@ -15,7 +15,7 @@ export default function HistoryPage() {
       {isConnected ? (
         <ContractHistory />
       ) : (
-        <p className="text-red-500 text-lg">
+        <p className="text-red-600 dark:text-red-400 text-lg">
           Please connect your wallet to view contract history.
         </p>
       )}

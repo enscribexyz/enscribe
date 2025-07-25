@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Toaster } from '@/components/ui/toaster'
+import { ThemeToggle } from '@/components/ui/theme-toggle'
 import 'ethereum-identity-kit/css'
 import {
   PencilSquareIcon,
@@ -123,13 +124,13 @@ export default function Layout({ children }: LayoutProps) {
   ])
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900">
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
       {/* Sidebar for Large Screens - Fixed position */}
-      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-66 bg-gray-900 text-white shadow-md z-10">
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-66 bg-gray-900 dark:bg-gray-800 text-white shadow-md z-10">
         {/* Main sidebar content with scroll */}
         <div className="flex-1 overflow-y-auto">
           {/* Logo and site name */}
-          <div className="px-6 py-4 flex items-center space-x-2 border-b border-gray-700">
+          <div className="px-6 py-4 flex items-center space-x-2 border-b border-gray-700 dark:border-white">
             <Link href="/" legacyBehavior>
               <a className="flex items-center space-x-2">
                 {/* Logo */}
@@ -176,7 +177,7 @@ export default function Layout({ children }: LayoutProps) {
               {navigation.map((item) => (
                 <li key={item.name}>
                   <Link href={item.href} legacyBehavior>
-                    <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 rounded-md">
+                    <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 rounded-md transition-colors">
                       <item.icon className="w-5 h-5 mr-3 text-gray-400" />
                       {item.name}
                     </a>
@@ -188,10 +189,10 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Footer buttons - always visible at bottom */}
-        <div className="px-4 py-4 flex space-x-4 bg-gray-900 shadow-inner">
+        <div className="px-4 py-4 flex space-x-4 bg-gray-900 dark:bg-gray-800 shadow-inner">
           <Link href={productLink || '/'} legacyBehavior>
             <a
-              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 p-3 rounded-md transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -201,7 +202,7 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
           <Link href={productLink + '/docs'} legacyBehavior>
             <a
-              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-900 p-3 rounded-md transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -214,9 +215,9 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Mobile Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-50 w-66 bg-gray-900 text-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform lg:hidden flex flex-col h-full`}
+        className={`fixed inset-y-0 left-0 z-50 w-66 bg-gray-900 dark:bg-gray-950 text-white transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform lg:hidden flex flex-col h-full`}
       >
-        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-700">
+        <div className="px-6 py-4 flex items-center justify-between border-b border-gray-700 dark:border-gray-800">
           <Link href="/" legacyBehavior>
             <a className="flex items-center space-x-2">
               {/* Logo */}
@@ -266,7 +267,7 @@ export default function Layout({ children }: LayoutProps) {
             {navigation.map((item) => (
               <li key={item.name}>
                 <Link href={item.href} legacyBehavior>
-                  <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 rounded-md">
+                  <a className="flex items-center p-3 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 rounded-md transition-colors">
                     <item.icon className="w-5 h-5 mr-3 text-gray-400" />
                     {item.name}
                   </a>
@@ -280,7 +281,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="mt-auto px-4 py-4 flex space-x-4">
           <Link href={productLink || '/'} target="_blank" legacyBehavior>
             <a
-              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 p-3 rounded-md transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -290,7 +291,7 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
           <Link href={`${productLink}/docs`} target="_blank" legacyBehavior>
             <a
-              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 p-3 rounded-md"
+              className="flex items-center justify-center w-1/2 text-gray-300 hover:bg-gray-800 dark:hover:bg-gray-700 p-3 rounded-md transition-colors"
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -307,7 +308,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content area */}
       <div className="flex flex-1 flex-col">
         {/* Top Navbar */}
-        <header className="flex items-center p-4 bg-white dark:bg-gray-800 shadow-md">
+        <header className="flex items-center p-4 bg-white dark:bg-gray-900 shadow-md">
           {/* Mobile Menu Button */}
           <div className="lg:hidden">
             <button onClick={() => setSidebarOpen(true)}>
@@ -386,6 +387,11 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           )}
 
+          {/* Theme Toggle Button */}
+          <div className="mr-2">
+            <ThemeToggle />
+          </div>
+
           {/* WalletConnect Button */}
           <ConnectButton
             accountStatus={{
@@ -403,7 +409,7 @@ export default function Layout({ children }: LayoutProps) {
           />
         </header>
 
-        <main className="flex-1 p-6 bg-white dark:bg-gray-800">{children}</main>
+        <main className="flex-1 p-6 bg-white dark:bg-gray-900 transition-colors duration-200">{children}</main>
         <Toaster />
       </div>
     </div>
