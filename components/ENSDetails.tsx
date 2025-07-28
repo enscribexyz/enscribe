@@ -149,16 +149,16 @@ export default function ENSDetails({
             },
             body: JSON.stringify({
               query: `
-                            query getDomainsForAccount($address: String!) { 
-                                domains(where: { owner: $address }) { 
-                                    name 
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
-                                } 
-                            }
-                        `,
+                                query getDomainsForAccount($address: String!) { 
+                                    domains(where: { owner: $address }) { 
+                                        name 
+                                        registration {
+                                            expiryDate
+                                            registrationDate
+                                        }
+                                    } 
+                                }
+                            `,
               variables: { address: address.toLowerCase() },
             }),
           }),
@@ -170,16 +170,16 @@ export default function ENSDetails({
             },
             body: JSON.stringify({
               query: `
-                            query getDomainsForAccount($address: String!) { 
-                                domains(where: { registrant: $address }) { 
-                                    name 
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
-                                } 
-                            }
-                        `,
+                                query getDomainsForAccount($address: String!) { 
+                                    domains(where: { registrant: $address }) { 
+                                        name 
+                                        registration {
+                                            expiryDate
+                                            registrationDate
+                                        }
+                                    } 
+                                }
+                            `,
               variables: { address: address.toLowerCase() },
             }),
           }),
@@ -191,16 +191,16 @@ export default function ENSDetails({
             },
             body: JSON.stringify({
               query: `
-                            query getDomainsForAccount($address: String!) { 
-                                domains(where: { wrappedOwner: $address }) { 
-                                    name 
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
-                                } 
-                            }
-                        `,
+                                query getDomainsForAccount($address: String!) { 
+                                    domains(where: { wrappedOwner: $address }) { 
+                                        name 
+                                        registration {
+                                            expiryDate
+                                            registrationDate
+                                        }
+                                    } 
+                                }
+                            `,
               variables: { address: address.toLowerCase() },
             }),
           }),
@@ -362,30 +362,30 @@ export default function ENSDetails({
     }
   }
 
-  const fetchAttestationData = useCallback(async() => {
+  const fetchAttestationData = useCallback(async () => {
     const response = await fetch(OLI_GQL_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-           operationName:"Attestations",
-           variables: {
-              where:{
-                 schemaId:{
-                    equals:"0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
-                 },
-                 recipient:{
-                    equals: address
-                 }
-              },
-              take:50,
-              orderBy:[
-                 {
-                    timeCreated: "desc"
-                 }
-              ]
-           },
+        operationName: "Attestations",
+        variables: {
+          where: {
+            schemaId: {
+              equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
+            },
+            recipient: {
+              equals: address
+            }
+          },
+          take: 50,
+          orderBy: [
+            {
+              timeCreated: "desc"
+            }
+          ]
+        },
         query: `query Attestations($where: AttestationWhereInput, $take: Int, $orderBy: [AttestationOrderByWithRelationInput!]) {\n  attestations(where: $where, take: $take, orderBy: $orderBy) {\n    attester\n    decodedDataJson\n    timeCreated\n    txid\n    revoked\n    revocationTime\n    isOffchain\n    __typename\n  }\n}`
       }),
     })
@@ -432,11 +432,11 @@ export default function ENSDetails({
       // Check if we're on Linea, Base, or their testnets
       const isLineaOrBase = effectiveChainId
         ? [
-            CHAINS.LINEA,
-            CHAINS.LINEA_SEPOLIA,
-            CHAINS.BASE,
-            CHAINS.BASE_SEPOLIA,
-          ].includes(effectiveChainId)
+          CHAINS.LINEA,
+          CHAINS.LINEA_SEPOLIA,
+          CHAINS.BASE,
+          CHAINS.BASE_SEPOLIA,
+        ].includes(effectiveChainId)
         : false
 
       let domainToQuery
@@ -468,16 +468,16 @@ export default function ENSDetails({
         },
         body: JSON.stringify({
           query: `
-                        query GetDomainWithRegistration($name: String!) {
-                            domains(where: { name: $name }) {
-                                name
-                                registration {
-                                    expiryDate
-                                    registrationDate
+                            query GetDomainWithRegistration($name: String!) {
+                                domains(where: { name: $name }) {
+                                    name
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 }
                             }
-                        }
-                    `,
+                        `,
           variables: {
             name: domainToQuery,
           },
@@ -524,16 +524,16 @@ export default function ENSDetails({
         },
         body: JSON.stringify({
           query: `
-                        query GetENSNamesWithExpiry($address: String!) {
-                            domains(where: { resolvedAddress: $address }) { 
-                                name
-                                registration {
-                                    expiryDate
-                                    registrationDate
+                            query GetENSNamesWithExpiry($address: String!) {
+                                domains(where: { resolvedAddress: $address }) { 
+                                    name
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 }
                             }
-                        }
-                    `,
+                        `,
           variables: {
             address: address.toLowerCase(),
           },
@@ -856,13 +856,13 @@ export default function ENSDetails({
                         (verificationStatus.sourcify_verification ===
                           'exact_match' ||
                           verificationStatus.sourcify_verification ===
-                            'match' ||
+                          'match' ||
                           verificationStatus.etherscan_verification ===
-                            'verified' ||
+                          'verified' ||
                           verificationStatus.blockscout_verification ===
-                            'exact_match' ||
+                          'exact_match' ||
                           verificationStatus.blockscout_verification ===
-                            'match') &&
+                          'match') &&
                         (verificationStatus.diligence_audit ||
                           verificationStatus.openZepplin_audit ||
                           verificationStatus.cyfrin_audit) && (
@@ -890,11 +890,11 @@ export default function ENSDetails({
 
                       const isLineaOrBase = effectiveChainId
                         ? [
-                            CHAINS.LINEA,
-                            CHAINS.LINEA_SEPOLIA,
-                            CHAINS.BASE,
-                            CHAINS.BASE_SEPOLIA,
-                          ].includes(effectiveChainId)
+                          CHAINS.LINEA,
+                          CHAINS.LINEA_SEPOLIA,
+                          CHAINS.BASE,
+                          CHAINS.BASE_SEPOLIA,
+                        ].includes(effectiveChainId)
                         : false
 
                       let domainToShow
@@ -1060,8 +1060,8 @@ export default function ENSDetails({
                     href={`${window.location.protocol}//${window.location.host}/explore/${chainId}/${contractDeployerAddress}`}
                     className={'text-blue-600 underline font-mono text-sm break-all'}
                   >
-                      {contractDeployerPrimaryName !== null && contractDeployerPrimaryName}
-                      {contractDeployerPrimaryName === null && contractDeployerAddress}
+                    {contractDeployerPrimaryName !== null && contractDeployerPrimaryName}
+                    {contractDeployerPrimaryName === null && contractDeployerAddress}
                   </Link>
                   <Button
                     variant="ghost"
@@ -1172,36 +1172,36 @@ export default function ENSDetails({
               <div className="flex flex-wrap gap-2 mt-2">
                 {(verificationStatus.sourcify_verification === 'exact_match' ||
                   verificationStatus.sourcify_verification === 'match') && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                    >
-                      <Link
-                        href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="cursor-pointer"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
-                        <img
-                          src="/sourcify.svg"
-                          alt="Sourcify"
-                          className="w-4 h-4"
-                        />
-                        Verified
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+                        <Link
+                          href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/sourcify.svg"
+                            alt="Sourcify"
+                            className="w-4 h-4"
+                          />
+                          Verified
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 {verificationStatus.etherscan_verification === 'verified' && (
                   <div className="flex items-center gap-2">
                     <Button
                       asChild
                       size="sm"
                       variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${etherscanUrl}address/${address}#code`}
@@ -1221,36 +1221,36 @@ export default function ENSDetails({
                 {(verificationStatus.blockscout_verification ===
                   'exact_match' ||
                   verificationStatus.blockscout_verification === 'match') && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                    >
-                      <Link
-                        href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="cursor-pointer"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
-                        <img
-                          src="/blockscout.svg"
-                          alt="Blockscout"
-                          className="w-4 h-4"
-                        />
-                        Verified
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+                        <Link
+                          href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/blockscout.svg"
+                            alt="Blockscout"
+                            className="w-4 h-4"
+                          />
+                          Verified
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
                 {verificationStatus.sourcify_verification === 'unverified' && (
                   <div className="flex items-center gap-2">
                     <Button
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`https://sourcify.dev/#/verifier`}
@@ -1273,7 +1273,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${etherscanUrl}address/${address}#code`}
@@ -1292,29 +1292,29 @@ export default function ENSDetails({
                 )}
                 {verificationStatus.blockscout_verification ===
                   'unverified' && (
-                  <div className="flex items-center gap-2">
-                    <Button
-                      asChild
-                      size="sm"
-                      variant="outline"
-                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                    >
-                      <Link
-                        href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="cursor-pointer"
+                    <div className="flex items-center gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
-                        <img
-                          src="/blockscout.svg"
-                          alt="Blockscout"
-                          className="w-4 h-4"
-                        />
-                        Verify
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+                        <Link
+                          href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="cursor-pointer"
+                        >
+                          <img
+                            src="/blockscout.svg"
+                            alt="Blockscout"
+                            className="w-4 h-4"
+                          />
+                          Verify
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
               </div>
             </div>
           )}
@@ -1336,7 +1336,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.diligence_audit}
@@ -1360,7 +1360,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.openZepplin_audit}
@@ -1384,7 +1384,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.cyfrin_audit}
@@ -1406,17 +1406,17 @@ export default function ENSDetails({
               </div>
             )}
 
-          { isContract && (
+          {isContract && (
             <div className="mt-4">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Contract Attestations
               </h3>
               <div className="flex flex-wrap gap-2 mt-2">
-                { hasAttestations ? (
+                {hasAttestations ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
                           <Link
                             href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
                             target="_blank"
@@ -1439,34 +1439,34 @@ export default function ENSDetails({
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  ) : (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
-                            <Link
-                              href={`${OLI_SEARCH_URL}?address=${address}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="cursor-pointer"
-                            >
-                              <img
-                                src="/oli_logo.jpg"
-                                alt="oli"
-                                className="w-4 h-4"
-                              />
-                              Labelled on OLI
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" align="center">
-                          <p>
-                            View label on Open Labels Initiative
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                          <Link
+                            href={`${OLI_SEARCH_URL}?address=${address}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="cursor-pointer"
+                          >
+                            <img
+                              src="/oli_logo.jpg"
+                              alt="oli"
+                              className="w-4 h-4"
+                            />
+                            Labelled on OLI
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        <p>
+                          View label on Open Labels Initiative
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )
                 }
               </div>
             </div>
@@ -1484,11 +1484,10 @@ export default function ENSDetails({
                     {ensNames.map((domain, index) => (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-2 rounded ${
-                          domain.isPrimary
+                        className={`flex items-center justify-between p-2 rounded ${domain.isPrimary
                             ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                             : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-1">
                           <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
@@ -1532,7 +1531,7 @@ export default function ENSDetails({
                                 const isInGracePeriod =
                                   isExpired &&
                                   now.getTime() - expiryDate.getTime() <
-                                    ninetyDaysInMs
+                                  ninetyDaysInMs
 
                                 let textColorClass =
                                   'text-green-600 dark:text-green-400'
@@ -1665,7 +1664,7 @@ export default function ENSDetails({
                                     const isInGracePeriod =
                                       isExpired &&
                                       now.getTime() - expiryDate.getTime() <
-                                        ninetyDaysInMs
+                                      ninetyDaysInMs
 
                                     let textColorClass =
                                       'text-green-600 dark:text-green-400'

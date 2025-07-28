@@ -124,7 +124,7 @@ export default function Layout({ children }: LayoutProps) {
   ])
 
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors duration-200">
+    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-200 transition-colors duration-200">
       {/* Sidebar for Large Screens - Fixed position */}
       <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-66 bg-gray-900 dark:bg-gray-800 text-white shadow-md z-10">
         {/* Main sidebar content with scroll */}
@@ -308,7 +308,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Main content area */}
       <div className="flex flex-1 flex-col">
         {/* Top Navbar */}
-        <header className="flex items-center p-4 bg-white dark:bg-gray-900 shadow-md">
+        <header className="flex items-center p-4 bg-white dark:bg-gray-200 shadow-md">
           {/* Mobile Menu Button */}
           <div className="lg:hidden">
             <button onClick={() => setSidebarOpen(true)}>
@@ -409,7 +409,7 @@ export default function Layout({ children }: LayoutProps) {
           />
         </header>
 
-        <main className="flex-1 p-6 bg-white dark:bg-gray-900 transition-colors duration-200">{children}</main>
+        <main className="flex-1 p-6 bg-white dark:bg-gray-100 transition-colors duration-200">{children}</main>
         <Toaster />
       </div>
     </div>

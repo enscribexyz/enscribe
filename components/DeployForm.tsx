@@ -1612,7 +1612,7 @@ export default function DeployForm() {
         <Button
           type="button"
           onClick={addArg}
-          className="bg-gray-900 text-white mt-3"
+          className="bg-gray-900 text-white mt-3 dark:hover:bg-gray-700 dark:text-white"
         >
           + Add Argument
         </Button>
@@ -1925,7 +1925,7 @@ export default function DeployForm() {
       <Button
         onClick={deployContract}
         disabled={!isConnected || loading || !isValidBytecode}
-        className="w-full mt-6"
+        className="w-full mt-6 dark:bg-gray-900 dark:hover:bg-gray-800 dark:text-white font-medium py-3"
       >
         {loading ? (
           <svg
