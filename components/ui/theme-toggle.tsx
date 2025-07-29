@@ -8,16 +8,24 @@ export function ThemeToggle() {
 
   const toggleTheme = () => {
     if (typeof window === 'undefined') return
-    
-    if (theme === 'light' || (theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+
+    if (
+      theme === 'light' ||
+      (theme === 'system' &&
+        !window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
       setTheme('dark')
     } else {
       setTheme('light')
     }
   }
 
-  const isDark = typeof window !== 'undefined' && (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches))
-  
+  const isDark =
+    typeof window !== 'undefined' &&
+    (theme === 'dark' ||
+      (theme === 'system' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches))
+
   // Debug logging
   React.useEffect(() => {
     console.log('Theme toggle - Current theme:', theme, 'isDark:', isDark)
@@ -30,8 +38,8 @@ export function ThemeToggle() {
       onClick={toggleTheme}
       data-theme-toggle="true"
       className={`h-9 w-9 p-0 transition-colors ${
-        isDark 
-          ? '!bg-white !border-gray-300 hover:!bg-gray-100 !text-gray-900' 
+        isDark
+          ? '!bg-white !border-gray-300 hover:!bg-gray-100 !text-gray-900'
           : '!bg-gray-800 !border-gray-600 hover:!bg-gray-700 !text-white'
       }`}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -44,4 +52,4 @@ export function ThemeToggle() {
       <span className="sr-only">Toggle theme</span>
     </Button>
   )
-} 
+}

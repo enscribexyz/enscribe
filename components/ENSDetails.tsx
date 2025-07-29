@@ -9,13 +9,20 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
-  ChevronUp, CircleAlert,
+  ChevronUp,
+  CircleAlert,
   Copy,
   ExternalLink,
   ShieldCheck,
   XCircle,
 } from 'lucide-react'
-import { CHAINS, CONTRACTS, OLI_ATTESTATION_URL, OLI_GQL_URL, OLI_SEARCH_URL } from '@/utils/constants'
+import {
+  CHAINS,
+  CONTRACTS,
+  OLI_ATTESTATION_URL,
+  OLI_GQL_URL,
+  OLI_SEARCH_URL,
+} from '@/utils/constants'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
@@ -106,13 +113,14 @@ export default function ENSDetails({
   const [error, setError] = useState<string | null>(null)
   const [ensNames, setEnsNames] = useState<ENSDomain[]>([])
   const [primaryName, setPrimaryName] = useState<string | null>(null)
-  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] = useState<string | null>(null)
+  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] =
+    useState<string | null>(null)
   const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<
     number | null
   >(null)
   const [verificationStatus, setVerificationStatus] =
     useState<VerificationStatus | null>(null)
-  const [hasAttestations, setHasAttestations] = useState<boolean>(false);
+  const [hasAttestations, setHasAttestations] = useState<boolean>(false)
   const [userOwnedDomains, setUserOwnedDomains] = useState<ENSDomain[]>([])
   const { chain, isConnected } = useAccount()
   const walletPublicClient = usePublicClient()
@@ -374,24 +382,25 @@ export default function ENSDetails({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        operationName: "Attestations",
+        operationName: 'Attestations',
         variables: {
           where: {
             schemaId: {
-              equals: "0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
+              equals:
+                '0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68',
             },
             recipient: {
-              equals: address
-            }
+              equals: address,
+            },
           },
           take: 50,
           orderBy: [
             {
-              timeCreated: "desc"
-            }
-          ]
+              timeCreated: 'desc',
+            },
+          ],
         },
-        query: `query Attestations($where: AttestationWhereInput, $take: Int, $orderBy: [AttestationOrderByWithRelationInput!]) {\n  attestations(where: $where, take: $take, orderBy: $orderBy) {\n    attester\n    decodedDataJson\n    timeCreated\n    txid\n    revoked\n    revocationTime\n    isOffchain\n    __typename\n  }\n}`
+        query: `query Attestations($where: AttestationWhereInput, $take: Int, $orderBy: [AttestationOrderByWithRelationInput!]) {\n  attestations(where: $where, take: $take, orderBy: $orderBy) {\n    attester\n    decodedDataJson\n    timeCreated\n    txid\n    revoked\n    revocationTime\n    isOffchain\n    __typename\n  }\n}`,
       }),
     })
 
@@ -424,7 +433,6 @@ export default function ENSDetails({
     }
   }, [address, customProvider])
 
-
   // Function to fetch expiry date for a primary name's 2LD
   const fetchPrimaryNameExpiryDate = async (primaryENS: string) => {
     if (!config?.SUBGRAPH_API) return
@@ -437,11 +445,11 @@ export default function ENSDetails({
       // Check if we're on Linea, Base, or their testnets
       const isLineaOrBase = effectiveChainId
         ? [
-          CHAINS.LINEA,
-          CHAINS.LINEA_SEPOLIA,
-          CHAINS.BASE,
-          CHAINS.BASE_SEPOLIA,
-        ].includes(effectiveChainId)
+            CHAINS.LINEA,
+            CHAINS.LINEA_SEPOLIA,
+            CHAINS.BASE,
+            CHAINS.BASE_SEPOLIA,
+          ].includes(effectiveChainId)
         : false
 
       let domainToQuery
@@ -646,7 +654,6 @@ export default function ENSDetails({
 
   // Main useEffect to trigger data fetching when dependencies change
   useEffect(() => {
-
     // Always clear error on dependency change
     setError(null)
 
@@ -861,13 +868,13 @@ export default function ENSDetails({
                         (verificationStatus.sourcify_verification ===
                           'exact_match' ||
                           verificationStatus.sourcify_verification ===
-                          'match' ||
+                            'match' ||
                           verificationStatus.etherscan_verification ===
-                          'verified' ||
+                            'verified' ||
                           verificationStatus.blockscout_verification ===
-                          'exact_match' ||
+                            'exact_match' ||
                           verificationStatus.blockscout_verification ===
-                          'match') &&
+                            'match') &&
                         (verificationStatus.diligence_audit ||
                           verificationStatus.openZepplin_audit ||
                           verificationStatus.cyfrin_audit) && (
@@ -895,11 +902,11 @@ export default function ENSDetails({
 
                       const isLineaOrBase = effectiveChainId
                         ? [
-                          CHAINS.LINEA,
-                          CHAINS.LINEA_SEPOLIA,
-                          CHAINS.BASE,
-                          CHAINS.BASE_SEPOLIA,
-                        ].includes(effectiveChainId)
+                            CHAINS.LINEA,
+                            CHAINS.LINEA_SEPOLIA,
+                            CHAINS.BASE,
+                            CHAINS.BASE_SEPOLIA,
+                          ].includes(effectiveChainId)
                         : false
 
                       let domainToShow
@@ -1063,16 +1070,25 @@ export default function ENSDetails({
                 <div className="flex items-center mt-1">
                   <Link
                     href={`${window.location.protocol}//${window.location.host}/explore/${chainId}/${contractDeployerAddress}`}
-                    className={'text-blue-600 underline font-mono text-sm break-all'}
+                    className={
+                      'text-blue-600 underline font-mono text-sm break-all'
+                    }
                   >
-                    {contractDeployerPrimaryName !== null && contractDeployerPrimaryName}
-                    {contractDeployerPrimaryName === null && contractDeployerAddress}
+                    {contractDeployerPrimaryName !== null &&
+                      contractDeployerPrimaryName}
+                    {contractDeployerPrimaryName === null &&
+                      contractDeployerAddress}
                   </Link>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="ml-2"
-                    onClick={() => copyToClipboard(contractDeployerAddress, 'contractDeployerAddress')}
+                    onClick={() =>
+                      copyToClipboard(
+                        contractDeployerAddress,
+                        'contractDeployerAddress',
+                      )
+                    }
                   >
                     {copied['contractDeployerAddress'] ? (
                       <Check className="h-4 w-4 text-green-500" />
@@ -1156,8 +1172,8 @@ export default function ENSDetails({
                       </div>
                       <ENSDetails
                         address={proxyInfo.implementationAddress}
-                        contractDeployerAddress={""}
-                        contractDeployerName={""}
+                        contractDeployerAddress={''}
+                        contractDeployerName={''}
                         chainId={effectiveChainId}
                         isContract={true}
                         isNestedView={true}
@@ -1177,29 +1193,29 @@ export default function ENSDetails({
               <div className="flex flex-wrap gap-2 mt-2">
                 {(verificationStatus.sourcify_verification === 'exact_match' ||
                   verificationStatus.sourcify_verification === 'match') && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="outline"
-                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer"
                       >
-                        <Link
-                          href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="cursor-pointer"
-                        >
-                          <img
-                            src="/sourcify.svg"
-                            alt="Sourcify"
-                            className="w-4 h-4"
-                          />
-                          Verified
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
+                        <img
+                          src="/sourcify.svg"
+                          alt="Sourcify"
+                          className="w-4 h-4"
+                        />
+                        Verified
+                      </Link>
+                    </Button>
+                  </div>
+                )}
                 {verificationStatus.etherscan_verification === 'verified' && (
                   <div className="flex items-center gap-2">
                     <Button
@@ -1226,29 +1242,29 @@ export default function ENSDetails({
                 {(verificationStatus.blockscout_verification ===
                   'exact_match' ||
                   verificationStatus.blockscout_verification === 'match') && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="outline"
-                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer"
                       >
-                        <Link
-                          href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="cursor-pointer"
-                        >
-                          <img
-                            src="/blockscout.svg"
-                            alt="Blockscout"
-                            className="w-4 h-4"
-                          />
-                          Verified
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
+                        <img
+                          src="/blockscout.svg"
+                          alt="Blockscout"
+                          className="w-4 h-4"
+                        />
+                        Verified
+                      </Link>
+                    </Button>
+                  </div>
+                )}
                 {verificationStatus.sourcify_verification === 'unverified' && (
                   <div className="flex items-center gap-2">
                     <Button
@@ -1297,29 +1313,29 @@ export default function ENSDetails({
                 )}
                 {verificationStatus.blockscout_verification ===
                   'unverified' && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        asChild
-                        size="sm"
-                        variant="outline"
-                        className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
+                    >
+                      <Link
+                        href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="cursor-pointer"
                       >
-                        <Link
-                          href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="cursor-pointer"
-                        >
-                          <img
-                            src="/blockscout.svg"
-                            alt="Blockscout"
-                            className="w-4 h-4"
-                          />
-                          Verify
-                        </Link>
-                      </Button>
-                    </div>
-                  )}
+                        <img
+                          src="/blockscout.svg"
+                          alt="Blockscout"
+                          className="w-4 h-4"
+                        />
+                        Verify
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1421,7 +1437,12 @@ export default function ENSDetails({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                          asChild
+                        >
                           <Link
                             href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
                             target="_blank"
@@ -1438,9 +1459,7 @@ export default function ENSDetails({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" align="center">
-                        <p>
-                          Create label on Open Labels Initiative
-                        </p>
+                        <p>Create label on Open Labels Initiative</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -1448,7 +1467,12 @@ export default function ENSDetails({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                          asChild
+                        >
                           <Link
                             href={`${OLI_SEARCH_URL}?address=${address}`}
                             target="_blank"
@@ -1465,24 +1489,22 @@ export default function ENSDetails({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" align="center">
-                        <p>
-                          View label on Open Labels Initiative
-                        </p>
+                        <p>View label on Open Labels Initiative</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                )
-                }
+                )}
               </div>
             </div>
-          )
-          }
+          )}
 
           <div>
             {ensNames.length > 0 ? (
               <>
                 <button
-                  onClick={() => setAssociatedNamesExpanded(!associatedNamesExpanded)}
+                  onClick={() =>
+                    setAssociatedNamesExpanded(!associatedNamesExpanded)
+                  }
                   className="flex items-center justify-between w-full p-3 mb-2 text-left bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                 >
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1501,10 +1523,11 @@ export default function ENSDetails({
                         {ensNames.map((domain, index) => (
                           <div
                             key={index}
-                            className={`flex items-center justify-between p-2 rounded ${domain.isPrimary
+                            className={`flex items-center justify-between p-2 rounded ${
+                              domain.isPrimary
                                 ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                                 : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                              }`}
+                            }`}
                           >
                             <div className="flex items-center gap-1">
                               <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
@@ -1539,16 +1562,20 @@ export default function ENSDetails({
                                       domain.expiryDate * 1000,
                                     )
                                     const threeMonthsFromNow = new Date()
-                                    threeMonthsFromNow.setMonth(now.getMonth() + 3)
+                                    threeMonthsFromNow.setMonth(
+                                      now.getMonth() + 3,
+                                    )
 
                                     const isExpired = expiryDate < now
                                     const isWithinThreeMonths =
-                                      !isExpired && expiryDate < threeMonthsFromNow
-                                    const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
+                                      !isExpired &&
+                                      expiryDate < threeMonthsFromNow
+                                    const ninetyDaysInMs =
+                                      90 * 24 * 60 * 60 * 1000
                                     const isInGracePeriod =
                                       isExpired &&
                                       now.getTime() - expiryDate.getTime() <
-                                      ninetyDaysInMs
+                                        ninetyDaysInMs
 
                                     let textColorClass =
                                       'text-green-600 dark:text-green-400'
@@ -1638,7 +1665,8 @@ export default function ENSDetails({
                           let currentParent2LD = ''
                           return userOwnedDomains.map((domain, index) => {
                             // Check if we're starting a new 2LD group
-                            const isNewGroup = domain.parent2LD !== currentParent2LD
+                            const isNewGroup =
+                              domain.parent2LD !== currentParent2LD
                             if (isNewGroup && domain.parent2LD) {
                               currentParent2LD = domain.parent2LD
                             }
@@ -1656,48 +1684,57 @@ export default function ENSDetails({
                                 key={domain.name}
                                 className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
                               >
-                                                            <div className="flex items-center gap-1">
-                              <span 
-                                className="font-mono text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 truncate px-2 underline cursor-pointer"
-                                onClick={async (e) => {
-                                  e.stopPropagation()
-                                  try {
-                                    if (customProvider) {
-                                      const resolvedAddress = await customProvider.resolveName(domain.name)
-                                      if (resolvedAddress) {
-                                        window.location.href = `/explore/${effectiveChainId}/${resolvedAddress}`
-                                                                             } else {
-                                         // Show toast message that name doesn't resolve
-                                         toast({
-                                           title: "Name doesn't resolve",
-                                           description: `${domain.name} doesn't resolve to any address`,
-                                           variant: "destructive",
-                                         })
-                                       }
-                                    }
-                                  } catch (error) {
-                                    console.error('Error resolving name:', error)
-                                  }
-                                }}
-                              >
-                                {domain.name}
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-5 w-5 p-0 flex-shrink-0"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  copyToClipboard(domain.name, `owned-${index}`)
-                                }}
-                              >
-                                {copied[`owned-${index}`] ? (
-                                  <Check className="h-3 w-3 text-green-500" />
-                                ) : (
-                                  <Copy className="h-3 w-3" />
-                                )}
-                              </Button>
-                            </div>
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className="font-mono text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 truncate px-2 underline cursor-pointer"
+                                    onClick={async (e) => {
+                                      e.stopPropagation()
+                                      try {
+                                        if (customProvider) {
+                                          const resolvedAddress =
+                                            await customProvider.resolveName(
+                                              domain.name,
+                                            )
+                                          if (resolvedAddress) {
+                                            window.location.href = `/explore/${effectiveChainId}/${resolvedAddress}`
+                                          } else {
+                                            // Show toast message that name doesn't resolve
+                                            toast({
+                                              title: "Name doesn't resolve",
+                                              description: `${domain.name} doesn't resolve to any address`,
+                                              variant: 'destructive',
+                                            })
+                                          }
+                                        }
+                                      } catch (error) {
+                                        console.error(
+                                          'Error resolving name:',
+                                          error,
+                                        )
+                                      }
+                                    }}
+                                  >
+                                    {domain.name}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      copyToClipboard(
+                                        domain.name,
+                                        `owned-${index}`,
+                                      )
+                                    }}
+                                  >
+                                    {copied[`owned-${index}`] ? (
+                                      <Check className="h-3 w-3 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </div>
 
                                 <div className="flex items-center gap-2">
                                   {domain.expiryDate && (
@@ -1721,14 +1758,17 @@ export default function ENSDetails({
                                         const isInGracePeriod =
                                           isExpired &&
                                           now.getTime() - expiryDate.getTime() <
-                                          ninetyDaysInMs
+                                            ninetyDaysInMs
 
                                         let textColorClass =
                                           'text-green-600 dark:text-green-400'
                                         if (isWithinThreeMonths) {
                                           textColorClass =
                                             'text-yellow-600 dark:text-yellow-400'
-                                        } else if (isExpired && isInGracePeriod) {
+                                        } else if (
+                                          isExpired &&
+                                          isInGracePeriod
+                                        ) {
                                           textColorClass =
                                             'text-red-600 dark:text-red-400'
                                         } else if (isExpired) {

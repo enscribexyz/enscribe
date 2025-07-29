@@ -157,7 +157,11 @@ export default function AddressSearch({
           onKeyDown={handleKeyDown}
           className={`pr-3 ${error ? 'border-red-500' : ''}`}
         />
-        {error && <p className="text-xs text-red-600 dark:text-red-400 mt-1 absolute">{error}</p>}
+        {error && (
+          <p className="text-xs text-red-600 dark:text-red-400 mt-1 absolute">
+            {error}
+          </p>
+        )}
       </div>
       <Button
         onClick={handleSearch}

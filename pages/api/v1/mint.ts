@@ -11,11 +11,11 @@ export default async function handler(
 ) {
   if (req.method === 'POST') {
     try {
-      const { data, error } = await supabase.rpc('get_next_poap_link');
+      const { data, error } = await supabase.rpc('get_next_poap_link')
       console.log(`returned mint link: ${data}`)
 
       if (error) {
-        console.error('Error fetching POAP link:', error.message);
+        console.error('Error fetching POAP link:', error.message)
         console.log('error occurred: ' + error.details)
         console.log(error.message)
         return res.status(500).json({ status: error.message })

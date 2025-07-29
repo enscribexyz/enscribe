@@ -409,7 +409,9 @@ export default function Layout({ children }: LayoutProps) {
           />
         </header>
 
-        <main className="flex-1 p-6 bg-white dark:bg-gray-100 transition-colors duration-200">{children}</main>
+        <main className="flex-1 p-6 bg-white dark:bg-gray-100 transition-colors duration-200">
+          {children}
+        </main>
         <Toaster />
       </div>
     </div>

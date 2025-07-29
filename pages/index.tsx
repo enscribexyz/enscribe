@@ -114,7 +114,9 @@ export default function Home() {
               enhance the safety and UX.
             </p>
 
-            <p className="font-medium text-gray-900 dark:text-white">Happy naming!</p>
+            <p className="font-medium text-gray-900 dark:text-white">
+              Happy naming!
+            </p>
           </CardContent>
         </Card>
       </div>

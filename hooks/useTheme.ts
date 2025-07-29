@@ -38,12 +38,15 @@ export function ThemeProvider({
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    
+
     const root = window.document.documentElement
     root.classList.remove('light', 'dark')
 
     if (theme === 'system') {
-      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)')
+        .matches
+        ? 'dark'
+        : 'light'
       root.classList.add(systemTheme)
       console.log('Applied system theme:', systemTheme)
     } else {
@@ -62,11 +65,7 @@ export function ThemeProvider({
     },
   }
 
-  return React.createElement(
-    ThemeProviderContext.Provider,
-    { value },
-    children
-  )
+  return React.createElement(ThemeProviderContext.Provider, { value }, children)
 }
 
 export const useTheme = () => {
@@ -75,4 +74,4 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider')
   }
   return context
-} 
+}
