@@ -1177,7 +1177,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
@@ -1201,7 +1201,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${etherscanUrl}address/${address}#code`}
@@ -1226,7 +1226,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
@@ -1250,7 +1250,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`https://sourcify.dev/#/verifier`}
@@ -1273,7 +1273,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${etherscanUrl}address/${address}#code`}
@@ -1297,7 +1297,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
@@ -1336,7 +1336,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.diligence_audit}
@@ -1360,7 +1360,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.openZepplin_audit}
@@ -1384,7 +1384,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.cyfrin_audit}
@@ -1416,7 +1416,7 @@ export default function ENSDetails({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
                           <Link
                             href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
                             target="_blank"
@@ -1443,7 +1443,7 @@ export default function ENSDetails({
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/40 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
                           <Link
                             href={`${OLI_SEARCH_URL}?address=${address}`}
                             target="_blank"
