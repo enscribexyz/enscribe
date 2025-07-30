@@ -20,11 +20,29 @@ export function ThemeToggle() {
     }
   }
 
-  const isDark =
-    typeof window !== 'undefined' &&
-    (theme === 'dark' ||
-      (theme === 'system' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches))
+  const [isDark, setIsDark] = React.useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.document.documentElement.classList.contains('dark')
+  })
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const updateIsDark = () => {
+      const root = window.document.documentElement
+      setIsDark(root.classList.contains('dark'))
+    }
+
+    // Listen for theme changes
+    window.addEventListener('theme-change', updateIsDark)
+
+    // Also check on mount
+    updateIsDark()
+
+    return () => {
+      window.removeEventListener('theme-change', updateIsDark)
+    }
+  }, [])
 
   // Debug logging
   React.useEffect(() => {

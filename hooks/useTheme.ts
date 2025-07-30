@@ -53,6 +53,9 @@ export function ThemeProvider({
       root.classList.add(theme)
       console.log('Applied theme:', theme)
     }
+
+    // Dispatch a custom event to notify components of theme change
+    window.dispatchEvent(new CustomEvent('theme-change', { detail: { theme } }))
   }, [theme])
 
   const value = {
