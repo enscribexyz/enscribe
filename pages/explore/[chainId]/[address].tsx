@@ -28,23 +28,20 @@ export default function ExploreAddressPage() {
     isProxy: boolean
     implementationAddress?: string
   }>({ isProxy: false })
-  const [contractDeployerAddress, setContractDeployerAddress] = useState<string | null>(null)
-  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] = useState<string | null>(null)
+  const [contractDeployerAddress, setContractDeployerAddress] = useState<
+    string | null
+  >(null)
+  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] =
+    useState<string | null>(null)
   const { chain: walletChain } = useAccount()
 
-  const getENS = async (
-    addr: string,
-    chainId: number,
-  ): Promise<string> => {
-    const config = CONTRACTS[chainId];
+  const getENS = async (addr: string, chainId: number): Promise<string> => {
+    const config = CONTRACTS[chainId]
     const provider = new ethers.JsonRpcProvider(config.RPC_ENDPOINT)
 
     // Use the effectiveChainId instead of chain?.id to ensure we're using the correct chain
     // for ENS lookups even when the wallet is not connected
-    if (
-      chainId === CHAINS.MAINNET ||
-      chainId === CHAINS.SEPOLIA
-    ) {
+    if (chainId === CHAINS.MAINNET || chainId === CHAINS.SEPOLIA) {
       try {
         console.log(
           `[address] Looking up ENS name for ${addr} on chain ${chainId}`,
@@ -85,9 +82,7 @@ export default function ExploreAddressPage() {
 
         // If we don't have a valid reversed node, return empty
         if (!reversedNode) {
-          console.log(
-            '[address] No reversed node found, returning empty name',
-          )
+          console.log('[address] No reversed node found, returning empty name')
           return ''
         }
 
@@ -149,29 +144,44 @@ export default function ExploreAddressPage() {
     }
   }
 
-  const fetchPrimaryNameForContractDeployer = async (contractDeployerAddress: string, chainId: number): Promise<string | null> => {
+  const fetchPrimaryNameForContractDeployer = async (
+    contractDeployerAddress: string,
+    chainId: number,
+  ): Promise<string | null> => {
     try {
-      console.log(`[address] Fetching primary ENS name for ${contractDeployerAddress}`)
+      console.log(
+        `[address] Fetching primary ENS name for ${contractDeployerAddress}`,
+      )
       const primaryENS = await getENS(contractDeployerAddress, chainId)
 
       if (primaryENS) {
-        console.log(`[address] Primary ENS name found for contract deployer: ${primaryENS}`)
+        console.log(
+          `[address] Primary ENS name found for contract deployer: ${primaryENS}`,
+        )
         return primaryENS
       } else {
-        console.log(`[address] No primary ENS name found for contract deployer ${contractDeployerAddress}`)
+        console.log(
+          `[address] No primary ENS name found for contract deployer ${contractDeployerAddress}`,
+        )
         return null
       }
     } catch (error) {
-      console.error('[address] Error fetching primary ENS name for contract deployer:', error)
+      console.error(
+        '[address] Error fetching primary ENS name for contract deployer:',
+        error,
+      )
       return null
     }
   }
 
-  const fetchContractCreator = async(contractAddress: string, chainId: number): Promise<string | null> => {
+  const fetchContractCreator = async (
+    contractAddress: string,
+    chainId: number,
+  ): Promise<string | null> => {
     const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getcontractcreation&contractaddresses=${contractAddress}`
     const response = await fetch(etherscanApi)
     const data = await response.json()
-    if (data.result !== undefined && data.result.length > 0 ) {
+    if (data.result !== undefined && data.result.length > 0) {
       console.log(`cont creator ${data.result[0].contractCreator}`)
       return data.result[0].contractCreator
     } else {
@@ -312,11 +322,18 @@ export default function ExploreAddressPage() {
           if (isContractAddress) {
             try {
               console.log('fetching contract deployer details ...')
-              const creatorAddress = await fetchContractCreator(address, Number(chainId))
+              const creatorAddress = await fetchContractCreator(
+                address,
+                Number(chainId),
+              )
               setContractDeployerAddress(creatorAddress)
 
               if (creatorAddress !== null) {
-                const creatorPrimaryName = await fetchPrimaryNameForContractDeployer(creatorAddress, Number(chainId))
+                const creatorPrimaryName =
+                  await fetchPrimaryNameForContractDeployer(
+                    creatorAddress,
+                    Number(chainId),
+                  )
                 setContractDeployerPrimaryName(creatorPrimaryName)
               }
 
@@ -357,7 +374,7 @@ export default function ExploreAddressPage() {
     return (
       <Layout>
         <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400"></div>
         </div>
       </Layout>
     )
