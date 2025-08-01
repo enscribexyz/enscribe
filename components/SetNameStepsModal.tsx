@@ -32,7 +32,7 @@ import { method } from 'es-toolkit/compat'
 
 export interface Step {
   title: string
-  action: () => Promise<`0x${string}` | void>
+  action: () => Promise<`0x${string}` | string | void>
 }
 
 export interface SetNameStepsModalProps {
@@ -44,6 +44,8 @@ export interface SetNameStepsModalProps {
   contractAddress?: string
   ensName?: string
   isPrimaryNameSet?: boolean
+  isSafeWallet?: boolean
+  walletAddress?: string
 }
 
 export default function SetNameStepsModal({
@@ -55,6 +57,8 @@ export default function SetNameStepsModal({
   contractAddress,
   ensName,
   isPrimaryNameSet,
+  isSafeWallet,
+  walletAddress,
 }: SetNameStepsModalProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [executing, setExecuting] = useState(false)
@@ -96,6 +100,13 @@ export default function SetNameStepsModal({
       setErrorMessage('')
       // Initialize contract address from prop
       setInternalContractAddress(contractAddress)
+
+      // For Safe wallets, automatically mark all steps as completed since we don't wait for receipts
+      if (isSafeWallet) {
+        console.log('Safe wallet detected - auto-completing all steps')
+        setStepStatuses(Array(steps.length).fill('completed'))
+        setAllStepsCompleted(true)
+      }
     }
 
     // Also reset when modal closes to ensure fresh state next time
@@ -179,17 +190,27 @@ export default function SetNameStepsModal({
 
     try {
       if (tx) {
-        const txReceipt = await waitForTransactionReceipt(walletClient, {
-          hash: tx as `0x${string}`,
-        })
-        if (txReceipt) {
-          const deployedContractAddress = await getDeployedAddress(txReceipt)
-          if (deployedContractAddress) {
-            setInternalContractAddress(deployedContractAddress)
-          }
-        }
+        let txReceipt = null
+        let txHash = null
 
-        const txHash = txReceipt?.transactionHash ?? null
+        if (isSafeWallet) {
+          // For Safe wallets, don't wait for transaction receipt
+          // The transaction will be executed in the Safe app
+          txHash = tx as string
+          console.log('Safe wallet detected - skipping transaction receipt wait')
+        } else {
+          // For regular wallets, wait for transaction receipt
+          txReceipt = await waitForTransactionReceipt(walletClient, {
+            hash: tx as `0x${string}`,
+          })
+          if (txReceipt) {
+            const deployedContractAddress = await getDeployedAddress(txReceipt)
+            if (deployedContractAddress) {
+              setInternalContractAddress(deployedContractAddress)
+            }
+          }
+          txHash = txReceipt?.transactionHash ?? null
+        }
 
         setStepTxHashes((prev) => {
           const updated = [...prev]
@@ -210,8 +231,11 @@ export default function SetNameStepsModal({
       } else {
         setCurrentStep(steps.length)
         setAllStepsCompleted(true)
-        const link = await getPoapMintLink()
-        setPoapMintLink(link)
+        // Only get POAP link for non-Safe wallets since we don't have transaction data
+        if (!isSafeWallet) {
+          const link = await getPoapMintLink()
+          setPoapMintLink(link)
+        }
       }
     } catch (error: any) {
       console.error('Step failed:', error)
@@ -326,8 +350,12 @@ export default function SetNameStepsModal({
                 : 'Contract Naming Failed'
               : allStepsCompleted
                 ? title.includes('Deploy')
-                  ? 'Deployment Successful!'
-                  : 'Naming Contract Successful!'
+                  ? isSafeWallet
+                    ? 'Transactions submitted'
+                    : 'Deployment Successful!'
+                  : isSafeWallet
+                    ? 'Transactions submitted'
+                    : 'Naming Contract Successful!'
                 : title}
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-500 dark:text-gray-400">
@@ -337,57 +365,121 @@ export default function SetNameStepsModal({
                 : 'There was an error naming your contract.'
               : allStepsCompleted
                 ? title.includes('Deploy')
-                  ? 'Your contract has been successfully deployed.'
-                  : 'Your contract has been named successfully.'
+                  ? isSafeWallet
+                    ? ''
+                    : 'Your contract has been successfully deployed.'
+                  : isSafeWallet
+                    ? ''
+                    : 'Your contract has been named successfully.'
                 : subtitle}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {steps?.length ? (
-            steps.map((step, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 justify-between"
-              >
-                <div className="flex items-center gap-3">
-                  {renderStepIcon(
-                    index,
-                    stepStatuses[index],
-                    index === currentStep,
-                  )}
-                  <span
-                    className={`text-sm ${stepStatuses[index] === 'error' ? 'text-red-500' : 'text-gray-800 dark:text-gray-200'}`}
-                  >
-                    {step.title}
-                  </span>
-                </div>
+          {isSafeWallet ? (
+            // Safe wallet view with steps list
+            <>
+              {/* Header for Safe wallets */}
+              <div className="text-center mb-6">
+                <CheckCircle className="text-green-600 w-12 h-12 mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  Looks like you are using a Safe Wallet
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  As you are using a Safe Wallet, a batch of transactions has been submitted to your Safe wallet for approval.
+                </p>
+              </div>
 
-                {stepTxHashes[index] && (
+              {/* Steps list for Safe wallets */}
+              {steps?.length ? (
+                steps.map((step, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="text-green-500 w-5 h-5" />
+                      <span className="text-sm text-gray-800 dark:text-gray-200">
+                        {step.title}
+                      </span>
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Submitted
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No steps to display</p>
+              )}
+
+              {/* Goto Safe Wallet button */}
+              {chain?.id && (
+                <div className="text-center mt-6">
                   <Button
                     asChild
                     size="sm"
-                    variant="secondary"
-                    className="text-xs px-2 py-1 h-auto"
+                    className="bg-green-600 hover:bg-green-700 text-white font-bold"
                   >
                     <a
-                      href={`${config?.ETHERSCAN_URL}tx/${stepTxHashes[index]}`}
+                      href={`https://app.safe.global/transactions/queue?safe=${chain.id}:${walletAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      View Tx
+                      Go to Safe Wallet
                     </a>
                   </Button>
-                )}
-              </div>
-            ))
+                </div>
+              )}
+            </>
           ) : (
-            <p className="text-gray-500 text-sm">No steps to display</p>
+            // Regular view for non-Safe wallets
+            <>
+              {steps?.length ? (
+                steps.map((step, index) => (
+                  <div
+                    key={index}
+                    className="flex items-start gap-3 justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      {renderStepIcon(
+                        index,
+                        stepStatuses[index],
+                        index === currentStep,
+                      )}
+                      <span
+                        className={`text-sm ${stepStatuses[index] === 'error' ? 'text-red-500' : 'text-gray-800 dark:text-gray-200'}`}
+                      >
+                        {step.title}
+                      </span>
+                    </div>
+
+                    {stepTxHashes[index] && (
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="secondary"
+                        className="text-xs px-2 py-1 h-auto"
+                      >
+                        <a
+                          href={`${config?.ETHERSCAN_URL}tx/${stepTxHashes[index]}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View Tx
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-sm">No steps to display</p>
+              )}
+            </>
           )}
         </div>
 
-        {/* Show success content when steps are completed */}
-        {allStepsCompleted && !errorMessage && (
+        {/* Show success content when steps are completed - only for non-Safe wallets */}
+        {allStepsCompleted && !errorMessage && !isSafeWallet && (
           <div className="mt-6 space-y-4 border-t border-gray-200 dark:border-gray-700 pt-4">
             {/* Contract Address */}
             {(internalContractAddress || contractAddress) && (

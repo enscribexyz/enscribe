@@ -124,12 +124,36 @@ export async function getDeployedAddress(
 }
 
 export function isTestNet(chainId: number): boolean {
-  switch (chainId) {
-    case CHAINS.SEPOLIA:
-    case CHAINS.LINEA_SEPOLIA:
-    case CHAINS.BASE_SEPOLIA:
-      return true
-    default:
+  return (
+    chainId === CHAINS.SEPOLIA ||
+    chainId === CHAINS.LINEA_SEPOLIA ||
+    chainId === CHAINS.BASE_SEPOLIA
+  )
+}
+
+// Safe wallet detection helper
+export const checkIfSafe = async (connector: any): Promise<boolean> => {
+  try {
+    if (!connector) return false
+    
+    const connectorProvider: any = await connector?.getProvider()
+    if (!connectorProvider) {
+      console.log('No connector provider available')
       return false
+    }
+    
+    const session = connectorProvider?.session
+    if (!session) {
+      console.log('No session available')
+      return false
+    }
+
+    const { name: peerName } = session.peer.metadata
+    console.log(`peerName.startsWith('Safe'): ${peerName.startsWith('Safe')} ${peerName}`)
+    return peerName.startsWith('Safe')
+  } catch (error) {
+    console.error('Error detecting Safe wallet:', error)
+    // Don't throw the error, just return false to fall back to regular wallet behavior
+    return false
   }
 }

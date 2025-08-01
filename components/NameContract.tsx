@@ -28,22 +28,23 @@ import Link from 'next/link'
 import SetNameStepsModal, { Step } from './SetNameStepsModal'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { v4 as uuid } from 'uuid'
-import { fetchGeneratedName, logMetric } from '@/components/componentUtils'
+import { fetchGeneratedName, logMetric, checkIfSafe } from '@/components/componentUtils'
 import { getEnsAddress, readContract, writeContract } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
-import { isAddress, keccak256, toBytes } from 'viem'
+import { EIP1193Parameters, isAddress, keccak256, PublicRpcSchema, toBytes } from 'viem'
 import enscribeContractABI from '../contracts/Enscribe'
 import ownableContractABI from '@/contracts/Ownable'
 
 export default function NameContract() {
   const router = useRouter()
   const { address: walletAddress, isConnected, chain } = useAccount()
+  const { connector } = useAccount()
   const { data: walletClient } = useWalletClient()
 
+  console.log(`connector?.type == walletConnect.type: ${connector?.type}`)
+  // console.log(`connector id is: ${connector!.id}`)
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
   const enscribeDomain = config?.ENSCRIBE_DOMAIN!
-  const etherscanUrl = config?.ETHERSCAN_URL!
-  const ensAppUrl = config?.ENS_APP_URL!
 
   const { toast } = useToast()
 
@@ -54,12 +55,8 @@ export default function NameContract() {
   const [fetchingENS, setFetchingENS] = useState(false)
   const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([])
   const [showENSModal, setShowENSModal] = useState(false)
-  const [txHash, setTxHash] = useState('')
-  const [deployedAddress, setDeployedAddress] = useState('')
-  const [receipt, setReceipt] = useState<any>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showPopup, setShowPopup] = useState(false)
   const [isAddressEmpty, setIsAddressEmpty] = useState(true)
   const [isAddressInvalid, setIsAddressInvalid] = useState(true)
   const [isOwnable, setIsOwnable] = useState<boolean | null>(false)
@@ -67,14 +64,13 @@ export default function NameContract() {
   const [isReverseClaimable, setIsReverseClaimable] = useState<boolean | null>(
     false,
   )
-  const [ensNameTaken, setEnsNameTaken] = useState(false)
   const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
-  const [recordExists, setRecordExists] = useState(true)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalSteps, setModalSteps] = useState<Step[]>([])
   const [modalTitle, setModalTitle] = useState('')
   const [modalSubtitle, setModalSubtitle] = useState('')
+  const [isSafeWallet, setIsSafeWallet] = useState(false)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -93,9 +89,7 @@ export default function NameContract() {
     setParentName(enscribeDomain)
     setError('')
     setLoading(false)
-    setDeployedAddress('')
     setExistingContractAddress('')
-    setTxHash('')
     setModalOpen(false)
     setModalSteps([])
     setModalTitle('')
@@ -115,6 +109,7 @@ export default function NameContract() {
         isAddress(router.query.contract as string) &&
         walletClient
       ) {
+        console.log(`wallet name: ${walletClient.name}`)
         const addr = router.query.contract as string
         setExistingContractAddress(addr)
         isAddressValid(addr)
@@ -137,6 +132,10 @@ export default function NameContract() {
     setLabel(name)
   }
 
+  const checkIfSafeWallet = async (): Promise<boolean> => {
+    return await checkIfSafe(connector)
+  }
+
   const fetchUserOwnedDomains = async () => {
     if (!walletAddress) {
       console.warn('Address or chain configuration is missing')
@@ -150,7 +149,6 @@ export default function NameContract() {
 
     try {
       setFetchingENS(true)
-
       // Fetch domains where user is the owner
       const [ownerResponse, registrantResponse, wrappedResponse] =
         await Promise.all([
@@ -343,14 +341,8 @@ export default function NameContract() {
     if (isEmpty(label) || !walletClient) return
 
     // Validate label and parent name before checking
-    // if (!label.trim()) {
-    //     setError("Label cannot be empty")
-    //     setEnsNameTaken(true)
-    //     return
-    // }
     if (!parentName.trim()) {
       setError('Parent name cannot be empty')
-      setEnsNameTaken(true)
       return
     }
     if (label.includes('.')) {
@@ -365,15 +357,12 @@ export default function NameContract() {
       })
 
       if (resolvedAddress) {
-        setEnsNameTaken(true)
         setError('ENS name already used, please change label')
       } else {
-        setEnsNameTaken(false)
         setError('')
       }
     } catch (err) {
       console.error('Error checking ENS name:', err)
-      setEnsNameTaken(false)
     }
   }
 
@@ -570,7 +559,6 @@ export default function NameContract() {
     try {
       setLoading(true)
       setError('')
-      setTxHash('')
 
       if (!walletClient) {
         alert('Please connect your wallet first.')
@@ -643,7 +631,8 @@ export default function NameContract() {
               currentAddr.toLowerCase() !==
               existingContractAddress.toLowerCase()
             ) {
-              const txn = await writeContract(walletClient, {
+              console.log('create subname::writeContract calling setName on ENSCRIBE_CONTRACT')
+              const txn = writeContract(walletClient, {
                 address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: contractABI,
                 functionName: 'setName',
@@ -665,7 +654,7 @@ export default function NameContract() {
                 walletAddress,
                 name,
                 'subname::setName',
-                txn,
+                'safe wallet',
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
@@ -679,7 +668,8 @@ export default function NameContract() {
             chain?.id == CHAINS.BASE_SEPOLIA
           ) {
             if (!nameExist) {
-              const txn = await writeContract(walletClient, {
+              console.log('create subname::writeContract calling setSubnodeRecord on ENSCRIBE_CONTRACT')
+              const txn = writeContract(walletClient, {
                 address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                 abi: ensRegistryABI,
                 functionName: 'setSubnodeRecord',
@@ -700,7 +690,7 @@ export default function NameContract() {
                 walletAddress,
                 name,
                 'subname::setSubnodeRecord',
-                txn,
+                'safe wallet',
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
@@ -715,7 +705,8 @@ export default function NameContract() {
             })
             if (!nameExist) {
               if (isWrapped) {
-                const txn = await writeContract(walletClient, {
+                console.log('create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER')
+                const txn = writeContract(walletClient, {
                   address: config.NAME_WRAPPER as `0x${string}`,
                   abi: nameWrapperABI,
                   functionName: 'setSubnodeRecord',
@@ -738,13 +729,14 @@ export default function NameContract() {
                   walletAddress,
                   name,
                   'subname::setSubnodeRecord',
-                  txn,
+                  'safe wallet',
                   isOwnable ? 'Ownable' : 'ReverseClaimer',
                   opType,
                 )
                 return txn
               } else {
-                const txn = await writeContract(walletClient, {
+                console.log('create subname::writeContract calling setSubnodeRecord on ENS_REGISTRY')
+                const txn = writeContract(walletClient, {
                   address: config.ENS_REGISTRY as `0x${string}`,
                   abi: ensRegistryABI,
                   functionName: 'setSubnodeRecord',
@@ -765,7 +757,7 @@ export default function NameContract() {
                   walletAddress,
                   name,
                   'subname::setSubnodeRecord',
-                  txn,
+                  'safe wallet',
                   isOwnable ? 'Ownable' : 'ReverseClaimer',
                   opType,
                 )
@@ -792,7 +784,8 @@ export default function NameContract() {
               currentAddr.toLowerCase() !==
               existingContractAddress.toLowerCase()
             ) {
-              const txn = await writeContract(walletClient, {
+              console.log('set fwdres::writeContract calling setAddr on PUBLIC_RESOLVER')
+              const txn = writeContract(walletClient, {
                 address: config.PUBLIC_RESOLVER as `0x${string}`,
                 abi: publicResolverABI,
                 functionName: 'setAddr',
@@ -807,7 +800,7 @@ export default function NameContract() {
                 walletAddress,
                 name,
                 'fwdres::setAddr',
-                txn,
+                'safe wallet',
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
@@ -828,7 +821,8 @@ export default function NameContract() {
         steps.push({
           title: 'Set reverse resolution',
           action: async () => {
-            const txn = await writeContract(walletClient, {
+            console.log('set revres::writeContract calling setName on PUBLIC_RESOLVER')
+            const txn = writeContract(walletClient, {
               address: publicResolverAddress,
               abi: publicResolverABI,
               functionName: 'setName',
@@ -846,7 +840,7 @@ export default function NameContract() {
               walletAddress,
               name,
               'revres::setName',
-              txn,
+              'safe wallet',
               'ReverseClaimer',
               opType,
             )
@@ -858,7 +852,8 @@ export default function NameContract() {
         steps.push({
           title: 'Set reverse resolution',
           action: async () => {
-            const txn = await writeContract(walletClient, {
+            console.log('set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR')
+            const txn = writeContract(walletClient, {
               address: config.REVERSE_REGISTRAR as `0x${string}`,
               abi: reverseRegistrarABI,
               functionName: 'setNameForAddr',
@@ -878,7 +873,7 @@ export default function NameContract() {
               walletAddress,
               name,
               'revres::setNameForAddr',
-              txn,
+              'safe wallet',
               'Ownable',
               opType,
             )
@@ -889,12 +884,20 @@ export default function NameContract() {
         setIsPrimaryNameSet(false)
       }
 
+      // Check if connected wallet is a Safe wallet
+      const safeCheck = await checkIfSafeWallet()
+      setIsSafeWallet(safeCheck)
+
       setModalTitle(
         (isContractOwner && isOwnable) || isReverseClaimable
           ? 'Set Primary Name'
           : 'Set Forward Resolution',
       )
-      setModalSubtitle('Running each step to finish naming this contract')
+      setModalSubtitle(
+        safeCheck 
+          ? 'Transactions will be executed in your Safe wallet app'
+          : 'Running each step to finish naming this contract'
+      )
       setModalSteps(steps)
       setModalOpen(true)
     } catch (err: any) {
@@ -1091,11 +1094,9 @@ export default function NameContract() {
                   value={parentName}
                   onChange={(e) => {
                     setParentName(e.target.value)
-                    setRecordExists(false)
                   }}
                   onBlur={async () => {
-                    const exist = await recordExist()
-                    setRecordExists(exist)
+                    await recordExist()
                   }}
                   placeholder="mydomain.eth"
                   className="flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
@@ -1364,7 +1365,6 @@ export default function NameContract() {
               'Steps not completed. Please complete all steps before closing.',
             )
           } else {
-            setDeployedAddress(existingContractAddress)
             // Reset form after successful naming
             setExistingContractAddress('')
             setLabel('')
@@ -1380,6 +1380,7 @@ export default function NameContract() {
         contractAddress={existingContractAddress}
         ensName={`${label}.${parentName}`}
         isPrimaryNameSet={isPrimaryNameSet}
+        isSafeWallet={isSafeWallet}
       />
     </div>
   )
