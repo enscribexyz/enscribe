@@ -31,7 +31,7 @@ import { v4 as uuid } from 'uuid'
 import { fetchGeneratedName, logMetric, checkIfSafe } from '@/components/componentUtils'
 import { getEnsAddress, readContract, writeContract } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
-import { EIP1193Parameters, isAddress, keccak256, PublicRpcSchema, toBytes } from 'viem'
+import { isAddress, keccak256, toBytes } from 'viem'
 import enscribeContractABI from '../contracts/Enscribe'
 import ownableContractABI from '@/contracts/Ownable'
 
@@ -632,19 +632,38 @@ export default function NameContract() {
               existingContractAddress.toLowerCase()
             ) {
               console.log('create subname::writeContract calling setName on ENSCRIBE_CONTRACT')
-              const txn = writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: contractABI,
-                functionName: 'setName',
-                args: [
-                  existingContractAddress,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
+              let txn
+              
+              if (isSafeWallet) {
+                writeContract(walletClient, {
+                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: contractABI,
+                  functionName: 'setName',
+                  args: [
+                    existingContractAddress,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                txn = 'safe wallet'
+              } else {
+                txn = await writeContract(walletClient, {
+                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: contractABI,
+                  functionName: 'setName',
+                  args: [
+                    existingContractAddress,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+              }
 
               await logMetric(
                 corelationId,
@@ -654,7 +673,7 @@ export default function NameContract() {
                 walletAddress,
                 name,
                 'subname::setName',
-                'safe wallet',
+                txn,
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
@@ -669,19 +688,39 @@ export default function NameContract() {
           ) {
             if (!nameExist) {
               console.log('create subname::writeContract calling setSubnodeRecord on ENSCRIBE_CONTRACT')
-              const txn = writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: ensRegistryABI,
-                functionName: 'setSubnodeRecord',
-                args: [
-                  parentNode,
-                  labelHash,
-                  walletAddress,
-                  publicResolverAddress,
-                  0,
-                ],
-                account: walletAddress,
-              })
+              let txn
+              
+              if (isSafeWallet) {
+                writeContract(walletClient, {
+                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: ensRegistryABI,
+                  functionName: 'setSubnodeRecord',
+                  args: [
+                    parentNode,
+                    labelHash,
+                    walletAddress,
+                    publicResolverAddress,
+                    0,
+                  ],
+                  account: walletAddress,
+                })
+                txn = 'safe wallet'
+              } else {
+                txn = await writeContract(walletClient, {
+                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: ensRegistryABI,
+                  functionName: 'setSubnodeRecord',
+                  args: [
+                    parentNode,
+                    labelHash,
+                    walletAddress,
+                    publicResolverAddress,
+                    0,
+                  ],
+                  account: walletAddress,
+                })
+              }
+              
               await logMetric(
                 corelationId,
                 Date.now(),
@@ -690,7 +729,7 @@ export default function NameContract() {
                 walletAddress,
                 name,
                 'subname::setSubnodeRecord',
-                'safe wallet',
+                txn,
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
@@ -706,21 +745,43 @@ export default function NameContract() {
             if (!nameExist) {
               if (isWrapped) {
                 console.log('create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER')
-                const txn = writeContract(walletClient, {
-                  address: config.NAME_WRAPPER as `0x${string}`,
-                  abi: nameWrapperABI,
-                  functionName: 'setSubnodeRecord',
-                  args: [
-                    parentNode,
-                    labelNormalized,
-                    walletAddress,
-                    publicResolverAddress,
-                    0,
-                    0,
-                    0,
-                  ],
-                  account: walletAddress,
-                })
+                let txn
+                
+                if (isSafeWallet) {
+                  writeContract(walletClient, {
+                    address: config.NAME_WRAPPER as `0x${string}`,
+                    abi: nameWrapperABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelNormalized,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                      0,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                  txn = 'safe wallet'
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: config.NAME_WRAPPER as `0x${string}`,
+                    abi: nameWrapperABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelNormalized,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                      0,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                }
+                
                 await logMetric(
                   corelationId,
                   Date.now(),
@@ -729,26 +790,46 @@ export default function NameContract() {
                   walletAddress,
                   name,
                   'subname::setSubnodeRecord',
-                  'safe wallet',
+                  txn,
                   isOwnable ? 'Ownable' : 'ReverseClaimer',
                   opType,
                 )
                 return txn
               } else {
                 console.log('create subname::writeContract calling setSubnodeRecord on ENS_REGISTRY')
-                const txn = writeContract(walletClient, {
-                  address: config.ENS_REGISTRY as `0x${string}`,
-                  abi: ensRegistryABI,
-                  functionName: 'setSubnodeRecord',
-                  args: [
-                    parentNode,
-                    labelHash,
-                    walletAddress,
-                    publicResolverAddress,
-                    0,
-                  ],
-                  account: walletAddress,
-                })
+                let txn
+                
+                if (isSafeWallet) {
+                  writeContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelHash,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                  txn = 'safe wallet'
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelHash,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                }
+                
                 await logMetric(
                   corelationId,
                   Date.now(),
@@ -757,7 +838,7 @@ export default function NameContract() {
                   walletAddress,
                   name,
                   'subname::setSubnodeRecord',
-                  'safe wallet',
+                  txn,
                   isOwnable ? 'Ownable' : 'ReverseClaimer',
                   opType,
                 )
@@ -785,13 +866,27 @@ export default function NameContract() {
               existingContractAddress.toLowerCase()
             ) {
               console.log('set fwdres::writeContract calling setAddr on PUBLIC_RESOLVER')
-              const txn = writeContract(walletClient, {
-                address: config.PUBLIC_RESOLVER as `0x${string}`,
-                abi: publicResolverABI,
-                functionName: 'setAddr',
-                args: [node, existingContractAddress],
-                account: walletAddress,
-              })
+              let txn
+              
+              if (isSafeWallet) {
+                writeContract(walletClient, {
+                  address: config.PUBLIC_RESOLVER as `0x${string}`,
+                  abi: publicResolverABI,
+                  functionName: 'setAddr',
+                  args: [node, existingContractAddress],
+                  account: walletAddress,
+                })
+                txn = 'safe wallet'
+              } else {
+                txn = await writeContract(walletClient, {
+                  address: config.PUBLIC_RESOLVER as `0x${string}`,
+                  abi: publicResolverABI,
+                  functionName: 'setAddr',
+                  args: [node, existingContractAddress],
+                  account: walletAddress,
+                })
+              }
+              
               await logMetric(
                 corelationId,
                 Date.now(),
@@ -800,7 +895,7 @@ export default function NameContract() {
                 walletAddress,
                 name,
                 'fwdres::setAddr',
-                'safe wallet',
+                txn,
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
@@ -822,16 +917,33 @@ export default function NameContract() {
           title: 'Set reverse resolution',
           action: async () => {
             console.log('set revres::writeContract calling setName on PUBLIC_RESOLVER')
-            const txn = writeContract(walletClient, {
-              address: publicResolverAddress,
-              abi: publicResolverABI,
-              functionName: 'setName',
-              args: [
-                reversedNode,
-                `${labelNormalized}.${parentNameNormalized}`,
-              ],
-              account: walletAddress,
-            })
+            let txn
+            
+            if (isSafeWallet) {
+              writeContract(walletClient, {
+                address: publicResolverAddress,
+                abi: publicResolverABI,
+                functionName: 'setName',
+                args: [
+                  reversedNode,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+              txn = 'safe wallet'
+            } else {
+              txn = await writeContract(walletClient, {
+                address: publicResolverAddress,
+                abi: publicResolverABI,
+                functionName: 'setName',
+                args: [
+                  reversedNode,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+            }
+            
             await logMetric(
               corelationId,
               Date.now(),
@@ -840,7 +952,7 @@ export default function NameContract() {
               walletAddress,
               name,
               'revres::setName',
-              'safe wallet',
+              txn,
               'ReverseClaimer',
               opType,
             )
@@ -853,18 +965,37 @@ export default function NameContract() {
           title: 'Set reverse resolution',
           action: async () => {
             console.log('set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR')
-            const txn = writeContract(walletClient, {
-              address: config.REVERSE_REGISTRAR as `0x${string}`,
-              abi: reverseRegistrarABI,
-              functionName: 'setNameForAddr',
-              args: [
-                existingContractAddress,
-                walletAddress,
-                publicResolverAddress,
-                `${labelNormalized}.${parentNameNormalized}`,
-              ],
-              account: walletAddress,
-            })
+            let txn
+            
+            if (isSafeWallet) {
+              writeContract(walletClient, {
+                address: config.REVERSE_REGISTRAR as `0x${string}`,
+                abi: reverseRegistrarABI,
+                functionName: 'setNameForAddr',
+                args: [
+                  existingContractAddress,
+                  walletAddress,
+                  publicResolverAddress,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+              txn = 'safe wallet'
+            } else {
+              txn = await writeContract(walletClient, {
+                address: config.REVERSE_REGISTRAR as `0x${string}`,
+                abi: reverseRegistrarABI,
+                functionName: 'setNameForAddr',
+                args: [
+                  existingContractAddress,
+                  walletAddress,
+                  publicResolverAddress,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+            }
+            
             await logMetric(
               corelationId,
               Date.now(),
@@ -873,7 +1004,7 @@ export default function NameContract() {
               walletAddress,
               name,
               'revres::setNameForAddr',
-              'safe wallet',
+              txn,
               'Ownable',
               opType,
             )

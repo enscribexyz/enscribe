@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, Loader2, XCircle } from 'lucide-react'
+import { CheckCircle, Loader2, XCircle, Clock } from 'lucide-react'
 import { CONTRACTS, TOPIC0 } from '../utils/constants'
 import { useAccount, useWalletClient } from 'wagmi'
 import { useRouter } from 'next/router'
@@ -398,14 +398,11 @@ export default function SetNameStepsModal({
                     className="flex items-start gap-3 justify-between bg-gray-50 dark:bg-gray-800 p-3 rounded-lg"
                   >
                     <div className="flex items-center gap-3">
-                      <CheckCircle className="text-green-500 w-5 h-5" />
+                      <Clock className="text-orange-500 w-5 h-5" />
                       <span className="text-sm text-gray-800 dark:text-gray-200">
                         {step.title}
                       </span>
                     </div>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      Submitted
-                    </span>
                   </div>
                 ))
               ) : (
