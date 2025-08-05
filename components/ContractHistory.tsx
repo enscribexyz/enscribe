@@ -379,17 +379,17 @@ export default function ContractHistory() {
         <p className="text-red-500">{error}</p>
       ) : (
         <Tabs defaultValue="with-ens">
-          <TabsList className="inline-flex bg-white shadow-sm">
+          <TabsList className="inline-flex bg-gray-100 dark:bg-gray-700 shadow-sm">
             <TabsTrigger
               value="with-ens"
-              className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-white text-black data-[state=active]:bg-black data-[state=active]:text-white"
+              className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
             >
               Named Contracts
             </TabsTrigger>
 
             <TabsTrigger
               value="without-ens"
-              className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-white text-black data-[state=active]:bg-black data-[state=active]:text-white"
+              className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
             >
               Unnamed Contracts
             </TabsTrigger>

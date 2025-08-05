@@ -9,13 +9,20 @@ import {
   Check,
   CheckCircle,
   ChevronDown,
-  ChevronUp, CircleAlert,
+  ChevronUp,
+  CircleAlert,
   Copy,
   ExternalLink,
   ShieldCheck,
   XCircle,
 } from 'lucide-react'
-import { CHAINS, CONTRACTS, OLI_ATTESTATION_URL, OLI_GQL_URL, OLI_SEARCH_URL } from '@/utils/constants'
+import {
+  CHAINS,
+  CONTRACTS,
+  OLI_ATTESTATION_URL,
+  OLI_GQL_URL,
+  OLI_SEARCH_URL,
+} from '@/utils/constants'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import publicResolverABI from '@/contracts/PublicResolver'
 import Link from 'next/link'
@@ -29,6 +36,7 @@ import {
 import { ProfileCard } from 'ethereum-identity-kit'
 import { FullWidthProfile } from 'ethereum-identity-kit'
 import { checkIfProxy } from '@/utils/proxy'
+import { useToast } from '@/hooks/use-toast'
 // import { EnsRainbowApiClient } from '@ensnode/ensrainbow-sdk'
 
 interface ENSDetailsProps {
@@ -83,6 +91,9 @@ export default function ENSDetails({
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
   // State for implementation details expansion
   const [implementationExpanded, setImplementationExpanded] = useState(false)
+  // State for ENS names sections expansion
+  const [associatedNamesExpanded, setAssociatedNamesExpanded] = useState(false)
+  const [ownedNamesExpanded, setOwnedNamesExpanded] = useState(false)
 
   // Function to copy text to clipboard
   const copyToClipboard = (text: string, id: string) => {
@@ -102,18 +113,20 @@ export default function ENSDetails({
   const [error, setError] = useState<string | null>(null)
   const [ensNames, setEnsNames] = useState<ENSDomain[]>([])
   const [primaryName, setPrimaryName] = useState<string | null>(null)
-  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] = useState<string | null>(null)
+  const [contractDeployerPrimaryName, setContractDeployerPrimaryName] =
+    useState<string | null>(null)
   const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<
     number | null
   >(null)
   const [verificationStatus, setVerificationStatus] =
     useState<VerificationStatus | null>(null)
-  const [hasAttestations, setHasAttestations] = useState<boolean>(false);
+  const [hasAttestations, setHasAttestations] = useState<boolean>(false)
   const [userOwnedDomains, setUserOwnedDomains] = useState<ENSDomain[]>([])
   const { chain, isConnected } = useAccount()
   const walletPublicClient = usePublicClient()
   const [customProvider, setCustomProvider] =
     useState<ethers.JsonRpcProvider | null>(null)
+  const { toast } = useToast()
 
   // Use provided chainId if available, otherwise use connected wallet's chain
   const effectiveChainId = chainId || chain?.id
@@ -149,16 +162,16 @@ export default function ENSDetails({
             },
             body: JSON.stringify({
               query: `
-                            query getDomainsForAccount($address: String!) { 
-                                domains(where: { owner: $address }) { 
-                                    name 
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
-                                } 
-                            }
-                        `,
+                                query getDomainsForAccount($address: String!) { 
+                                    domains(where: { owner: $address }) { 
+                                        name 
+                                        registration {
+                                            expiryDate
+                                            registrationDate
+                                        }
+                                    } 
+                                }
+                            `,
               variables: { address: address.toLowerCase() },
             }),
           }),
@@ -170,16 +183,16 @@ export default function ENSDetails({
             },
             body: JSON.stringify({
               query: `
-                            query getDomainsForAccount($address: String!) { 
-                                domains(where: { registrant: $address }) { 
-                                    name 
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
-                                } 
-                            }
-                        `,
+                                query getDomainsForAccount($address: String!) { 
+                                    domains(where: { registrant: $address }) { 
+                                        name 
+                                        registration {
+                                            expiryDate
+                                            registrationDate
+                                        }
+                                    } 
+                                }
+                            `,
               variables: { address: address.toLowerCase() },
             }),
           }),
@@ -191,16 +204,16 @@ export default function ENSDetails({
             },
             body: JSON.stringify({
               query: `
-                            query getDomainsForAccount($address: String!) { 
-                                domains(where: { wrappedOwner: $address }) { 
-                                    name 
-                                    registration {
-                                        expiryDate
-                                        registrationDate
-                                    }
-                                } 
-                            }
-                        `,
+                                query getDomainsForAccount($address: String!) { 
+                                    domains(where: { wrappedOwner: $address }) { 
+                                        name 
+                                        registration {
+                                            expiryDate
+                                            registrationDate
+                                        }
+                                    } 
+                                }
+                            `,
               variables: { address: address.toLowerCase() },
             }),
           }),
@@ -362,31 +375,32 @@ export default function ENSDetails({
     }
   }
 
-  const fetchAttestationData = useCallback(async() => {
+  const fetchAttestationData = useCallback(async () => {
     const response = await fetch(OLI_GQL_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-           operationName:"Attestations",
-           variables: {
-              where:{
-                 schemaId:{
-                    equals:"0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68"
-                 },
-                 recipient:{
-                    equals: address
-                 }
-              },
-              take:50,
-              orderBy:[
-                 {
-                    timeCreated: "desc"
-                 }
-              ]
-           },
-        query: `query Attestations($where: AttestationWhereInput, $take: Int, $orderBy: [AttestationOrderByWithRelationInput!]) {\n  attestations(where: $where, take: $take, orderBy: $orderBy) {\n    attester\n    decodedDataJson\n    timeCreated\n    txid\n    revoked\n    revocationTime\n    isOffchain\n    __typename\n  }\n}`
+        operationName: 'Attestations',
+        variables: {
+          where: {
+            schemaId: {
+              equals:
+                '0xb763e62d940bed6f527dd82418e146a904e62a297b8fa765c9b3e1f0bc6fdd68',
+            },
+            recipient: {
+              equals: address,
+            },
+          },
+          take: 50,
+          orderBy: [
+            {
+              timeCreated: 'desc',
+            },
+          ],
+        },
+        query: `query Attestations($where: AttestationWhereInput, $take: Int, $orderBy: [AttestationOrderByWithRelationInput!]) {\n  attestations(where: $where, take: $take, orderBy: $orderBy) {\n    attester\n    decodedDataJson\n    timeCreated\n    txid\n    revoked\n    revocationTime\n    isOffchain\n    __typename\n  }\n}`,
       }),
     })
 
@@ -418,7 +432,6 @@ export default function ENSDetails({
       setPrimaryName(null)
     }
   }, [address, customProvider])
-
 
   // Function to fetch expiry date for a primary name's 2LD
   const fetchPrimaryNameExpiryDate = async (primaryENS: string) => {
@@ -468,16 +481,16 @@ export default function ENSDetails({
         },
         body: JSON.stringify({
           query: `
-                        query GetDomainWithRegistration($name: String!) {
-                            domains(where: { name: $name }) {
-                                name
-                                registration {
-                                    expiryDate
-                                    registrationDate
+                            query GetDomainWithRegistration($name: String!) {
+                                domains(where: { name: $name }) {
+                                    name
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 }
                             }
-                        }
-                    `,
+                        `,
           variables: {
             name: domainToQuery,
           },
@@ -524,16 +537,16 @@ export default function ENSDetails({
         },
         body: JSON.stringify({
           query: `
-                        query GetENSNamesWithExpiry($address: String!) {
-                            domains(where: { resolvedAddress: $address }) { 
-                                name
-                                registration {
-                                    expiryDate
-                                    registrationDate
+                            query GetENSNamesWithExpiry($address: String!) {
+                                domains(where: { resolvedAddress: $address }) { 
+                                    name
+                                    registration {
+                                        expiryDate
+                                        registrationDate
+                                    }
                                 }
                             }
-                        }
-                    `,
+                        `,
           variables: {
             address: address.toLowerCase(),
           },
@@ -641,7 +654,6 @@ export default function ENSDetails({
 
   // Main useEffect to trigger data fetching when dependencies change
   useEffect(() => {
-
     // Always clear error on dependency change
     setError(null)
 
@@ -1058,16 +1070,25 @@ export default function ENSDetails({
                 <div className="flex items-center mt-1">
                   <Link
                     href={`${window.location.protocol}//${window.location.host}/explore/${chainId}/${contractDeployerAddress}`}
-                    className={'text-blue-600 underline font-mono text-sm break-all'}
+                    className={
+                      'text-blue-600 underline font-mono text-sm break-all'
+                    }
                   >
-                      {contractDeployerPrimaryName !== null && contractDeployerPrimaryName}
-                      {contractDeployerPrimaryName === null && contractDeployerAddress}
+                    {contractDeployerPrimaryName !== null &&
+                      contractDeployerPrimaryName}
+                    {contractDeployerPrimaryName === null &&
+                      contractDeployerAddress}
                   </Link>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="ml-2"
-                    onClick={() => copyToClipboard(contractDeployerAddress, 'contractDeployerAddress')}
+                    onClick={() =>
+                      copyToClipboard(
+                        contractDeployerAddress,
+                        'contractDeployerAddress',
+                      )
+                    }
                   >
                     {copied['contractDeployerAddress'] ? (
                       <Check className="h-4 w-4 text-green-500" />
@@ -1151,8 +1172,8 @@ export default function ENSDetails({
                       </div>
                       <ENSDetails
                         address={proxyInfo.implementationAddress}
-                        contractDeployerAddress={""}
-                        contractDeployerName={""}
+                        contractDeployerAddress={''}
+                        contractDeployerName={''}
                         chainId={effectiveChainId}
                         isContract={true}
                         isNestedView={true}
@@ -1177,7 +1198,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${SOURCIFY_URL}${effectiveChainId}/${address.toLowerCase()}`}
@@ -1201,7 +1222,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${etherscanUrl}address/${address}#code`}
@@ -1226,7 +1247,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="border border-green-800 text-green-800 hover:bg-emerald-100 dark:border-green-400 dark:text-green-400 dark:bg-black dark:hover:bg-green-900/20 text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
@@ -1250,7 +1271,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`https://sourcify.dev/#/verifier`}
@@ -1273,7 +1294,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${etherscanUrl}address/${address}#code`}
@@ -1297,7 +1318,7 @@ export default function ENSDetails({
                       asChild
                       size="sm"
                       variant="outline"
-                      className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                      className="hover:bg-gray-200 dark:hover:bg-gray-700 dark:text-gray-300 dark:bg-black text-xs px-2 py-1 h-auto flex items-center gap-1"
                     >
                       <Link
                         href={`${config?.BLOCKSCOUT_URL}address/${address.toLowerCase()}?tab=contract`}
@@ -1336,7 +1357,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.diligence_audit}
@@ -1360,7 +1381,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.openZepplin_audit}
@@ -1384,7 +1405,7 @@ export default function ENSDetails({
                         asChild
                         size="sm"
                         variant="outline"
-                        className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                        className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
                       >
                         <Link
                           href={verificationStatus.cyfrin_audit}
@@ -1406,17 +1427,22 @@ export default function ENSDetails({
               </div>
             )}
 
-          { isContract && (
+          {isContract && (
             <div className="mt-4">
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
                 Contract Attestations
               </h3>
               <div className="flex flex-wrap gap-2 mt-2">
-                { hasAttestations ? (
+                {hasAttestations ? (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                          asChild
+                        >
                           <Link
                             href={`${OLI_ATTESTATION_URL}?contract=${address}&chainId=${chainId}`}
                             target="_blank"
@@ -1433,194 +1459,75 @@ export default function ENSDetails({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent side="top" align="center">
-                        <p>
-                          Create label on Open Labels Initiative
-                        </p>
+                        <p>Create label on Open Labels Initiative</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  ) : (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="outline" size="sm" className="border border-blue-800 text-black hover:bg-blue-100 text-xs px-2 py-1 h-auto flex items-center gap-1" asChild>
-                            <Link
-                              href={`${OLI_SEARCH_URL}?address=${address}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="cursor-pointer"
-                            >
-                              <img
-                                src="/oli_logo.jpg"
-                                alt="oli"
-                                className="w-4 h-4"
-                              />
-                              Labelled on OLI
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" align="center">
-                          <p>
-                            View label on Open Labels Initiative
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )
-                }
+                ) : (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border border-blue-800 text-black hover:bg-blue-100 dark:border-gray-600 dark:text-white dark:bg-black dark:hover:bg-gray-800 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                          asChild
+                        >
+                          <Link
+                            href={`${OLI_SEARCH_URL}?address=${address}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="cursor-pointer"
+                          >
+                            <img
+                              src="/oli_logo.jpg"
+                              alt="oli"
+                              className="w-4 h-4"
+                            />
+                            Labelled on OLI
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        <p>View label on Open Labels Initiative</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             </div>
-          )
-          }
+          )}
 
           <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-              Associated ENS Names ({ensNames.length})
-            </h3>
             {ensNames.length > 0 ? (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-                <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                  <div className="space-y-2">
-                    {ensNames.map((domain, index) => (
-                      <div
-                        key={index}
-                        className={`flex items-center justify-between p-2 rounded ${
-                          domain.isPrimary
-                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1">
-                          <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
-                            {domain.name}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0 flex-shrink-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              copyToClipboard(
-                                domain.name,
-                                `associated-${index}`,
-                              )
-                            }}
-                          >
-                            {copied[`associated-${index}`] ? (
-                              <Check className="h-3 w-3 text-green-500" />
-                            ) : (
-                              <Copy className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          {domain.expiryDate && (
-                            <span className="text-xs whitespace-nowrap">
-                              {(() => {
-                                const now = new Date()
-                                const expiryDate = new Date(
-                                  domain.expiryDate * 1000,
-                                )
-                                const threeMonthsFromNow = new Date()
-                                threeMonthsFromNow.setMonth(now.getMonth() + 3)
-
-                                const isExpired = expiryDate < now
-                                const isWithinThreeMonths =
-                                  !isExpired && expiryDate < threeMonthsFromNow
-                                const ninetyDaysInMs = 90 * 24 * 60 * 60 * 1000
-                                const isInGracePeriod =
-                                  isExpired &&
-                                  now.getTime() - expiryDate.getTime() <
-                                    ninetyDaysInMs
-
-                                let textColorClass =
-                                  'text-green-600 dark:text-green-400'
-                                if (isWithinThreeMonths) {
-                                  textColorClass =
-                                    'text-yellow-600 dark:text-yellow-400'
-                                } else if (isExpired && isInGracePeriod) {
-                                  textColorClass =
-                                    'text-red-600 dark:text-red-400'
-                                } else if (isExpired) {
-                                  textColorClass =
-                                    'text-red-600 dark:text-red-400'
-                                }
-
-                                return (
-                                  <span className={textColorClass}>
-                                    {isExpired ? 'Expired' : 'Expires'}:{' '}
-                                    {expiryDate.toLocaleDateString()}
-                                  </span>
-                                )
-                              })()}
-                            </span>
-                          )}
-                          {domain.isPrimary && (
-                            <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
-                              Primary
-                            </span>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="ml-1 h-6 w-6 p-0 flex-shrink-0"
-                            asChild
-                          >
-                            <a
-                              href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
-                No Associated ENS names found for this address
-              </p>
-            )}
-          </div>
-
-          {/* Owned ENS Names */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-              Owned ENS Names
-              {userOwnedDomains.length > 0 && ` (${userOwnedDomains.length})`}
-            </h3>
-            {userOwnedDomains.length > 0 ? (
-              <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden">
-                <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-                  <div className="space-y-2">
-                    {(() => {
-                      let currentParent2LD = ''
-                      return userOwnedDomains.map((domain, index) => {
-                        // Check if we're starting a new 2LD group
-                        const isNewGroup = domain.parent2LD !== currentParent2LD
-                        if (isNewGroup && domain.parent2LD) {
-                          currentParent2LD = domain.parent2LD
-                        }
-
-                        // Calculate indentation for subdomains
-                        const indentLevel =
-                          domain.level && domain.level > 2
-                            ? domain.level - 2
-                            : 0
-                        const indentClass =
-                          indentLevel > 0 ? `pl-${indentLevel * 4}` : ''
-
-                        return (
+              <>
+                <button
+                  onClick={() =>
+                    setAssociatedNamesExpanded(!associatedNamesExpanded)
+                  }
+                  className="flex items-center justify-between w-full p-3 mb-2 text-left bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Associated ENS Names ({ensNames.length})
+                  </h3>
+                  {associatedNamesExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  )}
+                </button>
+                {associatedNamesExpanded && (
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden mb-4">
+                    <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                      <div className="space-y-2">
+                        {ensNames.map((domain, index) => (
                           <div
-                            key={domain.name}
-                            className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
+                            key={index}
+                            className={`flex items-center justify-between p-2 rounded ${
+                              domain.isPrimary
+                                ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                            }`}
                           >
                             <div className="flex items-center gap-1">
                               <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate px-2">
@@ -1632,10 +1539,13 @@ export default function ENSDetails({
                                 className="h-5 w-5 p-0 flex-shrink-0"
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  copyToClipboard(domain.name, `owned-${index}`)
+                                  copyToClipboard(
+                                    domain.name,
+                                    `associated-${index}`,
+                                  )
                                 }}
                               >
-                                {copied[`owned-${index}`] ? (
+                                {copied[`associated-${index}`] ? (
                                   <Check className="h-3 w-3 text-green-500" />
                                 ) : (
                                   <Copy className="h-3 w-3" />
@@ -1689,10 +1599,15 @@ export default function ENSDetails({
                                   })()}
                                 </span>
                               )}
+                              {domain.isPrimary && (
+                                <span className="text-xs bg-blue-100 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+                                  Primary
+                                </span>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="ml-2 h-6 w-6 p-0 flex-shrink-0"
+                                className="ml-1 h-6 w-6 p-0 flex-shrink-0"
                                 asChild
                               >
                                 <a
@@ -1707,16 +1622,204 @@ export default function ENSDetails({
                               </Button>
                             </div>
                           </div>
-                        )
-                      })
-                    })()}
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
+                )}
+              </>
             ) : (
-              <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
-                No Owned ENS names found for this address
-              </p>
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Associated ENS Names (0)
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                  No Associated ENS names found for this address
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Owned ENS Names */}
+          <div>
+            {userOwnedDomains.length > 0 ? (
+              <>
+                <button
+                  onClick={() => setOwnedNamesExpanded(!ownedNamesExpanded)}
+                  className="flex items-center justify-between w-full p-3 mb-2 text-left bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                >
+                  <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Owned ENS Names ({userOwnedDomains.length})
+                  </h3>
+                  {ownedNamesExpanded ? (
+                    <ChevronUp className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  )}
+                </button>
+                {ownedNamesExpanded && (
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden mb-4">
+                    <div className="max-h-60 overflow-y-auto p-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+                      <div className="space-y-2">
+                        {(() => {
+                          let currentParent2LD = ''
+                          return userOwnedDomains.map((domain, index) => {
+                            // Check if we're starting a new 2LD group
+                            const isNewGroup =
+                              domain.parent2LD !== currentParent2LD
+                            if (isNewGroup && domain.parent2LD) {
+                              currentParent2LD = domain.parent2LD
+                            }
+
+                            // Calculate indentation for subdomains
+                            const indentLevel =
+                              domain.level && domain.level > 2
+                                ? domain.level - 2
+                                : 0
+                            const indentClass =
+                              indentLevel > 0 ? `pl-${indentLevel * 4}` : ''
+
+                            return (
+                              <div
+                                key={domain.name}
+                                className={`flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded ${indentClass}`}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <span
+                                    className="font-mono text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 truncate px-2 underline cursor-pointer"
+                                    onClick={async (e) => {
+                                      e.stopPropagation()
+                                      try {
+                                        if (customProvider) {
+                                          const resolvedAddress =
+                                            await customProvider.resolveName(
+                                              domain.name,
+                                            )
+                                          if (resolvedAddress) {
+                                            window.location.href = `/explore/${effectiveChainId}/${resolvedAddress}`
+                                          } else {
+                                            // Show toast message that name doesn't resolve
+                                            toast({
+                                              title: "Name doesn't resolve",
+                                              description: `${domain.name} doesn't resolve to any address`,
+                                              variant: 'destructive',
+                                            })
+                                          }
+                                        }
+                                      } catch (error) {
+                                        console.error(
+                                          'Error resolving name:',
+                                          error,
+                                        )
+                                      }
+                                    }}
+                                  >
+                                    {domain.name}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 flex-shrink-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      copyToClipboard(
+                                        domain.name,
+                                        `owned-${index}`,
+                                      )
+                                    }}
+                                  >
+                                    {copied[`owned-${index}`] ? (
+                                      <Check className="h-3 w-3 text-green-500" />
+                                    ) : (
+                                      <Copy className="h-3 w-3" />
+                                    )}
+                                  </Button>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  {domain.expiryDate && (
+                                    <span className="text-xs whitespace-nowrap">
+                                      {(() => {
+                                        const now = new Date()
+                                        const expiryDate = new Date(
+                                          domain.expiryDate * 1000,
+                                        )
+                                        const threeMonthsFromNow = new Date()
+                                        threeMonthsFromNow.setMonth(
+                                          now.getMonth() + 3,
+                                        )
+
+                                        const isExpired = expiryDate < now
+                                        const isWithinThreeMonths =
+                                          !isExpired &&
+                                          expiryDate < threeMonthsFromNow
+                                        const ninetyDaysInMs =
+                                          90 * 24 * 60 * 60 * 1000
+                                        const isInGracePeriod =
+                                          isExpired &&
+                                          now.getTime() - expiryDate.getTime() <
+                                            ninetyDaysInMs
+
+                                        let textColorClass =
+                                          'text-green-600 dark:text-green-400'
+                                        if (isWithinThreeMonths) {
+                                          textColorClass =
+                                            'text-yellow-600 dark:text-yellow-400'
+                                        } else if (
+                                          isExpired &&
+                                          isInGracePeriod
+                                        ) {
+                                          textColorClass =
+                                            'text-red-600 dark:text-red-400'
+                                        } else if (isExpired) {
+                                          textColorClass =
+                                            'text-red-600 dark:text-red-400'
+                                        }
+
+                                        return (
+                                          <span className={textColorClass}>
+                                            {isExpired ? 'Expired' : 'Expires'}:{' '}
+                                            {expiryDate.toLocaleDateString()}
+                                          </span>
+                                        )
+                                      })()}
+                                    </span>
+                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="ml-2 h-6 w-6 p-0 flex-shrink-0"
+                                    asChild
+                                  >
+                                    <a
+                                      href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}/${domain.name}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                                    >
+                                      <ExternalLink className="h-3 w-3" />
+                                    </a>
+                                  </Button>
+                                </div>
+                              </div>
+                            )
+                          })
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mb-4">
+                <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Owned ENS Names (0)
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+                  No Owned ENS names found for this address
+                </p>
+              </div>
             )}
           </div>
         </div>

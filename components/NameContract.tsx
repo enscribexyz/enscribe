@@ -1040,7 +1040,7 @@ export default function NameContract() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
+    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8 border border-gray-200 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
         Name Existing Contract
       </h2>
@@ -1464,7 +1464,7 @@ export default function NameContract() {
             </div>
           ) : (
             <div className="flex items-center justify-center relative z-10">
-              <span className="group-hover:scale-105 transition-transform duration-300">
+              <span className="group-hover:scale-105 transition-transform duration-300 dark:text-white">
                 Name Your Contract
               </span>
               <span className="ml-2 inline-block animate-rocket">🚀</span>

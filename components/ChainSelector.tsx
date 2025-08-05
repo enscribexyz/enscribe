@@ -55,7 +55,7 @@ export default function ChainSelector({
       value={selectedChain.toString()}
       onValueChange={(value) => onChainChange(parseInt(value))}
     >
-      <SelectTrigger className="text-black md:w-[180px] w-fit min-w-[40px] transition-all focus:ring-0 focus:ring-offset-0">
+      <SelectTrigger className="text-gray-900 dark:text-gray-100 md:w-[180px] w-fit min-w-[40px] transition-all focus:ring-0 focus:ring-offset-0">
         <div className="flex items-center gap-2 overflow-hidden">
           {selectedChainInfo.logo && (
             <div className="flex-shrink-0 w-6 h-6 relative">

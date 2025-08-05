@@ -1819,7 +1819,7 @@ export default function DeployForm() {
   }
 
   return (
-    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8">
+    <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8 border border-gray-200 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
         Deploy New Contract
       </h2>
@@ -2013,7 +2013,7 @@ export default function DeployForm() {
         <Button
           type="button"
           onClick={addArg}
-          className="bg-gray-900 text-white mt-3"
+          className="bg-gray-900 text-white mt-3 dark:hover:bg-gray-800 dark:text-white dark:bg-blue-700"
         >
           + Add Argument
         </Button>
@@ -2326,7 +2326,7 @@ export default function DeployForm() {
       <Button
         onClick={deployContract}
         disabled={!isConnected || loading || !isValidBytecode}
-        className="w-full mt-6"
+        className="w-full mt-6 dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white font-medium py-3"
       >
         {loading ? (
           <svg
