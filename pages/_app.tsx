@@ -7,6 +7,12 @@ import {
   mainnet,
   base,
   linea,
+  optimism,
+  optimismSepolia,
+  arbitrum,
+  arbitrumSepolia,
+  scroll,
+  scrollSepolia,
 } from 'wagmi/chains'
 import { getDefaultConfig } from '@rainbow-me/rainbowkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -19,7 +25,7 @@ import '@/styles/globals.css'
 export const wagmiConfig = getDefaultConfig({
   appName: 'enscribe',
   projectId: '6dfc28e3bd034be8e0d5ceaf0ee5c224',
-  chains: [mainnet, linea, base, sepolia, lineaSepolia, baseSepolia],
+  chains: [mainnet, linea, base, optimism, arbitrum, scroll, sepolia, lineaSepolia, baseSepolia, optimismSepolia, arbitrumSepolia, scrollSepolia],
   ssr: true,
 })
 

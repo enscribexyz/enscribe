@@ -68,7 +68,10 @@ export default function Layout({ children }: LayoutProps) {
 
   useEffect(() => {
     const isExplorePage = router.pathname.startsWith('/explore')
-    if (!isExplorePage) return
+    const isNameContractPage = router.pathname === '/nameContract'
+    
+    // Don't run this effect on nameContract page to avoid interfering with Optimism transactions
+    if (!isExplorePage || isNameContractPage) return
 
     const urlChainId =
       router.query.chainId && typeof router.query.chainId === 'string'

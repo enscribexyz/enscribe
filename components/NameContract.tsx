@@ -5,7 +5,8 @@ import ensRegistryABI from '../contracts/ENSRegistry'
 import nameWrapperABI from '../contracts/NameWrapper'
 import publicResolverABI from '../contracts/PublicResolver'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
-import { useAccount, useWalletClient } from 'wagmi'
+import { useAccount, useWalletClient, useSwitchChain, useBalance } from 'wagmi'
+import { optimism, optimismSepolia, arbitrum, arbitrumSepolia, scroll, scrollSepolia, base, linea } from 'wagmi/chains'
 import {
   Dialog,
   DialogContent,
@@ -27,9 +28,10 @@ import { CONTRACTS, CHAINS } from '../utils/constants'
 import Link from 'next/link'
 import SetNameStepsModal, { Step } from './SetNameStepsModal'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { Checkbox } from '@/components/ui/checkbox'
 import { v4 as uuid } from 'uuid'
 import { fetchGeneratedName, logMetric } from '@/components/componentUtils'
-import { getEnsAddress, readContract, writeContract } from 'viem/actions'
+import { getEnsAddress, readContract, writeContract, getBalance } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
 import { isAddress, keccak256, toBytes } from 'viem'
 import enscribeContractABI from '../contracts/Enscribe'
@@ -39,6 +41,7 @@ export default function NameContract() {
   const router = useRouter()
   const { address: walletAddress, isConnected, chain } = useAccount()
   const { data: walletClient } = useWalletClient()
+  const { switchChain } = useSwitchChain()
 
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
   const enscribeDomain = config?.ENSCRIBE_DOMAIN!
@@ -75,6 +78,11 @@ export default function NameContract() {
   const [modalSteps, setModalSteps] = useState<Step[]>([])
   const [modalTitle, setModalTitle] = useState('')
   const [modalSubtitle, setModalSubtitle] = useState('')
+  const [enableL2PrimaryName, setEnableL2PrimaryName] = useState(false)
+  const [enableArbitrumL2, setEnableArbitrumL2] = useState(false)
+  const [enableScrollL2, setEnableScrollL2] = useState(false)
+  const [enableBaseL2, setEnableBaseL2] = useState(false)
+  const [enableLineaL2, setEnableLineaL2] = useState(false)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -88,6 +96,12 @@ export default function NameContract() {
   }
 
   useEffect(() => {
+    // Don't reset form if modal is open (to prevent closing during Optimism transaction)
+    if (modalOpen) {
+      console.log('Modal is open, skipping form reset to prevent interruption')
+      return
+    }
+    
     setLabel('')
     setParentType('web3labs')
     setParentName(enscribeDomain)
@@ -106,7 +120,12 @@ export default function NameContract() {
     setIsReverseClaimable(false)
     setIsAddressEmpty(true)
     setIsAddressInvalid(false)
-  }, [chain?.id, isConnected])
+                    setEnableL2PrimaryName(false)
+    setEnableArbitrumL2(false)
+    setEnableScrollL2(false)
+    setEnableBaseL2(false)
+    setEnableLineaL2(false)
+  }, [chain?.id, isConnected, modalOpen])
 
   useEffect(() => {
     const initFromQuery = async () => {
@@ -594,6 +613,70 @@ export default function NameContract() {
         args: [node],
       })) as boolean
 
+      // Internal balance check for all selected L2 chains before creating any steps
+      const l2ChainsForBalanceCheck: Array<{ name: string; chainId: number; chain: any }> = []
+      if (enableL2PrimaryName) l2ChainsForBalanceCheck.push({ name: 'Optimism', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia })
+      if (enableArbitrumL2) l2ChainsForBalanceCheck.push({ name: 'Arbitrum', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia })
+      if (enableScrollL2) l2ChainsForBalanceCheck.push({ name: 'Scroll', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia })
+      if (enableBaseL2) l2ChainsForBalanceCheck.push({ name: 'Base', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base })
+      if (enableLineaL2) l2ChainsForBalanceCheck.push({ name: 'Linea', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea })
+
+      // Check balances on all selected L2 chains using RPC calls
+      if (l2ChainsForBalanceCheck.length > 0) {
+        console.log('Checking balances on all selected L2 chains...')
+        
+        const insufficientBalanceChains: Array<{ name: string; balance: bigint }> = []
+        
+        for (const l2Chain of l2ChainsForBalanceCheck) {
+          console.log(`Checking balance on ${l2Chain.name}...`)
+          
+          // Get the RPC URL for this L2 chain
+          const l2Config = CONTRACTS[l2Chain.chainId]
+          if (!l2Config?.RPC_ENDPOINT) {
+            throw new Error(`No RPC endpoint configured for ${l2Chain.name}`)
+          }
+          
+          // Use eth_getBalance RPC call
+          const response = await fetch(l2Config.RPC_ENDPOINT, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'eth_getBalance',
+              params: [walletAddress, 'latest'],
+              id: 1,
+            }),
+          })
+          
+          const data = await response.json()
+          
+          if (data.error) {
+            throw new Error(`Failed to get balance on ${l2Chain.name}: ${data.error.message}`)
+          }
+          
+          const balance = BigInt(data.result)
+          console.log(`Balance on ${l2Chain.name}: ${balance} wei`)
+          
+          if (balance === 0n) {
+            insufficientBalanceChains.push({ name: l2Chain.name, balance })
+          }
+        }
+        
+        // If any chains have insufficient balance, set error state with all of them
+        if (insufficientBalanceChains.length > 0) {
+          const chainDetails = insufficientBalanceChains.map(chain => 
+            `${chain.name} chain: ${chain.balance} wei`
+          ).join(', ')
+          setError(`Insufficient balance on L2 chains: ${chainDetails}. Please add tokens to these chains before proceeding.`)
+          setLoading(false)
+          return
+        }
+        
+        console.log('All L2 chain balances verified successfully!')
+      }
+
       const steps: Step[] = []
 
       let publicResolverAddress = config.PUBLIC_RESOLVER! as `0x${string}`
@@ -889,6 +972,160 @@ export default function NameContract() {
         setIsPrimaryNameSet(false)
       }
 
+      // Add L2 primary name steps for all selected chains
+      const selectedL2Chains: Array<{ name: string; chainId: number; chain: any }> = []
+      if (enableL2PrimaryName) selectedL2Chains.push({ name: 'Optimism', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia })
+      if (enableArbitrumL2) selectedL2Chains.push({ name: 'Arbitrum', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia })
+      if (enableScrollL2) selectedL2Chains.push({ name: 'Scroll', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia })
+      if (enableBaseL2) selectedL2Chains.push({ name: 'Base', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base })
+      if (enableLineaL2) selectedL2Chains.push({ name: 'Linea', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea })
+
+
+
+      // Second: Add all L2 forward resolution steps (on current chain)
+      for (const l2Chain of selectedL2Chains) {
+        const l2Config = CONTRACTS[l2Chain.chainId]
+        
+        if (l2Config && l2Config.REVERSE_REGISTRAR) {
+          // Add forward resolution step for this L2 chain
+          steps.push({
+            title: `Set Forward Resolution on ${l2Chain.name}`,
+            action: async () => {
+              const txn = await writeContract(walletClient, {
+                address: config.PUBLIC_RESOLVER as `0x${string}`,
+                abi: publicResolverABI,
+                functionName: 'setAddr',
+                args: [node, 2158639068, existingContractAddress],
+                account: walletAddress,
+              })
+              await logMetric(
+                corelationId,
+                Date.now(),
+                chainId,
+                existingContractAddress,
+                walletAddress,
+                name,
+                'fwdres::setAddr',
+                txn,
+                isOwnable ? 'Ownable' : 'ReverseClaimer',
+                opType,
+              )
+              return txn
+            },
+          })
+        } else {
+          console.error(`${l2Chain.name} configuration missing:`, {
+            hasConfig: !!l2Config,
+            hasReverseRegistrar: !!l2Config?.REVERSE_REGISTRAR,
+            config: l2Config
+          })
+        }
+      }
+
+      // Then: Add L2 primary naming steps (switch to each chain, check balance, then proceed)
+      for (const l2Chain of selectedL2Chains) {
+        const l2Config = CONTRACTS[l2Chain.chainId]
+        
+        if (l2Config && l2Config.REVERSE_REGISTRAR) {
+          // Add reverse resolution step for this L2 chain
+          steps.push({
+            title: `Switch to ${l2Chain.name} and set L2 primary name`,
+            action: async () => {
+              console.log(`Starting ${l2Chain.name} L2 primary name step...`)
+              
+              console.log(`Switching to ${l2Chain.name} (chain ID: ${l2Chain.chainId})...`)
+              
+              // Switch to L2 chain
+              await switchChain({ chainId: l2Chain.chainId })
+              
+              // Wait a moment for the chain switch to complete
+              console.log('Waiting for chain switch to complete...')
+              await new Promise(resolve => setTimeout(resolve, 3000))
+              
+              // Wait for the chain to actually change
+              console.log('Waiting for chain to actually change...')
+              let attempts = 0
+              while (attempts < 10) {
+                const currentChain = await walletClient.getChainId()
+                console.log(`Current chain ID: ${currentChain}, Target: ${l2Chain.chainId}`)
+                if (currentChain === l2Chain.chainId) {
+                  console.log('Chain switch confirmed!')
+                  break
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000))
+                attempts++
+              }
+              
+              if (attempts >= 10) {
+                throw new Error(`Chain switch timeout - chain did not change to ${l2Chain.name}`)
+              }
+              
+              // Now execute the reverse resolution transaction on L2
+              console.log(`Executing reverse resolution on ${l2Chain.name}...`)
+              console.log('Reverse Registrar:', l2Config.REVERSE_REGISTRAR)
+              console.log('Contract Address:', existingContractAddress)
+              console.log('ENS Name:', `${labelNormalized}.${parentNameNormalized}`)
+              
+              // Perform reverse resolution on L2
+              const txn = await writeContract(walletClient, {
+                address: l2Config.REVERSE_REGISTRAR as `0x${string}`,
+                abi: [
+                  {
+                    inputs: [
+                      {
+                        internalType: 'address',
+                        name: 'addr',
+                        type: 'address'
+                      },
+                      {
+                        internalType: 'string',
+                        name: 'name',
+                        type: 'string'
+                      }
+                    ],
+                    name: 'setNameForAddr',
+                    outputs: [],
+                    stateMutability: 'nonpayable',
+                    type: 'function'
+                  }
+                ],
+                functionName: 'setNameForAddr',
+                args: [
+                  existingContractAddress as `0x${string}`,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+                chain: l2Chain.chain
+              })
+              
+              console.log(`${l2Chain.name} transaction submitted:`, txn)
+              
+              // Log the L2 transaction
+              await logMetric(
+                `${l2Chain.name.toLowerCase()}-l2-primary`, // correlationId
+                Date.now(),
+                l2Chain.chainId,
+                existingContractAddress,
+                walletAddress,
+                `${labelNormalized}.${parentNameNormalized}`,
+                'revres::setNameForAddr',
+                txn,
+                'L2Primary',
+                opType
+              )
+              
+              return txn
+            },
+          })
+        } else {
+          console.error(`${l2Chain.name} configuration missing:`, {
+            hasConfig: !!l2Config,
+            hasReverseRegistrar: !!l2Config?.REVERSE_REGISTRAR,
+            config: l2Config
+          })
+        }
+      }
+
       setModalTitle(
         (isContractOwner && isOwnable) || isReverseClaimable
           ? 'Set Primary Name'
@@ -1123,6 +1360,100 @@ export default function NameContract() {
             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
               <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
                 {`${label}.${parentName}`}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* L2 Primary Name Options - Only show on mainnet or sepolia */}
+        {(chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) && (
+          <div className="mt-4 mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Set L2 Primary Names
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+              Select which L2 chains to set primary names on. This will add additional steps to switch to each selected chain and set the primary name there as well.
+            </p>
+            
+            <div className="space-y-2">
+              {/* Optimism */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="optimism-l2"
+                  checked={enableL2PrimaryName}
+                  onCheckedChange={(checked) => setEnableL2PrimaryName(checked as boolean)}
+                  className="border-gray-300 dark:border-gray-600"
+                />
+                <label
+                  htmlFor="optimism-l2"
+                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  Optimism
+                </label>
+              </div>
+
+              {/* Arbitrum */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="arbitrum-l2"
+                  checked={enableArbitrumL2}
+                  onCheckedChange={(checked) => setEnableArbitrumL2(checked as boolean)}
+                  className="border-gray-300 dark:border-gray-600"
+                />
+                <label
+                  htmlFor="arbitrum-l2"
+                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  Arbitrum
+                </label>
+              </div>
+
+              {/* Scroll */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="scroll-l2"
+                  checked={enableScrollL2}
+                  onCheckedChange={(checked) => setEnableScrollL2(checked as boolean)}
+                  className="border-gray-300 dark:border-gray-600"
+                />
+                <label
+                  htmlFor="scroll-l2"
+                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  Scroll
+                </label>
+              </div>
+
+              {/* Base */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="base-l2"
+                  checked={enableBaseL2}
+                  onCheckedChange={(checked) => setEnableBaseL2(checked as boolean)}
+                  className="border-gray-300 dark:border-gray-600"
+                />
+                <label
+                  htmlFor="base-l2"
+                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  Base
+                </label>
+              </div>
+
+              {/* Linea */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="linea-l2"
+                  checked={enableLineaL2}
+                  onCheckedChange={(checked) => setEnableLineaL2(checked as boolean)}
+                  className="border-gray-300 dark:border-gray-600"
+                />
+                <label
+                  htmlFor="linea-l2"
+                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
+                >
+                  Linea
+                </label>
               </div>
             </div>
           </div>
@@ -1372,6 +1703,7 @@ export default function NameContract() {
             setParentType('web3labs')
             setParentName(enscribeDomain)
             setIsPrimaryNameSet(false)
+            setEnableL2PrimaryName(false)
           }
         }}
         title={modalTitle}

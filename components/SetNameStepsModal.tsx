@@ -167,6 +167,7 @@ export default function SetNameStepsModal({
     let errorMain = null
     setExecuting(true)
     console.log(`executing ${steps[index].title}`)
+    
     tx = await steps[index].action().catch((error) => {
       console.log('error', error)
       updateStepStatus(index, 'error')
