@@ -723,6 +723,55 @@ export default function ENSDetails({
         console.error('[ENSDetails] Error looking up ENS name:', error)
         return ''
       }
+    } else if (
+      [
+        CHAINS.OPTIMISM,
+        CHAINS.OPTIMISM_SEPOLIA,
+        CHAINS.ARBITRUM,
+        CHAINS.ARBITRUM_SEPOLIA,
+        CHAINS.SCROLL,
+        CHAINS.SCROLL_SEPOLIA,
+      ].includes((effectiveChainId ?? -1) as CHAINS)
+    ) {
+      // For Optimism/Arbitrum/Scroll L2s, use ReverseRegistrar.nameForAddr(address)
+      try {
+        console.log(
+          `[ENSDetails] Looking up ENS name via nameForAddr for ${addr} on chain ${effectiveChainId}`,
+        )
+
+        if (!config?.REVERSE_REGISTRAR) {
+          console.error(
+            `[ENSDetails] Missing reverse registrar for chain ${effectiveChainId}`,
+          )
+          return ''
+        }
+
+        const nameForAddrABI = [
+          {
+            inputs: [
+              { internalType: 'address', name: 'addr', type: 'address' },
+            ],
+            name: 'nameForAddr',
+            outputs: [
+              { internalType: 'string', name: 'name', type: 'string' },
+            ],
+            stateMutability: 'view',
+            type: 'function',
+          },
+        ]
+
+        const rr = new ethers.Contract(
+          config.REVERSE_REGISTRAR,
+          nameForAddrABI,
+          provider,
+        )
+        const name = (await rr.nameForAddr(addr)) as string
+        console.log(`[ENSDetails] nameForAddr result for ${addr}: ${name}`)
+        return name || ''
+      } catch (err) {
+        console.error('[ENSDetails] nameForAddr failed:', err)
+        return ''
+      }
     } else {
       try {
         console.log(

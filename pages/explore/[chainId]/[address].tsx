@@ -51,6 +51,55 @@ export default function ExploreAddressPage() {
         console.error('[address] Error looking up ENS name:', error)
         return ''
       }
+    } else if (
+      [
+        CHAINS.OPTIMISM,
+        CHAINS.OPTIMISM_SEPOLIA,
+        CHAINS.ARBITRUM,
+        CHAINS.ARBITRUM_SEPOLIA,
+        CHAINS.SCROLL,
+        CHAINS.SCROLL_SEPOLIA,
+      ].includes(chainId)
+    ) {
+      // For Optimism/Arbitrum/Scroll mainnets and testnets, use reverse registrar nameForAddr
+      try {
+        console.log(
+          `[address] Looking up ENS name via reverse registrar nameForAddr for ${addr} on chain ${chainId}`,
+        )
+
+        if (!config?.REVERSE_REGISTRAR) {
+          console.error(
+            `[address] Missing reverse registrar for chain ${chainId}`,
+          )
+          return ''
+        }
+
+        const nameForAddrABI = [
+          {
+            inputs: [
+              { internalType: 'address', name: 'addr', type: 'address' },
+            ],
+            name: 'nameForAddr',
+            outputs: [
+              { internalType: 'string', name: 'name', type: 'string' },
+            ],
+            stateMutability: 'view',
+            type: 'function',
+          },
+        ]
+
+        const rr = new ethers.Contract(
+          config.REVERSE_REGISTRAR,
+          nameForAddrABI,
+          provider,
+        )
+        const name = (await rr.nameForAddr(addr)) as string
+        console.log(`[address] nameForAddr result for ${addr}: ${name}`)
+        return name || ''
+      } catch (err) {
+        console.error('[address] nameForAddr failed:', err)
+        return ''
+      }
     } else {
       try {
         console.log(

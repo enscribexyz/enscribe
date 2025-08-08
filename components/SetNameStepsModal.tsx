@@ -284,7 +284,10 @@ export default function SetNameStepsModal({
         }
         onClose(lastTxHash)
       } else {
-        onClose(errorMessage ? `ERROR: ${errorMessage}` : 'INCOMPLETE')
+        // Return error message or INCOMPLETE status
+        const result = errorMessage ? `ERROR: ${errorMessage}` : 'INCOMPLETE'
+        console.log('Modal closed with result:', result)
+        onClose(result)
       }
     }
   }

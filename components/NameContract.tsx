@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { CONTRACTS, CHAINS } from '../utils/constants'
 import Link from 'next/link'
@@ -78,14 +79,38 @@ export default function NameContract() {
   const [modalSteps, setModalSteps] = useState<Step[]>([])
   const [modalTitle, setModalTitle] = useState('')
   const [modalSubtitle, setModalSubtitle] = useState('')
-  const [enableL2PrimaryName, setEnableL2PrimaryName] = useState(false)
-  const [enableArbitrumL2, setEnableArbitrumL2] = useState(false)
-  const [enableScrollL2, setEnableScrollL2] = useState(false)
-  const [enableBaseL2, setEnableBaseL2] = useState(false)
-  const [enableLineaL2, setEnableLineaL2] = useState(false)
+  const [selectedL2ChainNames, setSelectedL2ChainNames] = useState<string[]>([])
+  const [dropdownValue, setDropdownValue] = useState<string>('')
+  const [skipL1Naming, setSkipL1Naming] = useState<boolean>(false)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
+  const L2_CHAIN_OPTIONS = ['Optimism', 'Arbitrum', 'Scroll', 'Base', 'Linea']
+
+  // Unsupported L2 gating for this page: Optimism/Arbitrum/Scroll L2s should show guidance
+  const isUnsupportedL2Chain = [
+    CHAINS.OPTIMISM,
+    CHAINS.OPTIMISM_SEPOLIA,
+    CHAINS.ARBITRUM,
+    CHAINS.ARBITRUM_SEPOLIA,
+    CHAINS.SCROLL,
+    CHAINS.SCROLL_SEPOLIA,
+  ].includes((chain?.id as number) || -1)
+
+  const unsupportedL2Name =
+    chain?.id === CHAINS.OPTIMISM
+      ? 'Optimism'
+      : chain?.id === CHAINS.OPTIMISM_SEPOLIA
+        ? 'Optimism Sepolia'
+        : chain?.id === CHAINS.ARBITRUM
+          ? 'Arbitrum'
+          : chain?.id === CHAINS.ARBITRUM_SEPOLIA
+            ? 'Arbitrum Sepolia'
+            : chain?.id === CHAINS.SCROLL
+              ? 'Scroll'
+              : chain?.id === CHAINS.SCROLL_SEPOLIA
+                ? 'Scroll Sepolia'
+                : ''
 
   const getParentNode = (name: string) => {
     try {
@@ -120,12 +145,21 @@ export default function NameContract() {
     setIsReverseClaimable(false)
     setIsAddressEmpty(true)
     setIsAddressInvalid(false)
-                    setEnableL2PrimaryName(false)
-    setEnableArbitrumL2(false)
-    setEnableScrollL2(false)
-    setEnableBaseL2(false)
-    setEnableLineaL2(false)
+    setSelectedL2ChainNames([])
+    setDropdownValue('')
+    setSkipL1Naming(false)
   }, [chain?.id, isConnected, modalOpen])
+
+  useEffect(() => {
+    // If user has selected all L2 chains, clear the dropdown value and effectively hide the dropdown
+    const allSelected = L2_CHAIN_OPTIONS.every((c) => selectedL2ChainNames.includes(c))
+    if (allSelected && dropdownValue !== '') {
+      setDropdownValue('')
+    }
+    if (selectedL2ChainNames.length === 0 && skipL1Naming) {
+      setSkipL1Naming(false)
+    }
+  }, [selectedL2ChainNames])
 
   useEffect(() => {
     const initFromQuery = async () => {
@@ -557,6 +591,13 @@ export default function NameContract() {
     setError('')
     if (!walletClient || !walletAddress) return
 
+    if (isUnsupportedL2Chain) {
+      setError(
+        `To name your contract on ${unsupportedL2Name}, switch to ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} and use the Set L2 Names option.`,
+      )
+      return
+    }
+
     if (!isAddressValid(existingContractAddress)) {
       setIsOwnable(false)
       return
@@ -615,11 +656,23 @@ export default function NameContract() {
 
       // Internal balance check for all selected L2 chains before creating any steps
       const l2ChainsForBalanceCheck: Array<{ name: string; chainId: number; chain: any }> = []
-      if (enableL2PrimaryName) l2ChainsForBalanceCheck.push({ name: 'Optimism', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia })
-      if (enableArbitrumL2) l2ChainsForBalanceCheck.push({ name: 'Arbitrum', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia })
-      if (enableScrollL2) l2ChainsForBalanceCheck.push({ name: 'Scroll', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia })
-      if (enableBaseL2) l2ChainsForBalanceCheck.push({ name: 'Base', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base })
-      if (enableLineaL2) l2ChainsForBalanceCheck.push({ name: 'Linea', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea })
+      
+      // Map selected chain names to their configurations
+      const chainConfigs = {
+        'Optimism': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia },
+        'Arbitrum': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia },
+        'Scroll': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia },
+        'Base': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base },
+        'Linea': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea }
+      }
+      
+      // Add selected chains to balance check
+      for (const selectedChain of selectedL2ChainNames) {
+        const config = chainConfigs[selectedChain as keyof typeof chainConfigs]
+        if (config) {
+          l2ChainsForBalanceCheck.push({ name: selectedChain, chainId: config.chainId, chain: config.chain })
+        }
+      }
 
       // Check balances on all selected L2 chains using RPC calls
       if (l2ChainsForBalanceCheck.length > 0) {
@@ -707,8 +760,7 @@ export default function NameContract() {
 
       console.log('txCost - ', txCost)
 
-      const titleFirst =
-        parentType === 'web3labs' ? 'Set forward resolution' : 'Create subname'
+      const titleFirst = parentType === 'web3labs' ? (skipL1Naming ? 'Create subname' : 'Set forward resolution') : 'Create subname'
 
       // Step 1: Create Subname
       steps.push({
@@ -726,33 +778,133 @@ export default function NameContract() {
               currentAddr.toLowerCase() !==
               existingContractAddress.toLowerCase()
             ) {
-              const txn = await writeContract(walletClient, {
-                address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: contractABI,
-                functionName: 'setName',
-                args: [
-                  existingContractAddress,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
+              if (skipL1Naming) {
+                // Create subname only (skip L1 forward/reverse)
+                if (
+                  chain?.id == CHAINS.BASE ||
+                  chain?.id == CHAINS.BASE_SEPOLIA
+                ) {
+                  const txn = await writeContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelHash,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    name,
+                    'subname::setSubnodeRecord',
+                    txn,
+                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                    opType,
+                  )
+                  return txn
+                }
 
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'subname::setName',
-                txn,
-                isOwnable ? 'Ownable' : 'ReverseClaimer',
-                opType,
-              )
-              return txn
+                const isWrapped = await readContract(walletClient, {
+                  address: config.NAME_WRAPPER as `0x${string}`,
+                  abi: nameWrapperABI,
+                  functionName: 'isWrapped',
+                  args: [parentNode],
+                })
+
+                if (isWrapped) {
+                  const txn = await writeContract(walletClient, {
+                    address: config.NAME_WRAPPER as `0x${string}`,
+                    abi: nameWrapperABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelNormalized,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                      0,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    name,
+                    'subname::setSubnodeRecord',
+                    txn,
+                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                    opType,
+                  )
+                  return txn
+                } else {
+                  const txn = await writeContract(walletClient, {
+                    address: config.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelHash,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    name,
+                    'subname::setSubnodeRecord',
+                    txn,
+                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                    opType,
+                  )
+                  return txn
+                }
+              } else {
+                const txn = await writeContract(walletClient, {
+                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: contractABI,
+                  functionName: 'setName',
+                  args: [
+                    existingContractAddress,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+
+                await logMetric(
+                  corelationId,
+                  Date.now(),
+                  chainId,
+                  existingContractAddress,
+                  walletAddress,
+                  name,
+                  'subname::setName',
+                  txn,
+                  isOwnable ? 'Ownable' : 'ReverseClaimer',
+                  opType,
+                )
+                return txn
+              }
             } else {
               setError('Forward resolution already set')
               console.log('Forward resolution already set')
@@ -859,8 +1011,8 @@ export default function NameContract() {
         },
       })
 
-      // Step 2: Set Forward Resolution (if not web3labs)
-      if (parentType != 'web3labs') {
+      // Step 2: Set Forward Resolution (if not web3labs). If skipL1Naming, omit this.
+      if (parentType != 'web3labs' && !skipL1Naming) {
         steps.push({
           title: 'Set forward resolution',
           action: async () => {
@@ -903,8 +1055,8 @@ export default function NameContract() {
         })
       }
 
-      // Step 3: Set Reverse Resolution (if Primary)
-      if (isReverseClaimable) {
+      // Step 3: Set Reverse Resolution (if Primary). If skipL1Naming, omit this.
+      if (isReverseClaimable && !skipL1Naming) {
         setIsPrimaryNameSet(true)
         const addrLabel = existingContractAddress.slice(2).toLowerCase()
         const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
@@ -936,7 +1088,7 @@ export default function NameContract() {
             return txn
           },
         })
-      } else if (isContractOwner && isOwnable) {
+      } else if (isContractOwner && isOwnable && !skipL1Naming) {
         setIsPrimaryNameSet(true)
         steps.push({
           title: 'Set reverse resolution',
@@ -974,11 +1126,23 @@ export default function NameContract() {
 
       // Add L2 primary name steps for all selected chains
       const selectedL2Chains: Array<{ name: string; chainId: number; chain: any }> = []
-      if (enableL2PrimaryName) selectedL2Chains.push({ name: 'Optimism', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia })
-      if (enableArbitrumL2) selectedL2Chains.push({ name: 'Arbitrum', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia })
-      if (enableScrollL2) selectedL2Chains.push({ name: 'Scroll', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia })
-      if (enableBaseL2) selectedL2Chains.push({ name: 'Base', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base })
-      if (enableLineaL2) selectedL2Chains.push({ name: 'Linea', chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea })
+      
+      // Map selected chain names to their configurations for steps
+      const stepChainConfigs = {
+        'Optimism': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia },
+        'Arbitrum': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia },
+        'Scroll': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia },
+        'Base': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base },
+        'Linea': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea }
+      }
+      
+      // Add selected chains to steps
+      for (const selectedChain of selectedL2ChainNames) {
+        const config = stepChainConfigs[selectedChain as keyof typeof stepChainConfigs]
+        if (config) {
+          selectedL2Chains.push({ name: selectedChain, ...config })
+        }
+      }
 
 
 
@@ -989,7 +1153,7 @@ export default function NameContract() {
         if (l2Config && l2Config.REVERSE_REGISTRAR) {
           // Add forward resolution step for this L2 chain
           steps.push({
-            title: `Set Forward Resolution on ${l2Chain.name}`,
+            title: `Set Forward Resolution for ${l2Chain.name}`,
             action: async () => {
               const txn = await writeContract(walletClient, {
                 address: config.PUBLIC_RESOLVER as `0x${string}`,
@@ -1026,7 +1190,7 @@ export default function NameContract() {
       for (const l2Chain of selectedL2Chains) {
         const l2Config = CONTRACTS[l2Chain.chainId]
         
-        if (l2Config && l2Config.REVERSE_REGISTRAR) {
+        if (l2Config && l2Config.REVERSE_REGISTRAR && (isOwnable || skipL1Naming)) {
           // Add reverse resolution step for this L2 chain
           steps.push({
             title: `Switch to ${l2Chain.name} and set L2 primary name`,
@@ -1147,11 +1311,15 @@ export default function NameContract() {
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
         Name Existing Contract
       </h2>
-      {!isConnected && (
-        <p className="text-red-500">Please connect your wallet.</p>
+      {(!isConnected || isUnsupportedL2Chain) && (
+        <p className="text-red-500">
+          {!isConnected
+            ? 'Please connect your wallet.'
+            : `To name your contract ${unsupportedL2Name} simply go to L1 chain ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum mainnet' : 'Sepolia'} and select Set L2 name option.`}
+        </p>
       )}
 
-      <div className="space-y-6 mt-6">
+      <div className={`space-y-6 mt-6 ${!isConnected || isUnsupportedL2Chain ? 'pointer-events-none opacity-50' : ''}`}>
         <label className="block text-gray-700 dark:text-gray-300">
           Contract Address
         </label>
@@ -1175,39 +1343,39 @@ export default function NameContract() {
           !isAddressInvalid &&
           !isOwnable &&
           !isReverseClaimable && (
-            <p className="text-yellow-600">
+          <p className="text-yellow-600 dark:text-yellow-300">
               Contract address does not extend{' '}
               <Link
                 href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 Ownable
               </Link>{' '}
               or{' '}
               <Link
                 href="https://eips.ethereum.org/EIPS/eip-173"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 ERC-173
               </Link>{' '}
               or{' '}
               <Link
                 href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 ReverseClaimable
               </Link>
               . You can only{' '}
               <Link
                 href="https://docs.ens.domains/learn/resolution#forward-resolution"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 forward resolve
               </Link>{' '}
               this name.{' '}
               <Link
                 href="https://www.enscribe.xyz/docs/"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 Why is this?
               </Link>
@@ -1220,7 +1388,7 @@ export default function NameContract() {
             {!isAddressEmpty && !isContractOwner && isOwnable && (
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
-                <p className="text-gray-600 inline ml-1">
+                <p className="text-gray-600 inline ml-1 dark:text-gray-300">
                   You are not the contract owner and cannot set its primary name
                 </p>
               </div>
@@ -1230,11 +1398,11 @@ export default function NameContract() {
                 {isOwnable && (
                   <>
                     <CheckCircleIcon className="w-5 h-5 inline text-green-500 cursor-pointer" />
-                    <p className="text-gray-700 inline ml-1">
+                    <p className="text-gray-700 inline ml-1 dark:text-gray-200">
                       Contract implements{' '}
                       <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         Ownable
                       </Link>
@@ -1244,11 +1412,11 @@ export default function NameContract() {
                 {isReverseClaimable && !isOwnable && (
                   <>
                     <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                    <p className="text-gray-700 inline">
+                    <p className="text-gray-700 inline dark:text-gray-200">
                       Contract is{' '}
                       <Link
                         href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                        className="text-blue-600 hover:underline"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                       >
                         ReverseClaimable
                       </Link>
@@ -1368,94 +1536,98 @@ export default function NameContract() {
         {/* L2 Primary Name Options - Only show on mainnet or sepolia */}
         {(chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) && (
           <div className="mt-4 mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-              Set L2 Primary Names
-            </label>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-              Select which L2 chains to set primary names on. This will add additional steps to switch to each selected chain and set the primary name there as well.
-            </p>
-            
-            <div className="space-y-2">
-              {/* Optimism */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="optimism-l2"
-                  checked={enableL2PrimaryName}
-                  onCheckedChange={(checked) => setEnableL2PrimaryName(checked as boolean)}
-                  className="border-gray-300 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="optimism-l2"
-                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  Optimism
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <div className="flex items-center gap-2">
+                <label className="block text-gray-700 dark:text-gray-300">
+                  Set L2 Names
                 </label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">i</span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p>
+                      Select which L2 chains to set names on. This will add additional steps to switch to each selected chain and set the primary name there as well.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               </div>
 
-              {/* Arbitrum */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="arbitrum-l2"
-                  checked={enableArbitrumL2}
-                  onCheckedChange={(checked) => setEnableArbitrumL2(checked as boolean)}
-                  className="border-gray-300 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="arbitrum-l2"
-                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  Arbitrum
-                </label>
-              </div>
-
-              {/* Scroll */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="scroll-l2"
-                  checked={enableScrollL2}
-                  onCheckedChange={(checked) => setEnableScrollL2(checked as boolean)}
-                  className="border-gray-300 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="scroll-l2"
-                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  Scroll
-                </label>
-              </div>
-
-              {/* Base */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="base-l2"
-                  checked={enableBaseL2}
-                  onCheckedChange={(checked) => setEnableBaseL2(checked as boolean)}
-                  className="border-gray-300 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="base-l2"
-                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  Base
-                </label>
-              </div>
-
-              {/* Linea */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="linea-l2"
-                  checked={enableLineaL2}
-                  onCheckedChange={(checked) => setEnableLineaL2(checked as boolean)}
-                  className="border-gray-300 dark:border-gray-600"
-                />
-                <label
-                  htmlFor="linea-l2"
-                  className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer"
-                >
-                  Linea
-                </label>
-              </div>
+              {selectedL2ChainNames.length > 0 && (
+                <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+                  <span className="text-gray-700 dark:text-gray-300">Skip L1 Naming</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">i</span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>
+                          If you just want to name contract for selected L2 chains and skip naming (forward and reverse resolution) in L1 chain
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Checkbox
+                    checked={skipL1Naming}
+                    onCheckedChange={(val) => setSkipL1Naming(Boolean(val))}
+                    aria-label="Skip L1 Naming"
+                  />
+                </div>
+              )}
             </div>
+            
+            {/* Selected L2 Chains Display */}
+            {selectedL2ChainNames.length > 0 && (
+              <div className="mb-4">
+                <div className="flex flex-wrap gap-2">
+                  {selectedL2ChainNames.map((chainName, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+                    >
+                      <span>{chainName}</span>
+                      <button
+                        onClick={() => setSelectedL2ChainNames((prev) => prev.filter((name) => name !== chainName))}
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* L2 Chain Dropdown - only show if there are available options left */}
+            {L2_CHAIN_OPTIONS.filter((chainName) => !selectedL2ChainNames.includes(chainName)).length > 0 && (
+              <div className="relative">
+                <Select
+                  value={dropdownValue}
+                  onValueChange={(value) => {
+                    if (value && !selectedL2ChainNames.includes(value)) {
+                      setSelectedL2ChainNames((prev) => [...prev, value])
+                      setDropdownValue('') // Reset dropdown value after selection
+                    }
+                  }}
+                >
+                  <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
+                    <SelectValue placeholder="Select L2 chains..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
+                    {L2_CHAIN_OPTIONS.filter((chainName) => !selectedL2ChainNames.includes(chainName)).map(
+                      (chainName) => (
+                        <SelectItem key={chainName} value={chainName}>
+                          {chainName}
+                        </SelectItem>
+                      ),
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1626,7 +1798,8 @@ export default function NameContract() {
             loading ||
             isAddressEmpty ||
             isAddressInvalid ||
-            isEmpty(label)
+            isEmpty(label) ||
+            isUnsupportedL2Chain
           }
           className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group"
           style={{
@@ -1684,9 +1857,12 @@ export default function NameContract() {
       <SetNameStepsModal
         open={modalOpen}
         onClose={(result) => {
+          console.log('Modal closed with result:', result)
           setModalOpen(false)
           if (result?.startsWith('ERROR')) {
-            setError(result)
+            // Extract the actual error message (remove 'ERROR: ' prefix)
+            const errorMessage = result.replace('ERROR: ', '')
+            setError(errorMessage)
             return
           }
 
@@ -1695,6 +1871,7 @@ export default function NameContract() {
               'Steps not completed. Please complete all steps before closing.',
             )
           } else {
+            console.log('Success - resetting form')
             setDeployedAddress(existingContractAddress)
             // Reset form after successful naming
             setExistingContractAddress('')
@@ -1703,7 +1880,9 @@ export default function NameContract() {
             setParentType('web3labs')
             setParentName(enscribeDomain)
             setIsPrimaryNameSet(false)
-            setEnableL2PrimaryName(false)
+            setSelectedL2ChainNames([])
+            setDropdownValue('')
+            setSkipL1Naming(false)
           }
         }}
         title={modalTitle}

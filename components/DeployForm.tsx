@@ -122,6 +122,31 @@ export default function DeployForm() {
 
   const corelationId = uuid()
 
+  // Unsupported L2 gating (Optimism, Arbitrum, Scroll including Sepolia)
+  const isUnsupportedL2Chain = [
+    CHAINS.OPTIMISM,
+    CHAINS.OPTIMISM_SEPOLIA,
+    CHAINS.ARBITRUM,
+    CHAINS.ARBITRUM_SEPOLIA,
+    CHAINS.SCROLL,
+    CHAINS.SCROLL_SEPOLIA,
+  ].includes((chain?.id as number) || -1)
+
+  const unsupportedL2Name =
+    chain?.id === CHAINS.OPTIMISM
+      ? 'Optimism'
+      : chain?.id === CHAINS.OPTIMISM_SEPOLIA
+        ? 'Optimism Sepolia'
+        : chain?.id === CHAINS.ARBITRUM
+          ? 'Arbitrum'
+          : chain?.id === CHAINS.ARBITRUM_SEPOLIA
+            ? 'Arbitrum Sepolia'
+            : chain?.id === CHAINS.SCROLL
+              ? 'Scroll'
+              : chain?.id === CHAINS.SCROLL_SEPOLIA
+                ? 'Scroll Sepolia'
+                : ''
+
   const getParentNode = (name: string) => {
     try {
       return namehash(name)
@@ -768,6 +793,12 @@ export default function DeployForm() {
   const deployContract = async () => {
     if (!walletClient || !walletAddress) {
       console.log('wallet not connected')
+      return
+    }
+    if (isUnsupportedL2Chain) {
+      setError(
+        `Deploying Contract with Primary Name for ${unsupportedL2Name} is not currently supported`,
+      )
       return
     }
     if (!label.trim()) {
@@ -1422,11 +1453,15 @@ export default function DeployForm() {
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
         Deploy New Contract
       </h2>
-      {!isConnected && (
-        <p className="text-red-500">Please connect your wallet.</p>
+      {(!isConnected || isUnsupportedL2Chain) && (
+        <p className="text-red-500">
+          {!isConnected
+            ? 'Please connect your wallet.'
+            : `Deploying Contract with Primary Name for ${unsupportedL2Name} is not currently supported`}
+        </p>
       )}
 
-      <div className="space-y-6 mt-6">
+        <div className={`space-y-6 mt-6 ${!isConnected || isUnsupportedL2Chain ? 'pointer-events-none opacity-50' : ''}`}>
         <label className="block text-gray-700 dark:text-gray-300">
           Bytecode
         </label>
@@ -1924,7 +1959,7 @@ export default function DeployForm() {
 
       <Button
         onClick={deployContract}
-        disabled={!isConnected || loading || !isValidBytecode}
+        disabled={!isConnected || loading || !isValidBytecode || isUnsupportedL2Chain}
         className="w-full mt-6 dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white font-medium py-3"
       >
         {loading ? (
