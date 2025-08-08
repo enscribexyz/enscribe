@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import dynamic from 'next/dynamic'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import 'ethereum-identity-kit/css'
@@ -27,6 +27,10 @@ interface LayoutProps {
 const productLink = process.env.NEXT_PUBLIC_DOCS_SITE_URL
 
 export default function Layout({ children }: LayoutProps) {
+  const ConnectButton = dynamic(
+    () => import('@rainbow-me/rainbowkit').then((m) => m.ConnectButton),
+    { ssr: false },
+  )
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { isConnected, chain, connector, address: walletAddress } = useAccount()
   const [selectedChain, setSelectedChain] = useState<number>(1)
