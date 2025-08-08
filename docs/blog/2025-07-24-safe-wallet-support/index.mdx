@@ -1,0 +1,75 @@
+---
+slug: safe-wallet-support
+title: "Safe Wallet Support in Enscribe"
+authors: [abhi]
+tags: [ens, enscribe, safe, safe wallet]
+---
+
+We’re excited to announce that Safe smart account wallet support is now live in [Enscribe](https://enscribe.xyz). Whilst Enscribe already has support for commonly used wallets like Metamask and Coinbase, Safe was not fully compatible..
+
+This update enables deploying a new contract and setting an ENS name for it or naming an existing contract with your Safe wallet with full control over transaction approval and execution.
+
+## Why Safe Wallet?
+
+Safe is commonly used as a multi-signature wallet in the Ethereum ecosystem. A Safe wallet account can have multiple Ethereum accounts configured as signers behind it. When a transaction is to be approved and executed, all signers must sign & execute that  transaction.
+
+This process can happen asynchronously without waiting for approvals from all the signers. This is unlike executing transactions with a wallet like Metamask where every transaction request will block until it is either approved or rejected.
+
+It’s ideal for workflows where transparency and decentralized control are required.
+
+## What You Can Do with Safe in Enscribe
+
+Enscribe now enables you to:
+
+    - Deploy new contracts with ENS names set using your Safe wallet.
+    - Name existing contracts with ENS names from your Safe address.
+
+Supporting Safe required a different approach  from the typical MetaMask-style interactions, where each transaction prompts a popup that demands immediate attention. With Safe, Enscribe queues transactions, so they can be approved  via the Safe App.
+
+## How to Connect to Safe Wallet in Enscribe
+
+Connecting to a Safe wallet is slightly different from connecting to Metamask or Coinbaser wallet. To connect to your Safe wallet, click on the Connect button on the top right corner on Enscribe:
+
+![landing](enscribe_landing.png)
+
+On the Connect a Wallet popup, select WalletConnect
+
+![wallet_connect](wallet_connect.png)
+
+Now click on the OPEN button to open the WalletConnect modal
+
+![wallet_connect_popup](wallet_connect_popup.png)
+
+Click on Copy link and go to your Safe wallet app. Click on the WalletConnect icon on the top bar
+
+![safe_wallet_bar](safe_wallet_bar.png)
+
+ Now paste the copied link in the Pairing code field in the popup
+
+![safe_wallet_pairing](safe_wallet_pairing.png)
+
+You should now see Enscribe as connected app
+
+![safe_wallet_app_connect](safe_wallet_app_connect.png)
+
+Once connected, you’ll see your Safe wallet account shown as connected in Enscribe as well as in the Safe App.
+
+![enscribe_safe_connect](enscribe_safe_connect.png)
+
+## Kicking off Transactions
+
+With Safe wallet, our naming-related transactions are sent to the Safe wallet queue without waiting for them to complete. This is because Safe wallet intercepts our Enscribe transactions & executes them in its own multisig transactions. Therefore, Enscribe doesn’t have knowledge of these transactions whilst pending.
+
+![txns_submitted](txns_submitted.png)
+
+Enscribe differentiates between a Safe wallet and a wallet like Metamask and will modify the behavior of waiting for transactions to complete accordingly.  This is how pending transactions look like in the Safe wallet:
+
+![txns_que](txns_que.png)
+
+On executing the above pending transaction to set the primary name of a contract, we can see the contract details in Enscribe:
+
+![name_success](name_success.png)
+
+Try out naming your contracts with Safe wallet at [app.enscribe.xyz](https://app.enscribe.xyz)!
+
+Happy naming! 🚀
