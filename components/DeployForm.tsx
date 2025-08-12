@@ -34,6 +34,7 @@ import {
   fetchGeneratedName,
   getDeployedAddress,
   logMetric,
+  checkIfSafe,
 } from '@/components/componentUtils'
 import { string } from 'postcss-selector-parser'
 import {
@@ -79,7 +80,7 @@ const checkIfReverseClaimable = (bytecode: string): boolean => {
 }
 
 export default function DeployForm() {
-  const { address: walletAddress, isConnected, chain } = useAccount()
+  const { address: walletAddress, isConnected, chain, connector } = useAccount()
   const { data: walletClient } = useWalletClient()
 
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
@@ -119,6 +120,7 @@ export default function DeployForm() {
 
   const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([])
   const [showENSModal, setShowENSModal] = useState(false)
+  const [isSafeWallet, setIsSafeWallet] = useState(false)
 
   const corelationId = uuid()
 
@@ -198,6 +200,10 @@ export default function DeployForm() {
   const populateName = async () => {
     const name = await fetchGeneratedName()
     setLabel(name)
+  }
+
+  const checkIfSafeWallet = async (): Promise<boolean> => {
+    return await checkIfSafe(connector)
   }
 
   const addArg = () =>
@@ -620,17 +626,28 @@ export default function DeployForm() {
       let tx
 
       if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-        tx = await writeContract(walletClient, {
-          address: config.ENS_REGISTRY as `0x${string}`,
-          abi: ensRegistryABI,
-          functionName: 'setApprovalForAll',
-          args: [config.ENSCRIBE_CONTRACT, false],
-          account: walletAddress,
-        })
+        if (isSafeWallet) {
+          writeContract(walletClient, {
+            address: config.ENS_REGISTRY as `0x${string}`,
+            abi: ensRegistryABI,
+            functionName: 'setApprovalForAll',
+            args: [config.ENSCRIBE_CONTRACT, false],
+            account: walletAddress,
+          })
+          tx = 'safe wallet'
+        } else {
+          tx = await writeContract(walletClient, {
+            address: config.ENS_REGISTRY as `0x${string}`,
+            abi: ensRegistryABI,
+            functionName: 'setApprovalForAll',
+            args: [config.ENSCRIBE_CONTRACT, false],
+            account: walletAddress,
+          })
 
-        const txReceipt = await waitForTransactionReceipt(walletClient, {
-          hash: tx,
-        })
+          const txReceipt = await waitForTransactionReceipt(walletClient, {
+            hash: tx,
+          })
+        }
       } else {
         const isWrapped = await readContract(walletClient, {
           address: config.NAME_WRAPPER as `0x${string}`,
@@ -639,24 +656,45 @@ export default function DeployForm() {
           args: [parentNode],
         })
 
-        tx = isWrapped
-          ? await writeContract(walletClient, {
+        if (isSafeWallet) {
+          if (isWrapped) {
+            writeContract(walletClient, {
               address: config.NAME_WRAPPER as `0x${string}`,
               abi: nameWrapperABI,
               functionName: 'setApprovalForAll',
               args: [config.ENSCRIBE_CONTRACT, false],
               account: walletAddress,
             })
-          : await writeContract(walletClient, {
-              address: config.ENS_REGISTRY as `0x${string}`,
-              abi: ensRegistryABI,
-              functionName: 'setApprovalForAll',
-              args: [config.ENSCRIBE_CONTRACT, false],
-              account: walletAddress,
-            })
-        const txReceipt = await waitForTransactionReceipt(walletClient, {
-          hash: tx,
-        })
+          } else {
+            writeContract(walletClient, {
+                          address: config.ENS_REGISTRY as `0x${string}`,
+            abi: ensRegistryABI,
+            functionName: 'setApprovalForAll',
+            args: [config.ENSCRIBE_CONTRACT, false],
+            account: walletAddress,
+          })
+          }
+          tx = 'safe wallet'
+        } else {
+          tx = isWrapped
+            ? await writeContract(walletClient, {
+                address: config.NAME_WRAPPER as `0x${string}`,
+                abi: nameWrapperABI,
+                functionName: 'setApprovalForAll',
+                args: [config.ENSCRIBE_CONTRACT, false],
+                account: walletAddress,
+              })
+            : await writeContract(walletClient, {
+                address: config.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'setApprovalForAll',
+                args: [config.ENSCRIBE_CONTRACT, false],
+                account: walletAddress,
+              })
+          const txReceipt = await waitForTransactionReceipt(walletClient, {
+            hash: tx,
+          })
+        }
       }
 
       let contractType
@@ -715,16 +753,28 @@ export default function DeployForm() {
       let tx
 
       if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-        tx = await writeContract(walletClient, {
-          address: config.ENS_REGISTRY as `0x${string}`,
-          abi: ensRegistryABI,
-          functionName: 'setApprovalForAll',
-          args: [config.ENSCRIBE_CONTRACT, true],
-          account: walletAddress,
-        })
-        const txReceipt = await waitForTransactionReceipt(walletClient, {
-          hash: tx,
-        })
+        if (isSafeWallet) {
+          writeContract(walletClient, {
+            address: config.ENS_REGISTRY as `0x${string}`,
+            abi: ensRegistryABI,
+            functionName: 'setApprovalForAll',
+            args: [config.ENSCRIBE_CONTRACT, true],
+            account: walletAddress,
+          })
+          tx = 'safe wallet'
+        } else {
+          tx = await writeContract(walletClient, {
+            address: config.ENS_REGISTRY as `0x${string}`,
+            abi: ensRegistryABI,
+            functionName: 'setApprovalForAll',
+            args: [config.ENSCRIBE_CONTRACT, true],
+            account: walletAddress,
+          })
+
+          const txReceipt = await waitForTransactionReceipt(walletClient, {
+            hash: tx,
+          })
+        }
       } else {
         const isWrapped = (await readContract(walletClient, {
           address: config.NAME_WRAPPER as `0x${string}`,
@@ -733,24 +783,45 @@ export default function DeployForm() {
           args: [parentNode],
         })) as boolean
 
-        tx = isWrapped
-          ? await writeContract(walletClient, {
+        if (isSafeWallet) {
+          if (isWrapped) {
+            writeContract(walletClient, {
               address: config.NAME_WRAPPER as `0x${string}`,
               abi: nameWrapperABI,
               functionName: 'setApprovalForAll',
               args: [config.ENSCRIBE_CONTRACT, true],
               account: walletAddress,
             })
-          : await writeContract(walletClient, {
+          } else {
+            writeContract(walletClient, {
               address: config.ENS_REGISTRY as `0x${string}`,
               abi: ensRegistryABI,
               functionName: 'setApprovalForAll',
               args: [config.ENSCRIBE_CONTRACT, true],
               account: walletAddress,
             })
-        const txReceipt = await waitForTransactionReceipt(walletClient, {
-          hash: tx,
-        })
+          }
+          tx = 'safe wallet' as `0x${string}`
+        } else {
+          tx = isWrapped
+            ? await writeContract(walletClient, {
+                address: config.NAME_WRAPPER as `0x${string}`,
+                abi: nameWrapperABI,
+                functionName: 'setApprovalForAll',
+                args: [config.ENSCRIBE_CONTRACT, true],
+                account: walletAddress,
+              })
+            : await writeContract(walletClient, {
+                address: config.ENS_REGISTRY as `0x${string}`,
+                abi: ensRegistryABI,
+                functionName: 'setApprovalForAll',
+                args: [config.ENSCRIBE_CONTRACT, true],
+                account: walletAddress,
+              })
+          const txReceipt = await waitForTransactionReceipt(walletClient, {
+            hash: tx,
+          })
+        }
       }
 
       let contractType
@@ -879,6 +950,10 @@ export default function DeployForm() {
       console.log('txCost - ', txCost)
       let name = `${labelNormalized}.${parentNameNormalized}`
 
+      // Check if connected wallet is a Safe wallet
+      const safeCheck = await checkIfSafeWallet()
+      setIsSafeWallet(safeCheck)
+
       if (isOwnable) {
         if (parentType === 'web3labs') {
           steps.push({
@@ -887,31 +962,26 @@ export default function DeployForm() {
               // const txn = await namingContract.setNameAndDeploy(finalBytecode, label, parentName, parentNode, {
               //     value: txCost
               // })
-              const txn = await writeContract(walletClient, {
-                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: enscribeContractABI,
-                functionName: 'setNameAndDeploy',
-                args: [
-                  finalBytecode,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
-
-              const txReceipt = await waitForTransactionReceipt(walletClient, {
-                hash: txn,
-              })
-              const deployedContractAddress =
-                await getDeployedAddress(txReceipt)
-              if (deployedContractAddress) {
+              if (safeCheck) {
+                writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeploy',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txn = 'safe wallet' as `0x${string}`
                 await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
-                  deployedContractAddress,
+                  '', // Will be updated in SetNameStepsModal
                   walletAddress,
                   name,
                   'setNameAndDeploy',
@@ -919,8 +989,43 @@ export default function DeployForm() {
                   'Ownable',
                   opType,
                 )
+                return txn
+              } else {
+                const txn = await writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeploy',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+
+                const txReceipt = await waitForTransactionReceipt(walletClient, {
+                  hash: txn,
+                })
+                const deployedContractAddress =
+                  await getDeployedAddress(txReceipt)
+                if (deployedContractAddress) {
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    deployedContractAddress,
+                    walletAddress,
+                    name,
+                    'setNameAndDeploy',
+                    txn,
+                    'Ownable',
+                    opType,
+                  )
+                }
+                return txn
               }
-              return txn
             },
           })
         } else if (
@@ -938,110 +1043,15 @@ export default function DeployForm() {
             steps.push({
               title: 'Give operator access',
               action: async () => {
-                const txn = await writeContract(walletClient, {
-                  address: config?.ENS_REGISTRY as `0x${string}`,
-                  abi: ensRegistryABI,
-                  functionName: 'setApprovalForAll',
-                  args: [config?.ENSCRIBE_CONTRACT, true],
-                  account: walletAddress,
-                })
-                const txReceipt = await waitForTransactionReceipt(
-                  walletClient,
-                  {
-                    hash: txn,
-                  },
-                )
-                await logMetric(
-                  corelationId,
-                  Date.now(),
-                  chainId,
-                  '',
-                  walletAddress,
-                  name,
-                  'setApprovalForAll',
-                  txReceipt.transactionHash,
-                  'Ownable',
-                  opType,
-                )
-                return txn
-              },
-            })
-          }
-
-          steps.push({
-            title: 'Deploy and Set primary Name',
-            action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: enscribeContractABI,
-                functionName: 'setNameAndDeploy',
-                args: [
-                  finalBytecode,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
-              const txReceipt = await waitForTransactionReceipt(walletClient, {
-                hash: txn,
-              })
-              const deployedContractAddress =
-                await getDeployedAddress(txReceipt)
-              if (deployedContractAddress) {
-                await logMetric(
-                  corelationId,
-                  Date.now(),
-                  chainId,
-                  deployedContractAddress,
-                  walletAddress,
-                  name,
-                  'setNameAndDeploy',
-                  txReceipt.transactionHash,
-                  'Ownable',
-                  opType,
-                )
-              }
-              return txn
-            },
-          })
-        } else {
-          console.log("User's parent deployment type")
-          const isWrapped = (await readContract(walletClient, {
-            address: config?.NAME_WRAPPER as `0x${string}`,
-            abi: nameWrapperABI,
-            functionName: 'isWrapped',
-            args: [parentNode],
-          })) as boolean
-
-          if (isWrapped) {
-            // Wrapped Names
-            console.log(`Wrapped detected.`)
-            const isApprovedForAll = (await readContract(walletClient, {
-              address: config?.NAME_WRAPPER as `0x${string}`,
-              abi: nameWrapperABI,
-              functionName: 'isApprovedForAll',
-              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
-            })) as boolean
-
-            if (!isApprovedForAll) {
-              steps.push({
-                title: 'Give operator access',
-                action: async () => {
-                  const txn = await writeContract(walletClient, {
-                    address: config?.NAME_WRAPPER as `0x${string}`,
-                    abi: nameWrapperABI,
+                if (safeCheck) {
+                  writeContract(walletClient, {
+                    address: config?.ENS_REGISTRY as `0x${string}`,
+                    abi: ensRegistryABI,
                     functionName: 'setApprovalForAll',
                     args: [config?.ENSCRIBE_CONTRACT, true],
                     account: walletAddress,
                   })
-                  const txReceipt = await waitForTransactionReceipt(
-                    walletClient,
-                    {
-                      hash: txn,
-                    },
-                  )
+                  const txn = 'safe wallet'
                   await logMetric(
                     corelationId,
                     Date.now(),
@@ -1050,28 +1060,12 @@ export default function DeployForm() {
                     walletAddress,
                     name,
                     'setApprovalForAll',
-                    txReceipt.transactionHash,
+                    txn,
                     'Ownable',
                     opType,
                   )
                   return txn
-                },
-              })
-            }
-          } else {
-            //Unwrapped Names
-            console.log(`Unwrapped detected.`)
-            const isApprovedForAll = (await readContract(walletClient, {
-              address: config?.ENS_REGISTRY as `0x${string}`,
-              abi: ensRegistryABI,
-              functionName: 'isApprovedForAll',
-              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
-            })) as boolean
-
-            if (!isApprovedForAll) {
-              steps.push({
-                title: 'Give operator access',
-                action: async () => {
+                } else {
                   const txn = await writeContract(walletClient, {
                     address: config?.ENS_REGISTRY as `0x${string}`,
                     abi: ensRegistryABI,
@@ -1098,6 +1092,219 @@ export default function DeployForm() {
                     opType,
                   )
                   return txn
+                }
+              },
+            })
+          }
+
+          steps.push({
+            title: 'Deploy and Set primary Name',
+            action: async () => {
+              if (safeCheck) {
+                writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeploy',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txn = 'safe wallet' as `0x${string}`
+                await logMetric(
+                  corelationId,
+                  Date.now(),
+                  chainId,
+                  '', // Will be updated in SetNameStepsModal
+                  walletAddress,
+                  name,
+                  'setNameAndDeploy',
+                  txn,
+                  'Ownable',
+                  opType,
+                )
+                return txn
+              } else {
+                const txn = await writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeploy',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txReceipt = await waitForTransactionReceipt(walletClient, {
+                  hash: txn,
+                })
+                const deployedContractAddress =
+                  await getDeployedAddress(txReceipt)
+                if (deployedContractAddress) {
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    deployedContractAddress,
+                    walletAddress,
+                    name,
+                    'setNameAndDeploy',
+                    txReceipt.transactionHash,
+                    'Ownable',
+                    opType,
+                  )
+                }
+                return txn
+              }
+            },
+          })
+        } else {
+          console.log("User's parent deployment type")
+          const isWrapped = (await readContract(walletClient, {
+            address: config?.NAME_WRAPPER as `0x${string}`,
+            abi: nameWrapperABI,
+            functionName: 'isWrapped',
+            args: [parentNode],
+          })) as boolean
+
+          if (isWrapped) {
+            // Wrapped Names
+            console.log(`Wrapped detected.`)
+            const isApprovedForAll = (await readContract(walletClient, {
+              address: config?.NAME_WRAPPER as `0x${string}`,
+              abi: nameWrapperABI,
+              functionName: 'isApprovedForAll',
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
+            })) as boolean
+
+            if (!isApprovedForAll) {
+              steps.push({
+                title: 'Give operator access',
+                action: async () => {
+                  if (safeCheck) {
+                    writeContract(walletClient, {
+                      address: config?.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txn = 'safe wallet' as `0x${string}`
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txn,
+                      'Ownable',
+                      opType,
+                    )
+                    return txn
+                  } else {
+                    const txn = await writeContract(walletClient, {
+                      address: config?.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txReceipt = await waitForTransactionReceipt(
+                      walletClient,
+                      {
+                        hash: txn,
+                      },
+                    )
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txReceipt.transactionHash,
+                      'Ownable',
+                      opType,
+                    )
+                    return txn
+                  }
+                },
+              })
+            }
+          } else {
+            //Unwrapped Names
+            console.log(`Unwrapped detected.`)
+            const isApprovedForAll = (await readContract(walletClient, {
+              address: config?.ENS_REGISTRY as `0x${string}`,
+              abi: ensRegistryABI,
+              functionName: 'isApprovedForAll',
+              args: [walletAddress, config?.ENSCRIBE_CONTRACT],
+            })) as boolean
+
+            if (!isApprovedForAll) {
+              steps.push({
+                title: 'Give operator access',
+                action: async () => {
+                  if (safeCheck) {
+                    writeContract(walletClient, {
+                      address: config?.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txn = 'safe wallet' as `0x${string}`
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txn,
+                      'Ownable',
+                      opType,
+                    )
+                    return txn
+                  } else {
+                    const txn = await writeContract(walletClient, {
+                      address: config?.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txReceipt = await waitForTransactionReceipt(
+                      walletClient,
+                      {
+                        hash: txn,
+                      },
+                    )
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txReceipt.transactionHash,
+                      'Ownable',
+                      opType,
+                    )
+                    return txn
+                  }
                 },
               })
             }
@@ -1106,45 +1313,79 @@ export default function DeployForm() {
           steps.push({
             title: 'Deploy and Set primary Name',
             action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: enscribeContractABI,
-                functionName: 'setNameAndDeploy',
-                args: [
-                  finalBytecode,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
-              const txReceipt = await waitForTransactionReceipt(walletClient, {
-                hash: txn,
-              })
-              const deployedContractAddress =
-                await getDeployedAddress(txReceipt)
-              if (deployedContractAddress) {
+              if (safeCheck) {
+                writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeploy',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txn = 'safe wallet' as `0x${string}`
                 await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
-                  deployedContractAddress,
+                  '', // Will be updated in SetNameStepsModal
                   walletAddress,
                   name,
                   'setNameAndDeploy',
-                  txReceipt.transactionHash,
+                  txn,
                   'Ownable',
                   opType,
                 )
+                return txn
+              } else {
+                const txn = await writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeploy',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txReceipt = await waitForTransactionReceipt(walletClient, {
+                  hash: txn,
+                })
+                const deployedContractAddress =
+                  await getDeployedAddress(txReceipt)
+                if (deployedContractAddress) {
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    deployedContractAddress,
+                    walletAddress,
+                    name,
+                    'setNameAndDeploy',
+                    txReceipt.transactionHash,
+                    'Ownable',
+                    opType,
+                  )
+                }
+                return txn
               }
-              return txn
             },
           })
         }
 
         setModalTitle('Deploy Contract and set Primary Name')
-        setModalSubtitle('Running each step to finish naming this contract')
+        setModalSubtitle(
+          safeCheck 
+            ? 'Transactions will be executed in your Safe wallet app'
+            : 'Running each step to finish naming this contract'
+        )
         setModalSteps(steps)
         setModalOpen(true)
       } else if (isReverseClaimable) {
@@ -1171,32 +1412,56 @@ export default function DeployForm() {
               steps.push({
                 title: 'Give operator access',
                 action: async () => {
-                  const txn = await writeContract(walletClient, {
-                    address: config?.NAME_WRAPPER as `0x${string}`,
-                    abi: nameWrapperABI,
-                    functionName: 'setApprovalForAll',
-                    args: [config?.ENSCRIBE_CONTRACT, true],
-                    account: walletAddress,
-                  })
-                  const txReceipt = await waitForTransactionReceipt(
-                    walletClient,
-                    {
-                      hash: txn,
-                    },
-                  )
-                  await logMetric(
-                    corelationId,
-                    Date.now(),
-                    chainId,
-                    '',
-                    walletAddress,
-                    name,
-                    'setApprovalForAll',
-                    txReceipt.transactionHash,
-                    'ReverseSetter',
-                    opType,
-                  )
-                  return txn
+                  if (safeCheck) {
+                    writeContract(walletClient, {
+                      address: config?.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txn = 'safe wallet' as `0x${string}`
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txn,
+                      'ReverseSetter',
+                      opType,
+                    )
+                    return txn
+                  } else {
+                    const txn = await writeContract(walletClient, {
+                      address: config?.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txReceipt = await waitForTransactionReceipt(
+                      walletClient,
+                      {
+                        hash: txn,
+                      },
+                    )
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txReceipt.transactionHash,
+                      'ReverseSetter',
+                      opType,
+                    )
+                    return txn
+                  }
                 },
               })
             }
@@ -1214,33 +1479,57 @@ export default function DeployForm() {
               steps.push({
                 title: 'Give operator access',
                 action: async () => {
-                  const txn = await writeContract(walletClient, {
-                    address: config?.ENS_REGISTRY as `0x${string}`,
-                    abi: ensRegistryABI,
-                    functionName: 'setApprovalForAll',
-                    args: [config?.ENSCRIBE_CONTRACT, true],
-                    account: walletAddress,
-                  })
+                  if (safeCheck) {
+                    writeContract(walletClient, {
+                      address: config?.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txn = 'safe wallet' as `0x${string}`
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txn,
+                      'ReverseSetter',
+                      opType,
+                    )
+                    return txn
+                  } else {
+                    const txn = await writeContract(walletClient, {
+                      address: config?.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
 
-                  const txReceipt = await waitForTransactionReceipt(
-                    walletClient,
-                    {
-                      hash: txn,
-                    },
-                  )
-                  await logMetric(
-                    corelationId,
-                    Date.now(),
-                    chainId,
-                    '',
-                    walletAddress,
-                    name,
-                    'setApprovalForAll',
-                    txReceipt.transactionHash,
-                    'ReverseSetter',
-                    opType,
-                  )
-                  return txn
+                    const txReceipt = await waitForTransactionReceipt(
+                      walletClient,
+                      {
+                        hash: txn,
+                      },
+                    )
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txReceipt.transactionHash,
+                      'ReverseSetter',
+                      opType,
+                    )
+                    return txn
+                  }
                 },
               })
             }
@@ -1250,42 +1539,72 @@ export default function DeployForm() {
           steps.push({
             title: 'Set name & Deploy contract',
             action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: enscribeContractABI,
-                functionName: 'setNameAndDeployReverseSetter',
-                args: [
-                  finalBytecode,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
-              setTxHash(txn)
-
-              const txReceipt = await waitForTransactionReceipt(walletClient, {
-                hash: txn,
-              })
-              const deployedContractAddress =
-                await getDeployedAddress(txReceipt)
-              if (deployedContractAddress) {
-                setDeployedAddress(deployedContractAddress)
+              if (safeCheck) {
+                writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeployReverseSetter',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txn = 'safe wallet'
                 await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
-                  deployedContractAddress,
+                  '', // Will be updated in SetNameStepsModal
                   walletAddress,
                   name,
                   'setNameAndDeployReverseSetter',
-                  txReceipt.transactionHash,
+                  txn,
                   'ReverseSetter',
                   opType,
                 )
+                return txn
+              } else {
+                const txn = await writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeployReverseSetter',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                setTxHash(txn)
+
+                const txReceipt = await waitForTransactionReceipt(walletClient, {
+                  hash: txn,
+                })
+                const deployedContractAddress =
+                  await getDeployedAddress(txReceipt)
+                if (deployedContractAddress) {
+                  setDeployedAddress(deployedContractAddress)
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    deployedContractAddress,
+                    walletAddress,
+                    name,
+                    'setNameAndDeployReverseSetter',
+                    txReceipt.transactionHash,
+                    'ReverseSetter',
+                    opType,
+                  )
+                }
+                return txn
               }
-              return txn
             },
           })
         } else {
@@ -1312,32 +1631,56 @@ export default function DeployForm() {
               steps.push({
                 title: 'Give operator access',
                 action: async () => {
-                  const txn = await writeContract(walletClient, {
-                    address: config?.NAME_WRAPPER as `0x${string}`,
-                    abi: nameWrapperABI,
-                    functionName: 'setApprovalForAll',
-                    args: [config?.ENSCRIBE_CONTRACT, true],
-                    account: walletAddress,
-                  })
-                  const txReceipt = await waitForTransactionReceipt(
-                    walletClient,
-                    {
-                      hash: txn,
-                    },
-                  )
-                  await logMetric(
-                    corelationId,
-                    Date.now(),
-                    chainId,
-                    '',
-                    walletAddress,
-                    name,
-                    'setApprovalForAll',
-                    txReceipt.transactionHash,
-                    'ReverseClaimer',
-                    opType,
-                  )
-                  return txn
+                  if (safeCheck) {
+                    writeContract(walletClient, {
+                      address: config?.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txn = 'safe wallet' as `0x${string}`
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txn,
+                      'ReverseClaimer',
+                      opType,
+                    )
+                    return txn
+                  } else {
+                    const txn = await writeContract(walletClient, {
+                      address: config?.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txReceipt = await waitForTransactionReceipt(
+                      walletClient,
+                      {
+                        hash: txn,
+                      },
+                    )
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txReceipt.transactionHash,
+                      'ReverseClaimer',
+                      opType,
+                    )
+                    return txn
+                  }
                 },
               })
             }
@@ -1355,33 +1698,57 @@ export default function DeployForm() {
               steps.push({
                 title: 'Give operator access',
                 action: async () => {
-                  const txn = await writeContract(walletClient, {
-                    address: config?.ENS_REGISTRY as `0x${string}`,
-                    abi: ensRegistryABI,
-                    functionName: 'setApprovalForAll',
-                    args: [config?.ENSCRIBE_CONTRACT, true],
-                    account: walletAddress,
-                  })
-                  const txReceipt = await waitForTransactionReceipt(
-                    walletClient,
-                    {
-                      hash: txn,
-                    },
-                  )
+                  if (safeCheck) {
+                    writeContract(walletClient, {
+                      address: config?.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txn = 'safe wallet' as `0x${string}`
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txn,
+                      'ReverseClaimer',
+                      opType,
+                    )
+                    return txn
+                  } else {
+                    const txn = await writeContract(walletClient, {
+                      address: config?.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setApprovalForAll',
+                      args: [config?.ENSCRIBE_CONTRACT, true],
+                      account: walletAddress,
+                    })
+                    const txReceipt = await waitForTransactionReceipt(
+                      walletClient,
+                      {
+                        hash: txn,
+                      },
+                    )
 
-                  await logMetric(
-                    corelationId,
-                    Date.now(),
-                    chainId,
-                    '',
-                    walletAddress,
-                    name,
-                    'setApprovalForAll',
-                    txReceipt.transactionHash,
-                    'ReverseClaimer',
-                    opType,
-                  )
-                  return txn
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      '',
+                      walletAddress,
+                      name,
+                      'setApprovalForAll',
+                      txReceipt.transactionHash,
+                      'ReverseClaimer',
+                      opType,
+                    )
+                    return txn
+                  }
                 },
               })
             }
@@ -1391,48 +1758,82 @@ export default function DeployForm() {
           steps.push({
             title: 'Set name & Deploy contract',
             action: async () => {
-              const txn = await writeContract(walletClient, {
-                address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
-                abi: enscribeContractABI,
-                functionName: 'setNameAndDeployReverseClaimer',
-                args: [
-                  finalBytecode,
-                  labelNormalized,
-                  parentNameNormalized,
-                  parentNode,
-                ],
-                value: txCost,
-                account: walletAddress,
-              })
-              setTxHash(txn)
-
-              const txReceipt = await waitForTransactionReceipt(walletClient, {
-                hash: txn as `0x${string}`,
-              })
-              const deployedContractAddress =
-                await getDeployedAddress(txReceipt)
-              if (deployedContractAddress) {
-                setDeployedAddress(deployedContractAddress)
+              if (safeCheck) {
+                writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeployReverseClaimer',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                const txn = 'safe wallet' as `0x${string}`
                 await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
-                  deployedContractAddress,
+                  '', // Will be updated in SetNameStepsModal
                   walletAddress,
                   name,
                   'setNameAndDeployReverseClaimer',
-                  txReceipt.transactionHash,
+                  txn,
                   'ReverseClaimer',
                   opType,
                 )
+                return txn
+              } else {
+                const txn = await writeContract(walletClient, {
+                  address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
+                  abi: enscribeContractABI,
+                  functionName: 'setNameAndDeployReverseClaimer',
+                  args: [
+                    finalBytecode,
+                    labelNormalized,
+                    parentNameNormalized,
+                    parentNode,
+                  ],
+                  value: txCost,
+                  account: walletAddress,
+                })
+                setTxHash(txn)
+
+                const txReceipt = await waitForTransactionReceipt(walletClient, {
+                  hash: txn as `0x${string}`,
+                })
+                const deployedContractAddress =
+                  await getDeployedAddress(txReceipt)
+                if (deployedContractAddress) {
+                  setDeployedAddress(deployedContractAddress)
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    deployedContractAddress,
+                    walletAddress,
+                    name,
+                    'setNameAndDeployReverseClaimer',
+                    txReceipt.transactionHash,
+                    'ReverseClaimer',
+                    opType,
+                  )
+                }
+                return txn
               }
-              return txn
             },
           })
         }
 
         setModalTitle('Deploy Contract and set Primary Name')
-        setModalSubtitle('Complete each step to finish naming this contract')
+        setModalSubtitle(
+          safeCheck 
+            ? 'Transactions will be executed in your Safe wallet app'
+            : 'Complete each step to finish naming this contract'
+        )
         setModalSteps(steps)
         setModalOpen(true)
       }
@@ -2026,6 +2427,7 @@ export default function DeployForm() {
         steps={modalSteps}
         contractAddress={deployedAddress}
         ensName={`${label}.${parentName}`}
+        isSafeWallet={isSafeWallet}
       />
     </div>
   )

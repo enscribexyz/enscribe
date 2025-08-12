@@ -54,9 +54,6 @@ export default function ContractHistory() {
 
   const { data: walletClient } = useWalletClient()
   const config = chainId ? CONTRACTS[chainId] : undefined
-  const signer = walletClient
-    ? new ethers.BrowserProvider(window.ethereum).getSigner()
-    : null
 
   const [withENS, setWithENS] = useState<Contract[]>([])
   const [withoutENS, setWithoutENS] = useState<Contract[]>([])
@@ -269,6 +266,9 @@ export default function ContractHistory() {
    * @param addr
    */
   const getENS = async (addr: string): Promise<string> => {
+    const provider = new ethers.BrowserProvider(walletClient!.transport, 'any');
+    const signer = provider.getSigner(walletAddress);
+
     if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
       try {
         return (await (await signer)?.provider.lookupAddress(addr)) || ''
