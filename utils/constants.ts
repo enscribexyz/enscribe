@@ -5,6 +5,7 @@ export type NetworkConfig = {
   BASE_REGISTRAR: string
   NAME_WRAPPER: string
   REVERSE_REGISTRAR: string
+  L2_REVERSE_REGISTRAR: string
   PUBLIC_RESOLVER: string
   ENSCRIBE_DOMAIN: string
   ETHERSCAN_URL: string
@@ -13,6 +14,7 @@ export type NetworkConfig = {
   BLOCKSCOUT_URL: string
   RPC_ENDPOINT: string
   SUBGRAPH_API: string
+  COIN_TYPE: string
 }
 
 export const CONTRACTS: Record<number, NetworkConfig> = {
@@ -25,6 +27,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN || '',
@@ -33,6 +36,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
   // Sepolia Testnet
   11155111: {
@@ -43,6 +47,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_SEPOLIA || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_SEPOLIA || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_SEPOLIA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_SEPOLIA || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_SEPOLIA || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_SEPOLIA || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_SEPOLIA || '',
@@ -51,6 +56,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SEPOLIA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Linea mainnet
@@ -62,6 +68,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_LINEA || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_LINEA || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_LINEA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_LINEA || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_LINEA || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_LINEA || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_LINEA || '',
@@ -70,6 +77,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_LINEA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Linea Sepolia Testnet
@@ -84,6 +92,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_LINEA_SEPOLIA || '',
     REVERSE_REGISTRAR:
       process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_LINEA_SEPOLIA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_LINEA_SEPOLIA || '',
     PUBLIC_RESOLVER:
       process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_LINEA_SEPOLIA || '',
     ENSCRIBE_DOMAIN:
@@ -94,6 +103,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_LINEA_SEPOLIA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // BASE mainnet
@@ -105,6 +115,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_BASE || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_BASE || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_BASE || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_BASE || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_BASE || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_BASE || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_BASE || '',
@@ -113,6 +124,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_BASE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // BASE Sepolia Testnet
@@ -127,6 +139,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_BASE_SEPOLIA || '',
     REVERSE_REGISTRAR:
       process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_BASE_SEPOLIA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_BASE_SEPOLIA || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_BASE_SEPOLIA || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_BASE_SEPOLIA || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_BASE_SEPOLIA || '',
@@ -135,6 +148,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_BASE_SEPOLIA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Optimism Mainnet
@@ -146,6 +160,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_OPTIMISM || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_OPTIMISM || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_OPTIMISM || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_OPTIMISM || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_OPTIMISM || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_OPTIMISM || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_OPTIMISM || '',
@@ -154,6 +169,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_OPTIMISM || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_OPTIMISM || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_OPTIMISM || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Optimism Sepolia Testnet
@@ -168,6 +184,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_OPTIMISM_SEPOLIA || '',
     REVERSE_REGISTRAR:
       process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_OPTIMISM_SEPOLIA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_OPTIMISM_SEPOLIA || '',
     PUBLIC_RESOLVER:
       process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_OPTIMISM_SEPOLIA || '',
     ENSCRIBE_DOMAIN:
@@ -178,6 +195,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_OPTIMISM_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_OPTIMISM_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_OPTIMISM_SEPOLIA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Arbitrum Mainnet
@@ -189,6 +207,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_ARBITRUM || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_ARBITRUM || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_ARBITRUM || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_ARBITRUM || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_ARBITRUM || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_ARBITRUM || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_ARBITRUM || '',
@@ -197,6 +216,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_ARBITRUM || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ARBITRUM || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_ARBITRUM || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Arbitrum Sepolia Testnet
@@ -211,6 +231,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_ARBITRUM_SEPOLIA || '',
     REVERSE_REGISTRAR:
       process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_ARBITRUM_SEPOLIA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_ARBITRUM_SEPOLIA || '',
     PUBLIC_RESOLVER:
       process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_ARBITRUM_SEPOLIA || '',
     ENSCRIBE_DOMAIN:
@@ -221,6 +242,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_ARBITRUM_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ARBITRUM_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_ARBITRUM_SEPOLIA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Scroll Mainnet
@@ -232,6 +254,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
       process.env.NEXT_PUBLIC_ENS_BASE_REGISTRAR_IMPLEMENTATION_SCROLL || '',
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_SCROLL || '',
     REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_SCROLL || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_SCROLL || '',
     PUBLIC_RESOLVER: process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_SCROLL || '',
     ENSCRIBE_DOMAIN: process.env.NEXT_PUBLIC_ENSCRIBE_DOMAIN_SCROLL || '',
     ETHERSCAN_URL: process.env.NEXT_PUBLIC_ETHERSCAN_SCROLL || '',
@@ -240,6 +263,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SCROLL || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SCROLL || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SCROLL || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 
   // Scroll Sepolia Testnet
@@ -254,6 +278,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     NAME_WRAPPER: process.env.NEXT_PUBLIC_NAME_WRAPPER_SCROLL_SEPOLIA || '',
     REVERSE_REGISTRAR:
       process.env.NEXT_PUBLIC_REVERSE_REGISTRAR_SCROLL_SEPOLIA || '',
+    L2_REVERSE_REGISTRAR: process.env.NEXT_PUBLIC_L2_REVERSE_REGISTRAR_SCROLL_SEPOLIA || '',
     PUBLIC_RESOLVER:
       process.env.NEXT_PUBLIC_PUBLIC_RESOLVER_SCROLL_SEPOLIA || '',
     ENSCRIBE_DOMAIN:
@@ -264,6 +289,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SCROLL_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SCROLL_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SCROLL_SEPOLIA || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
   },
 }
 

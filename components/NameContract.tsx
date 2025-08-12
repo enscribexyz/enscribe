@@ -6,7 +6,7 @@ import nameWrapperABI from '../contracts/NameWrapper'
 import publicResolverABI from '../contracts/PublicResolver'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import { useAccount, useWalletClient, useSwitchChain, useBalance } from 'wagmi'
-import { optimism, optimismSepolia, arbitrum, arbitrumSepolia, scroll, scrollSepolia, base, linea } from 'wagmi/chains'
+import { optimism, optimismSepolia, arbitrum, arbitrumSepolia, scroll, scrollSepolia, base, baseSepolia, linea, lineaSepolia } from 'wagmi/chains'
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useToast } from '@/hooks/use-toast'
 import { CONTRACTS, CHAINS } from '../utils/constants'
 import Link from 'next/link'
+import Image from 'next/image'
 import SetNameStepsModal, { Step } from './SetNameStepsModal'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -82,6 +83,7 @@ export default function NameContract() {
   const [selectedL2ChainNames, setSelectedL2ChainNames] = useState<string[]>([])
   const [dropdownValue, setDropdownValue] = useState<string>('')
   const [skipL1Naming, setSkipL1Naming] = useState<boolean>(false)
+  const [showL2Modal, setShowL2Modal] = useState<boolean>(false)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -593,7 +595,7 @@ export default function NameContract() {
 
     if (isUnsupportedL2Chain) {
       setError(
-        `To name your contract on ${unsupportedL2Name}, switch to ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} and use the Set L2 Names option.`,
+        `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
       )
       return
     }
@@ -658,12 +660,13 @@ export default function NameContract() {
       const l2ChainsForBalanceCheck: Array<{ name: string; chainId: number; chain: any }> = []
       
       // Map selected chain names to their configurations
+      const isL1Mainnet = chain?.id === CHAINS.MAINNET
       const chainConfigs = {
-        'Optimism': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia },
-        'Arbitrum': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia },
-        'Scroll': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia },
-        'Base': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base },
-        'Linea': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea }
+        'Optimism': { chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: isL1Mainnet ? optimism : optimismSepolia },
+        'Arbitrum': { chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: isL1Mainnet ? arbitrum : arbitrumSepolia },
+        'Scroll': { chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: isL1Mainnet ? scroll : scrollSepolia },
+        'Base': { chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: isL1Mainnet ? base : baseSepolia },
+        'Linea': { chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: isL1Mainnet ? linea : lineaSepolia }
       }
       
       // Add selected chains to balance check
@@ -1028,7 +1031,7 @@ export default function NameContract() {
               existingContractAddress.toLowerCase()
             ) {
               const txn = await writeContract(walletClient, {
-                address: config.PUBLIC_RESOLVER as `0x${string}`,
+                address: publicResolverAddress as `0x${string}`,
                 abi: publicResolverABI,
                 functionName: 'setAddr',
                 args: [node, existingContractAddress],
@@ -1129,11 +1132,11 @@ export default function NameContract() {
       
       // Map selected chain names to their configurations for steps
       const stepChainConfigs = {
-        'Optimism': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: chain?.id === CHAINS.OPTIMISM ? optimism : optimismSepolia },
-        'Arbitrum': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: chain?.id === CHAINS.ARBITRUM ? arbitrum : arbitrumSepolia },
-        'Scroll': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: chain?.id === CHAINS.SCROLL ? scroll : scrollSepolia },
-        'Base': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: base },
-        'Linea': { chainId: chain?.id === CHAINS.MAINNET ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: linea }
+        'Optimism': { chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: isL1Mainnet ? optimism : optimismSepolia },
+        'Arbitrum': { chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: isL1Mainnet ? arbitrum : arbitrumSepolia },
+        'Scroll': { chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: isL1Mainnet ? scroll : scrollSepolia },
+        'Base': { chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: isL1Mainnet ? base : baseSepolia },
+        'Linea': { chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: isL1Mainnet ? linea : lineaSepolia }
       }
       
       // Add selected chains to steps
@@ -1149,17 +1152,18 @@ export default function NameContract() {
       // Second: Add all L2 forward resolution steps (on current chain)
       for (const l2Chain of selectedL2Chains) {
         const l2Config = CONTRACTS[l2Chain.chainId]
+        const coinType = Number(l2Config.COIN_TYPE || '60')
         
-        if (l2Config && l2Config.REVERSE_REGISTRAR) {
+        if (l2Config) {
           // Add forward resolution step for this L2 chain
           steps.push({
-            title: `Set Forward Resolution for ${l2Chain.name}`,
+            title: `Set forward resolution for ${l2Chain.name}`,
             action: async () => {
               const txn = await writeContract(walletClient, {
-                address: config.PUBLIC_RESOLVER as `0x${string}`,
+                address: publicResolverAddress,
                 abi: publicResolverABI,
                 functionName: 'setAddr',
-                args: [node, 2158639068, existingContractAddress],
+                args: [node, coinType, existingContractAddress],
                 account: walletAddress,
               })
               await logMetric(
@@ -1180,17 +1184,16 @@ export default function NameContract() {
         } else {
           console.error(`${l2Chain.name} configuration missing:`, {
             hasConfig: !!l2Config,
-            hasReverseRegistrar: !!l2Config?.REVERSE_REGISTRAR,
             config: l2Config
           })
         }
       }
 
-      // Then: Add L2 primary naming steps (switch to each chain, check balance, then proceed)
+      // Then: Add L2 primary naming steps (switch to each chain, then proceed)
       for (const l2Chain of selectedL2Chains) {
         const l2Config = CONTRACTS[l2Chain.chainId]
         
-        if (l2Config && l2Config.REVERSE_REGISTRAR && (isOwnable || skipL1Naming)) {
+        if (l2Config && l2Config.L2_REVERSE_REGISTRAR && (isOwnable || skipL1Naming)) {
           // Add reverse resolution step for this L2 chain
           steps.push({
             title: `Switch to ${l2Chain.name} and set L2 primary name`,
@@ -1226,13 +1229,13 @@ export default function NameContract() {
               
               // Now execute the reverse resolution transaction on L2
               console.log(`Executing reverse resolution on ${l2Chain.name}...`)
-              console.log('Reverse Registrar:', l2Config.REVERSE_REGISTRAR)
+              console.log('L2 Reverse Registrar:', l2Config.L2_REVERSE_REGISTRAR)
               console.log('Contract Address:', existingContractAddress)
               console.log('ENS Name:', `${labelNormalized}.${parentNameNormalized}`)
               
               // Perform reverse resolution on L2
               const txn = await writeContract(walletClient, {
-                address: l2Config.REVERSE_REGISTRAR as `0x${string}`,
+                address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
                 abi: [
                   {
                     inputs: [
@@ -1284,7 +1287,7 @@ export default function NameContract() {
         } else {
           console.error(`${l2Chain.name} configuration missing:`, {
             hasConfig: !!l2Config,
-            hasReverseRegistrar: !!l2Config?.REVERSE_REGISTRAR,
+            hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
             config: l2Config
           })
         }
@@ -1315,7 +1318,7 @@ export default function NameContract() {
         <p className="text-red-500">
           {!isConnected
             ? 'Please connect your wallet.'
-            : `To name your contract ${unsupportedL2Name} simply go to L1 chain ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum mainnet' : 'Sepolia'} and select Set L2 name option.`}
+            : `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chain option.`}
         </p>
       )}
 
@@ -1510,7 +1513,7 @@ export default function NameContract() {
                     setParentName('')
                     setShowENSModal(true)
                   }}
-                  className="bg-gray-900 text-white"
+                  className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
                   Choose ENS
                 </Button>
@@ -1539,7 +1542,7 @@ export default function NameContract() {
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-2">
                 <label className="block text-gray-700 dark:text-gray-300">
-                  Set L2 Names
+                  Naming on L2 Chains
                 </label>
               <TooltipProvider>
                 <Tooltip>
@@ -1565,7 +1568,7 @@ export default function NameContract() {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          If you just want to name contract for selected L2 chains and skip naming (forward and reverse resolution) in L1 chain
+                          Select this if you want to name only on the selected L2 chains and skip L1 naming (forward and reverse resolution). The subname will still be created on L1 if needed.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -1583,51 +1586,48 @@ export default function NameContract() {
             {selectedL2ChainNames.length > 0 && (
               <div className="mb-4">
                 <div className="flex flex-wrap gap-2">
-                  {selectedL2ChainNames.map((chainName, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
-                    >
-                      <span>{chainName}</span>
-                      <button
-                        onClick={() => setSelectedL2ChainNames((prev) => prev.filter((name) => name !== chainName))}
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                  {selectedL2ChainNames.map((chainName, index) => {
+                    const logoSrc =
+                      chainName === 'Optimism'
+                        ? '/images/optimism.svg'
+                        : chainName === 'Arbitrum'
+                          ? '/images/arbitrum.svg'
+                          : chainName === 'Scroll'
+                            ? '/images/scroll.svg'
+                            : chainName === 'Base'
+                              ? '/images/base.svg'
+                              : '/images/linea.svg'
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
                       >
-                        ×
-                      </button>
-                    </div>
-                  ))}
+                        <Image src={logoSrc} alt={`${chainName} logo`} width={14} height={14} />
+                        <span>{chainName}</span>
+                        <button
+                          onClick={() => setSelectedL2ChainNames((prev) => prev.filter((name) => name !== chainName))}
+                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
             
-            {/* L2 Chain Dropdown - only show if there are available options left */}
-            {L2_CHAIN_OPTIONS.filter((chainName) => !selectedL2ChainNames.includes(chainName)).length > 0 && (
-              <div className="relative">
-                <Select
-                  value={dropdownValue}
-                  onValueChange={(value) => {
-                    if (value && !selectedL2ChainNames.includes(value)) {
-                      setSelectedL2ChainNames((prev) => [...prev, value])
-                      setDropdownValue('') // Reset dropdown value after selection
-                    }
-                  }}
-                >
-                  <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-                    <SelectValue placeholder="Select L2 chains..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
-                    {L2_CHAIN_OPTIONS.filter((chainName) => !selectedL2ChainNames.includes(chainName)).map(
-                      (chainName) => (
-                        <SelectItem key={chainName} value={chainName}>
-                          {chainName}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            {/* L2 Chain chooser button instead of dropdown */}
+            <div>
+              <Button
+                type="button"
+                className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                onClick={() => setShowL2Modal(true)}
+                disabled={L2_CHAIN_OPTIONS.filter((c) => !selectedL2ChainNames.includes(c)).length === 0}
+              >
+                Choose L2 Chains
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -1772,7 +1772,7 @@ export default function NameContract() {
                     setParentName('')
                     setShowENSModal(false)
                   }}
-                  className="hover:bg-gray-200 text-black"
+                  className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
                   Enter manually
                 </Button>
@@ -1787,6 +1787,71 @@ export default function NameContract() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* L2 Selection Modal */}
+      <Dialog open={showL2Modal} onOpenChange={setShowL2Modal}>
+        <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+              Choose L2 Chains
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Select one or more L2 chains.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {L2_CHAIN_OPTIONS.map((chainName) => {
+              const isSelected = selectedL2ChainNames.includes(chainName)
+              const disabled = false
+              const logoSrc =
+                chainName === 'Optimism'
+                  ? '/images/optimism.svg'
+                  : chainName === 'Arbitrum'
+                    ? '/images/arbitrum.svg'
+                    : chainName === 'Scroll'
+                      ? '/images/scroll.svg'
+                      : chainName === 'Base'
+                        ? '/images/base.svg'
+                        : '/images/linea.svg'
+              return (
+                <button
+                  key={chainName}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => {
+                    if (isSelected) {
+                      setSelectedL2ChainNames((prev) => prev.filter((n) => n !== chainName))
+                    } else {
+                      setSelectedL2ChainNames((prev) => [...prev, chainName])
+                    }
+                  }}
+                  className={`flex items-center gap-3 p-3 border rounded-lg text-left transition-colors ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <Image src={logoSrc} alt={`${chainName} logo`} width={24} height={24} />
+                  <span className="text-gray-800 dark:text-gray-200">{chainName}</span>
+                  {isSelected && (
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white">Selected</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button
+              onClick={() => setShowL2Modal(false)}
+              className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+            >
+              Done
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

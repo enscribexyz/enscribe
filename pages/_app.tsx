@@ -58,7 +58,12 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         chains,
         ssr: false,
       })
-      if (isMounted) setClientWagmiConfig(config)
+      if (isMounted) {
+        setClientWagmiConfig(config)
+        if (typeof window !== 'undefined') {
+          ;(window as any).__clientWagmiReady = true
+        }
+      }
     })()
     return () => {
       isMounted = false

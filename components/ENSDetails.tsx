@@ -731,17 +731,28 @@ export default function ENSDetails({
         CHAINS.ARBITRUM_SEPOLIA,
         CHAINS.SCROLL,
         CHAINS.SCROLL_SEPOLIA,
+        CHAINS.BASE,
+        CHAINS.BASE_SEPOLIA,
+        CHAINS.LINEA,
+        CHAINS.LINEA_SEPOLIA,
       ].includes((effectiveChainId ?? -1) as CHAINS)
     ) {
-      // For Optimism/Arbitrum/Scroll L2s, use ReverseRegistrar.nameForAddr(address)
+      // For L2s, use ReverseRegistrar.nameForAddr(address).
+      // For Base/Linea only, if empty, fall back to resolver flow.
+      const isBaseOrLinea =
+        effectiveChainId === CHAINS.BASE ||
+        effectiveChainId === CHAINS.BASE_SEPOLIA ||
+        effectiveChainId === CHAINS.LINEA ||
+        effectiveChainId === CHAINS.LINEA_SEPOLIA
+
       try {
         console.log(
           `[ENSDetails] Looking up ENS name via nameForAddr for ${addr} on chain ${effectiveChainId}`,
         )
 
-        if (!config?.REVERSE_REGISTRAR) {
+        if (!config?.L2_REVERSE_REGISTRAR) {
           console.error(
-            `[ENSDetails] Missing reverse registrar for chain ${effectiveChainId}`,
+            `[ENSDetails] Missing L2 reverse registrar for chain ${effectiveChainId}`,
           )
           return ''
         }
@@ -761,21 +772,24 @@ export default function ENSDetails({
         ]
 
         const rr = new ethers.Contract(
-          config.REVERSE_REGISTRAR,
+          config.L2_REVERSE_REGISTRAR,
           nameForAddrABI,
           provider,
         )
         const name = (await rr.nameForAddr(addr)) as string
         console.log(`[ENSDetails] nameForAddr result for ${addr}: ${name}`)
-        return name || ''
+        if (name && name.length > 0) return name
       } catch (err) {
         console.error('[ENSDetails] nameForAddr failed:', err)
-        return ''
+        if (!isBaseOrLinea) return ''
       }
-    } else {
+
+      // Fallback only for Base/Linea
+      if (!isBaseOrLinea) return ''
+
       try {
         console.log(
-          `[ENSDetails] Looking up ENS name for ${addr} on chain ${effectiveChainId} using reverse registrar`,
+          `[ENSDetails] Falling back to resolver for ${addr} on chain ${effectiveChainId}`,
         )
 
         // Check if contract addresses are configured
@@ -838,7 +852,6 @@ export default function ENSDetails({
             console.log(`[ENSDetails] ENS name for ${addr}: ${name}`)
             return name
           } catch (nameError: any) {
-            // Check for specific BAD_DATA error or empty result
             if (
               nameError.code === 'BAD_DATA' ||
               nameError.message?.includes('could not decode result data')
@@ -859,12 +872,15 @@ export default function ENSDetails({
         }
       } catch (error) {
         console.error(
-          '[ENSDetails] Error looking up ENS name using reverse registrar:',
+          '[ENSDetails] Error in Base/Linea fallback reverse lookup:',
           error,
         )
         return ''
       }
     }
+    
+    // Default fallback
+    return ''
   }
 
   if (isLoading) {

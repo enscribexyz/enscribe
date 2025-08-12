@@ -1,11 +1,37 @@
-<svg width="200" height="208" viewBox="0 0 200 208" fill="none" xmlns="http://www.w3.org/2000/svg">
-<g clip-path="url(#clip0_2303_632)">
-<path d="M132.369 155.99H49.7V68.8854H68.6147V139.109H132.369V155.981V155.99Z" fill="#121212"/>
-<path d="M132.369 85.7575C141.687 85.7575 149.241 78.2036 149.241 68.8855C149.241 59.5673 141.687 52.0134 132.369 52.0134C123.05 52.0134 115.497 59.5673 115.497 68.8855C115.497 78.2036 123.05 85.7575 132.369 85.7575Z" fill="#121212"/>
-</g>
-<defs>
-<clipPath id="clip0_2303_632">
-<rect width="99.5407" height="103.977" fill="white" transform="translate(49.7 52.0134)"/>
-</clipPath>
-</defs>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" viewBox="0 0 200 208">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+      }
+
+      .cls-2 {
+        fill: #121212;
+      }
+
+      .cls-3 {
+        fill: #fff068;
+      }
+
+      .cls-4 {
+        clip-path: url(#clippath);
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="cls-1" x="49.7" y="52" width="99.5" height="104"/>
+    </clipPath>
+  </defs>
+  <!-- Generator: Adobe Illustrator 28.7.1, SVG Export Plug-In . SVG Version: 1.2.0 Build 142)  -->
+  <g>
+    <g id="Layer_1">
+      <rect class="cls-3" y="0" width="199.4" height="207.6"/>
+      <g class="cls-4">
+        <g>
+          <path class="cls-2" d="M132.4,156H49.7v-87.1h18.9v70.2h63.8v16.9h0Z"/>
+          <path class="cls-2" d="M132.4,85.8c9.3,0,16.9-7.6,16.9-16.9s-7.6-16.9-16.9-16.9-16.9,7.6-16.9,16.9,7.6,16.9,16.9,16.9Z"/>
+        </g>
+      </g>
+    </g>
+  </g>
 </svg>

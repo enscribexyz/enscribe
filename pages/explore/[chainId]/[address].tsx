@@ -59,9 +59,20 @@ export default function ExploreAddressPage() {
         CHAINS.ARBITRUM_SEPOLIA,
         CHAINS.SCROLL,
         CHAINS.SCROLL_SEPOLIA,
+        CHAINS.BASE,
+        CHAINS.BASE_SEPOLIA,
+        CHAINS.LINEA,
+        CHAINS.LINEA_SEPOLIA,
       ].includes(chainId)
     ) {
-      // For Optimism/Arbitrum/Scroll mainnets and testnets, use reverse registrar nameForAddr
+      // For L2s, use reverse registrar nameForAddr.
+      // For Base/Linea only, if empty, fall back to resolver flow; for others, never fallback.
+      const isBaseOrLinea =
+        chainId === CHAINS.BASE ||
+        chainId === CHAINS.BASE_SEPOLIA ||
+        chainId === CHAINS.LINEA ||
+        chainId === CHAINS.LINEA_SEPOLIA
+
       try {
         console.log(
           `[address] Looking up ENS name via reverse registrar nameForAddr for ${addr} on chain ${chainId}`,
@@ -95,15 +106,18 @@ export default function ExploreAddressPage() {
         )
         const name = (await rr.nameForAddr(addr)) as string
         console.log(`[address] nameForAddr result for ${addr}: ${name}`)
-        return name || ''
+        if (name && name.length > 0) return name
       } catch (err) {
         console.error('[address] nameForAddr failed:', err)
-        return ''
+        if (!isBaseOrLinea) return ''
       }
-    } else {
+
+      if (!isBaseOrLinea) return ''
+
+      // Base/Linea fallback to resolver path
       try {
         console.log(
-          `[address] Looking up ENS name for ${addr} on chain ${chainId} using reverse registrar`,
+          `[address] Falling back to resolver for ${addr} on chain ${chainId}`,
         )
 
         // Check if contract addresses are configured
@@ -184,13 +198,13 @@ export default function ExploreAddressPage() {
           return ''
         }
       } catch (error) {
-        console.error(
-          '[address] Error looking up ENS name using reverse registrar:',
-          error,
-        )
+        console.error('[address] Error in Base/Linea fallback reverse lookup:', error)
         return ''
       }
     }
+    
+    // Default fallback
+    return ''
   }
 
   const fetchPrimaryNameForContractDeployer = async (
