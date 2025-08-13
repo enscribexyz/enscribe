@@ -665,59 +665,84 @@ export default function NameContract() {
         }
       }
 
-      // Check balances on all selected L2 chains using RPC calls
+      // Check balances on all selected L2 chains using RPC calls (in parallel)
       if (l2ChainsForBalanceCheck.length > 0) {
         console.log('Checking balances on all selected L2 chains...')
-        
-        const insufficientBalanceChains: Array<{ name: string; balance: bigint }> = []
-        
-        for (const l2Chain of l2ChainsForBalanceCheck) {
-          console.log(`Checking balance on ${l2Chain.name}...`)
-          
-          // Get the RPC URL for this L2 chain
-          const l2Config = CONTRACTS[l2Chain.chainId]
-          if (!l2Config?.RPC_ENDPOINT) {
-            throw new Error(`No RPC endpoint configured for ${l2Chain.name}`)
-          }
-          
-          // Use eth_getBalance RPC call
-          const response = await fetch(l2Config.RPC_ENDPOINT, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'eth_getBalance',
-              params: [walletAddress, 'latest'],
-              id: 1,
-            }),
-          })
-          
-          const data = await response.json()
-          
-          if (data.error) {
-            throw new Error(`Failed to get balance on ${l2Chain.name}: ${data.error.message}`)
-          }
-          
-          const balance = BigInt(data.result)
-          console.log(`Balance on ${l2Chain.name}: ${balance} wei`)
-          
-          if (balance === 0n) {
-            insufficientBalanceChains.push({ name: l2Chain.name, balance })
-          }
-        }
-        
-        // If any chains have insufficient balance, set error state with all of them
-        if (insufficientBalanceChains.length > 0) {
-          const chainDetails = insufficientBalanceChains.map(chain => 
-            `${chain.name} chain: ${chain.balance} wei`
-          ).join(', ')
-          setError(`Insufficient balance on L2 chains: ${chainDetails}. Please add tokens to these chains before proceeding.`)
+
+        type BalanceResult = { name: string; balance?: bigint; error?: string }
+
+        const results: BalanceResult[] = await Promise.all(
+          l2ChainsForBalanceCheck.map(async (l2Chain) => {
+            try {
+              const l2Config = CONTRACTS[l2Chain.chainId]
+              if (!l2Config?.RPC_ENDPOINT) {
+                return {
+                  name: l2Chain.name,
+                  error: `No RPC endpoint configured for ${l2Chain.name}`,
+                }
+              }
+
+              const response = await fetch(l2Config.RPC_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  jsonrpc: '2.0',
+                  method: 'eth_getBalance',
+                  params: [walletAddress, 'latest'],
+                  id: l2Chain.chainId,
+                }),
+              })
+
+              const data = await response.json()
+
+              if (data?.error) {
+                return {
+                  name: l2Chain.name,
+                  error: `Failed to get balance on ${l2Chain.name}: ${data.error.message}`,
+                }
+              }
+
+              const balance = BigInt(data.result)
+              console.log(`Balance on ${l2Chain.name}: ${balance} wei`)
+              return { name: l2Chain.name, balance }
+            } catch (e: any) {
+              return {
+                name: l2Chain.name,
+                error: `Failed to get balance on ${l2Chain.name}: ${e?.message || String(e)}`,
+              }
+            }
+          }),
+        )
+
+        const insufficientBalanceChains = results
+          .filter((r) => !r.error && r.balance === 0n)
+          .map((r) => ({ name: r.name, balance: 0n as bigint }))
+
+        const failures = results.filter((r) => r.error) as Array<{
+          name: string
+          error: string
+        }>
+
+        if (failures.length > 0) {
+          const msg = failures
+            .map((f) => `${f.name}: ${f.error}`)
+            .join(' | ')
+          setError(`Balance check failed for some chains: ${msg}`)
           setLoading(false)
           return
         }
-        
+
+        if (insufficientBalanceChains.length > 0) {
+          const chainDetails = insufficientBalanceChains
+            .map((chain) => `${chain.name} chain: ${chain.balance} wei`)
+            .join(', ')
+          setError(
+            `Insufficient balance on L2 chains: ${chainDetails}. Please add Eth to these chains before proceeding.`,
+          )
+          setLoading(false)
+          return
+        }
+
         console.log('All L2 chain balances verified successfully!')
       }
 
