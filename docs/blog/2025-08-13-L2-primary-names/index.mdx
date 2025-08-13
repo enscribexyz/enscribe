@@ -1,0 +1,135 @@
+---
+slug: L2-primary-names
+title: "L2 Primary Names Support in Enscribe"
+authors: [nischal]
+tags: [ens, layer2]
+---
+
+import AppUrl from '@site/src/components/AppUrl';
+
+Enscribe now supports L2 primary names, extending our smart contract naming capabilities across the Ethereum ecosystem. This feature helps developers maintain consistent contract identities across multiple Layer 2 networks.
+
+![L2 primary names interface](l2.png)
+
+## What Are L2 Primary Names?
+
+L2 primary names solve a fundamental problem in the multi-chain Ethereum ecosystem. A single dApp can have different contract addresses across various Layer 2 networks, or sometimes the same address (often due to CREATE2 deployments). Without a standard way to name them, users and developers must manage a confusing list of addresses.
+
+According to [ENSIP-19](https://docs.ens.domains/ensip/19/), L2 primary names enable "reverse and primary name resolution for all coin types" across the multichain Ethereum ecosystem. This standardizes how ENS names resolve to different addresses based on the network, making the ecosystem more legible and trustworthy. This works seamlessly whether the contract's address is the same or different across networks.
+
+This is possible through a coinType parameter in the ENS resolver function `addr(bytes32 node, uint256 coinType)`, which specifies the network. A single ENS name like `mycontract.eth` can be configured to point to the correct contract address on each chain.
+
+- Coin type `60` (0x3c) for Ethereum mainnet
+- Coin type `2147483658` (0x8000000a) for Optimism
+- Coin type `2147483653` (0x80002105) for Base
+- Coin type `2147483656` (0x8000e708) for Linea
+- Coin type `2147483652` (0x8000a4b1) for Arbitrum
+- Coin type `2147483657` (0x80082750) for Scroll
+
+## L2 Primary Names in Enscribe
+
+Enscribe supports L2 primary names across five Layer 2 networks:
+
+- **Optimism** (Mainnet & Sepolia)
+- **Arbitrum** (Mainnet & Sepolia)
+- **Scroll** (Mainnet & Sepolia)
+- **Base** (Mainnet & Sepolia)
+- **Linea** (Mainnet & Sepolia)
+
+The feature works in two directions. Forward resolution means your ENS name resolves to the correct contract address on each L2. Reverse resolution means your contract address resolves back to your ENS name on each L2.
+
+**Note**: L2 primary names for Linea and Base are different from currently supported `.linea.eth` and `.base.eth` names. L2 primary names work through ENSIP-19 coin types, while `.linea.eth` and `.base.eth` are separate ENS domains.
+
+## How to Use L2 Primary Names
+
+![L2 primary name filled](l2-filled.png)
+
+### Prerequisites
+
+You must set up L2 primary names from an L1 chain (Ethereum mainnet or Sepolia). This process cannot be done by connecting directly to an L2 network.
+
+The reason is that the core ENS infrastructure, which manage name registration and resolution rules, reside on L1. Key actions—like creating subnames and configuring them to point to different addresses on various L2s—must be recorded on these foundational L1 contracts to ensure a single, authoritative source of truth.
+
+![L2 chain warning](l2-warning.png)
+
+### Case 1: Same Contract Address Across All Chains
+
+This approach is for contracts that have the same address on different L2 chains. You can name this contract on all L2 chains together.
+
+1. **Connect to L1**: Connect your wallet to Ethereum mainnet or Sepolia
+2. **Enter contract details**: 
+   - Contract Address: Your contract's address on L1
+   - Contract Name: Choose a name for your contract
+   - ENS Parent: Select your preferred ENS parent domain
+3. **Select L2 chains**: Click "Choose L2 Chains" and select which L2 networks you want to set up
+4. **Review steps**: The system shows all steps that will execute:
+   - Create subname on L1
+   - Set forward resolution on L1
+   - Set reverse resolution on L1 (if applicable)
+   - Set forward resolution on each selected L2
+   - Switch to each L2 and set primary name
+5. **Execute transactions**: The modal guides you through each step, automatically switching chains
+
+![Case 1 transaction steps](l2-case1.png)
+
+### Case 2: Name Only on Selected L2 Chains
+
+If you want to set up primary names only on specific L2 chains without L1 naming:
+
+1. Follow steps 1-3 from Case 1
+2. Enable "Skip L1 Naming" to skip L1 forward and reverse resolution
+3. Submit to execute only L2-related steps
+
+![Case 1 transaction steps with Skip L1 naming](l2-skipl1.png)
+
+### Case 3: Different Contract Addresses on Different L2 Chains
+
+If you deployed the same contract on different L2 chains but it has different contract addresses, you can use the same ENS name as the primary name for all chains.
+
+Use the same name label and ENS parent, then:
+1. Enter the first contract address and select its corresponding L2 chain
+2. Enable "Skip L1 Naming" to focus only on L2 naming
+3. Execute the naming process
+4. Repeat for each different contract address on different L2 chains
+
+Don't worry — it won't create a subname every time on L1. The subname creation happens only once, and subsequent operations just set up the L2 primary names.
+
+## Benefits for Different Users
+
+### For Contract Deployers
+
+Contract deployers get a unified identity for their contracts across all chains. Users can interact with your contract using the same name regardless of which chain they're on, eliminating the need to explain different addresses for the same contract.
+
+### For Users
+
+Users benefit from simplified interactions — they can use the same ENS name to interact with contracts across chains. This reduces errors from sending transactions to wrong addresses and makes it easier to find and verify contract addresses.
+
+### For the Ecosystem
+
+The broader ecosystem sees improved interoperability as cross-chain contract interactions work smoothly. Enhanced security comes from reduced risk of address confusion, leading to a more intuitive multi-chain experience.
+
+## Video Tutorials
+
+{/* TODO: Add YouTube video embeds with actual video IDs */}
+
+*Complete walkthroughs for all three use cases: same address across chains, L2-only naming, and different addresses on different chains*
+
+## What's Next
+
+L2 primary names support represents a step forward in making the multi-chain Ethereum ecosystem more legible. We plan to:
+
+- Add more L2 networks as the ENS team adds support for more L2 EVM chains
+- Improve the user experience with better chain switching and transaction flow
+- Offer analytics insights into L2 primary name usage and adoption
+
+## Try It Out
+
+Ready to give your contracts a unified identity across the Ethereum ecosystem? Visit <AppUrl/>, connect your wallet to Ethereum mainnet or Sepolia, navigate to "Name Contract," enter your contract details, select your desired L2 chains, and execute the naming process.
+
+## Feedback and Community
+
+We want to hear your experience with L2 primary names. Share your thoughts, suggestions, and any issues you encounter through our [Discord community](https://discord.gg/8QUMMdS5GY), [Telegram](https://t.me/enscribers), or [Twitter/X](https://x.com/enscribe_).
+
+L2 primary names help make the multi-chain Ethereum ecosystem more legible and trustworthy. We're excited to see how this feature helps developers and users navigate the onchain landscape more effectively.
+
+Happy naming across chains! 🚀
