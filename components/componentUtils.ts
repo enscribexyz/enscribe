@@ -127,7 +127,10 @@ export function isTestNet(chainId: number): boolean {
   return (
     chainId === CHAINS.SEPOLIA ||
     chainId === CHAINS.LINEA_SEPOLIA ||
-    chainId === CHAINS.BASE_SEPOLIA
+    chainId === CHAINS.BASE_SEPOLIA ||
+    chainId === CHAINS.ARBITRUM_SEPOLIA ||
+    chainId === CHAINS.OPTIMISM_SEPOLIA ||
+    chainId === CHAINS.SCROLL_SEPOLIA
   )
 }
 

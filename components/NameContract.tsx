@@ -1382,10 +1382,10 @@ export default function NameContract() {
 
       // Then: Add L2 primary naming steps (switch to each chain, then proceed)
       for (const l2Chain of selectedL2Chains) {
-        setIsPrimaryNameSet(true)
+        // setIsPrimaryNameSet(true)
         const l2Config = CONTRACTS[l2Chain.chainId]
         
-        if (l2Config && l2Config.L2_REVERSE_REGISTRAR && (isOwnable || skipL1Naming)) {
+        if (l2Config && l2Config.L2_REVERSE_REGISTRAR) {
           // Add reverse resolution step for this L2 chain
           steps.push({
             title: `Switch to ${l2Chain.name} and set L2 primary name`,
@@ -1518,7 +1518,7 @@ export default function NameContract() {
             hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
             config: l2Config
           })
-          setIsPrimaryNameSet(false)
+          // setIsPrimaryNameSet(false)
         }
       }
 
