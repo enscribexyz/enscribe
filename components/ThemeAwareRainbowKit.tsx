@@ -32,7 +32,7 @@ export function ThemeAwareRainbowKit({ children }: ThemeAwareRainbowKitProps) {
   }
 
   return (
-    <RainbowKitProvider theme={getCurrentTheme()}>
+    <RainbowKitProvider modalSize="wide" theme={getCurrentTheme()}>
       {children}
     </RainbowKitProvider>
   )

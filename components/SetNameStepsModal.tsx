@@ -33,6 +33,7 @@ import { method } from 'es-toolkit/compat'
 export interface Step {
   title: string
   action: () => Promise<`0x${string}` | string | void>
+  chainId?: number // Add chainId to track which chain the transaction happens on
 }
 
 export interface SetNameStepsModalProps {
@@ -178,6 +179,7 @@ export default function SetNameStepsModal({
     let errorMain = null
     setExecuting(true)
     console.log(`executing ${steps[index].title}`)
+    
     tx = await steps[index].action().catch((error) => {
       console.log('error', error)
       updateStepStatus(index, 'error')
@@ -307,7 +309,10 @@ export default function SetNameStepsModal({
         }
         onClose(lastTxHash)
       } else {
-        onClose(errorMessage ? `ERROR: ${errorMessage}` : 'INCOMPLETE')
+        // Return error message or INCOMPLETE status
+        const result = errorMessage ? `ERROR: ${errorMessage}` : 'INCOMPLETE'
+        console.log('Modal closed with result:', result)
+        onClose(result)
       }
     }
   }
@@ -458,7 +463,7 @@ export default function SetNameStepsModal({
                         className="text-xs px-2 py-1 h-auto"
                       >
                         <a
-                          href={`${config?.ETHERSCAN_URL}tx/${stepTxHashes[index]}`}
+                          href={`${CONTRACTS[steps[index].chainId || chain?.id || 1]?.ETHERSCAN_URL}tx/${stepTxHashes[index]}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
