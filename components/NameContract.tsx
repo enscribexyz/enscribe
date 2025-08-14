@@ -36,6 +36,7 @@ import { fetchGeneratedName, logMetric, checkIfSafe } from '@/components/compone
 import { getEnsAddress, readContract, writeContract } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
 import { isAddress, keccak256, toBytes, toHex, getAddress } from 'viem'
+import { createPublicClient, http } from 'viem'
 import enscribeContractABI from '../contracts/Enscribe'
 import ownableContractABI from '@/contracts/Ownable'
 
@@ -70,6 +71,13 @@ export default function NameContract() {
     false,
   )
   const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
+  
+  // L2 Ownable state variables
+  const [isOwnableOptimism, setIsOwnableOptimism] = useState<boolean | null>(null)
+  const [isOwnableArbitrum, setIsOwnableArbitrum] = useState<boolean | null>(null)
+  const [isOwnableScroll, setIsOwnableScroll] = useState<boolean | null>(null)
+  const [isOwnableBase, setIsOwnableBase] = useState<boolean | null>(null)
+  const [isOwnableLinea, setIsOwnableLinea] = useState<boolean | null>(null)
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalSteps, setModalSteps] = useState<Step[]>([])
@@ -144,6 +152,13 @@ export default function NameContract() {
     setSelectedL2ChainNames([])
     setDropdownValue('')
     setSkipL1Naming(false)
+    
+    // Reset L2 ownable states
+    setIsOwnableOptimism(null)
+    setIsOwnableArbitrum(null)
+    setIsOwnableScroll(null)
+    setIsOwnableBase(null)
+    setIsOwnableLinea(null)
   }, [chain?.id, isConnected, modalOpen])
 
   useEffect(() => {
@@ -521,6 +536,101 @@ export default function NameContract() {
     }
   }
 
+  const checkIfOwnableOnL2Chains = async (address: string) => {
+    if (
+      checkIfAddressEmpty(address) ||
+      !isAddressValid(address) ||
+      !walletClient
+    ) {
+      // Reset all L2 ownable states
+      setIsOwnableOptimism(null)
+      setIsOwnableArbitrum(null)
+      setIsOwnableScroll(null)
+      setIsOwnableBase(null)
+      setIsOwnableLinea(null)
+      return
+    }
+
+    // Only check L2 ownable if we're on L1 chains (mainnet or sepolia)
+    if (chain?.id !== CHAINS.MAINNET && chain?.id !== CHAINS.SEPOLIA) {
+      console.log('Not on L1 chain, skipping L2 ownable checks')
+      // Reset all L2 ownable states
+      setIsOwnableOptimism(null)
+      setIsOwnableArbitrum(null)
+      setIsOwnableScroll(null)
+      setIsOwnableBase(null)
+      setIsOwnableLinea(null)
+      return
+    }
+
+    // Determine if we're on L1 mainnet or sepolia to check appropriate L2 networks
+    const isL1Mainnet = chain?.id === CHAINS.MAINNET
+    
+    // Check ownable on each L2 chain in parallel (mainnet or testnet based on current L1)
+    const l2Chains = [
+      { name: 'Optimism', chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, setter: setIsOwnableOptimism },
+      { name: 'Arbitrum', chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, setter: setIsOwnableArbitrum },
+      { name: 'Scroll', chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, setter: setIsOwnableScroll },
+      { name: 'Base', chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, setter: setIsOwnableBase },
+      { name: 'Linea', chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, setter: setIsOwnableLinea }
+    ]
+
+    console.log(`Checking ownable status on all L2 ${isL1Mainnet ? 'mainnet' : 'testnet'} chains in parallel...`)
+    console.log('L2 chains to check:', l2Chains.map(c => `${c.name} (${c.chainId})`))
+
+    type OwnableResult = { name: string; isOwnable: boolean; error?: string }
+
+    const results: OwnableResult[] = await Promise.all(
+      l2Chains.map(async (l2Chain) => {
+        try {
+          const l2Config = CONTRACTS[l2Chain.chainId]
+          if (!l2Config?.RPC_ENDPOINT) {
+            return {
+              name: l2Chain.name,
+              isOwnable: false,
+              error: `No RPC endpoint configured for ${l2Chain.name}`
+            }
+          }
+
+          // Create a custom client for this L2 chain
+          const l2Client = createPublicClient({
+            transport: http(l2Config.RPC_ENDPOINT),
+            chain: {
+              id: l2Chain.chainId,
+              name: l2Chain.name,
+              network: l2Chain.name.toLowerCase(),
+              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+              rpcUrls: { default: { http: [l2Config.RPC_ENDPOINT] } }
+            }
+          })
+
+          const ownerAddress = await readContract(l2Client, {
+            address: address as `0x${string}`,
+            abi: ownableContractABI,
+            functionName: 'owner',
+            args: [],
+          }) as `0x${string}`
+
+          console.log(`${l2Chain.name} contract ownable`)
+          return { name: l2Chain.name, isOwnable: true }
+        } catch (err) {
+          console.log(`${l2Chain.name} contract not ownable: ${err}`)
+          return { name: l2Chain.name, isOwnable: false }
+        }
+      })
+    )
+
+    // Update state based on results
+    results.forEach((result) => {
+      const l2Chain = l2Chains.find(chain => chain.name === result.name)
+      if (l2Chain) {
+        l2Chain.setter(result.isOwnable)
+      }
+    })
+
+    console.log('L2 ownable checks completed:', results)
+  }
+
   const checkIfReverseClaimable = async (address: string) => {
     if (checkIfAddressEmpty(address) || !isAddressValid(address)) {
       setIsOwnable(false)
@@ -595,6 +705,7 @@ export default function NameContract() {
     }
 
     await checkIfOwnable(existingContractAddress)
+    await checkIfOwnableOnL2Chains(existingContractAddress)
     await checkIfReverseClaimable(existingContractAddress)
 
     if (!label.trim()) {
@@ -1271,6 +1382,7 @@ export default function NameContract() {
 
       // Then: Add L2 primary naming steps (switch to each chain, then proceed)
       for (const l2Chain of selectedL2Chains) {
+        setIsPrimaryNameSet(true)
         const l2Config = CONTRACTS[l2Chain.chainId]
         
         if (l2Config && l2Config.L2_REVERSE_REGISTRAR && (isOwnable || skipL1Naming)) {
@@ -1406,6 +1518,7 @@ export default function NameContract() {
             hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
             config: l2Config
           })
+          setIsPrimaryNameSet(false)
         }
       }
 
@@ -1458,6 +1571,7 @@ export default function NameContract() {
             setExistingContractAddress(e.target.value)
             await checkIfContractOwner(e.target.value)
             await checkIfOwnable(e.target.value)
+            await checkIfOwnableOnL2Chains(e.target.value)
             await checkIfReverseClaimable(e.target.value)
           }}
           // onBlur={ checkIfOwnable}
@@ -1471,7 +1585,7 @@ export default function NameContract() {
           !isOwnable &&
           !isReverseClaimable && (
           <p className="text-yellow-600 dark:text-yellow-300">
-              Contract address does not extend{' '}
+              L1: Contract address does not extend{' '}
               <Link
                 href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                 className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1516,17 +1630,17 @@ export default function NameContract() {
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
                 <p className="text-gray-600 inline ml-1 dark:text-gray-300">
-                  You are not the contract owner and cannot set its primary name
+                  L1: You are not the contract owner and cannot set its primary name
                 </p>
               </div>
             )}
             {(isOwnable || (isReverseClaimable && !isOwnable)) && (
-              <div className="justify-between">
+              <div className="space-y-1">
                 {isOwnable && (
-                  <>
-                    <CheckCircleIcon className="w-5 h-5 inline text-green-500 cursor-pointer" />
-                    <p className="text-gray-700 inline ml-1 dark:text-gray-200">
-                      Contract implements{' '}
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      L1: Contract implements{' '}
                       <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1534,13 +1648,13 @@ export default function NameContract() {
                         Ownable
                       </Link>
                     </p>
-                  </>
+                  </div>
                 )}
                 {isReverseClaimable && !isOwnable && (
-                  <>
-                    <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                    <p className="text-gray-700 inline dark:text-gray-200">
-                      Contract is{' '}
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      L1: Contract is{' '}
                       <Link
                         href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
                         className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1548,7 +1662,88 @@ export default function NameContract() {
                         ReverseClaimable
                       </Link>
                     </p>
-                  </>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* L2 Ownable Information */}
+            {!isAddressEmpty && (
+              <div className="space-y-1">
+                {isOwnableOptimism === true && (
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      Contract implements{' '}
+                      <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Ownable
+                      </Link>{' '}
+                      on Optimism
+                    </p>
+                  </div>
+                )}
+                {isOwnableArbitrum === true && (
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      Contract implements{' '}
+                      <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Ownable
+                      </Link>{' '}
+                      on Arbitrum
+                    </p>
+                  </div>
+                )}
+                {isOwnableScroll === true && (
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      Contract implements{' '}
+                      <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Ownable
+                      </Link>{' '}
+                      on Scroll
+                    </p>
+                  </div>
+                )}
+                {isOwnableBase === true && (
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      Contract implements{' '}
+                      <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Ownable
+                      </Link>{' '}
+                      on Base
+                    </p>
+                  </div>
+                )}
+                {isOwnableLinea === true && (
+                  <div className="flex items-center">
+                    <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
+                    <p className="text-gray-700 dark:text-gray-200">
+                      Contract implements{' '}
+                      <Link
+                        href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                        className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+                      >
+                        Ownable
+                      </Link>{' '}
+                      on Linea
+                    </p>
+                  </div>
                 )}
               </div>
             )}
