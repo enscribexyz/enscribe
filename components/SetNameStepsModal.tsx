@@ -33,6 +33,7 @@ import { method } from 'es-toolkit/compat'
 export interface Step {
   title: string
   action: () => Promise<`0x${string}` | string | void>
+  chainId?: number // Add chainId to track which chain the transaction happens on
 }
 
 export interface SetNameStepsModalProps {
@@ -462,7 +463,7 @@ export default function SetNameStepsModal({
                         className="text-xs px-2 py-1 h-auto"
                       >
                         <a
-                          href={`${config?.ETHERSCAN_URL}tx/${stepTxHashes[index]}`}
+                          href={`${CONTRACTS[steps[index].chainId || chain?.id || 1]?.ETHERSCAN_URL}tx/${stepTxHashes[index]}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

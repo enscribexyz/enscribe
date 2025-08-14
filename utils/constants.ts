@@ -56,7 +56,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SEPOLIA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_SEPOLIA || '',
   },
 
   // Linea mainnet
@@ -77,7 +77,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_LINEA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_LINEA || '',
   },
 
   // Linea Sepolia Testnet
@@ -103,7 +103,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_LINEA_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_LINEA_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_LINEA_SEPOLIA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_LINEA_SEPOLIA || '',
   },
 
   // BASE mainnet
@@ -124,7 +124,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_BASE || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_BASE || '',
   },
 
   // BASE Sepolia Testnet
@@ -148,7 +148,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_BASE_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_BASE_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_BASE_SEPOLIA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_BASE_SEPOLIA || '',
   },
 
   // Optimism Mainnet
@@ -169,7 +169,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_OPTIMISM || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_OPTIMISM || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_OPTIMISM || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_OPTIMISM || '',
   },
 
   // Optimism Sepolia Testnet
@@ -195,7 +195,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_OPTIMISM_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_OPTIMISM_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_OPTIMISM_SEPOLIA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_OPTIMISM_SEPOLIA || '',
   },
 
   // Arbitrum Mainnet
@@ -216,7 +216,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_ARBITRUM || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ARBITRUM || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_ARBITRUM || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_ARBITRUM || '',
   },
 
   // Arbitrum Sepolia Testnet
@@ -242,7 +242,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_ARBITRUM_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_ARBITRUM_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_ARBITRUM_SEPOLIA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_ARBITRUM_SEPOLIA || '',
   },
 
   // Scroll Mainnet
@@ -263,7 +263,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SCROLL || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SCROLL || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SCROLL || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_SCROLL || '',
   },
 
   // Scroll Sepolia Testnet
@@ -289,7 +289,7 @@ export const CONTRACTS: Record<number, NetworkConfig> = {
     BLOCKSCOUT_URL: process.env.NEXT_PUBLIC_BLOCKSCOUT_SCROLL_SEPOLIA || '',
     RPC_ENDPOINT: process.env.NEXT_PUBLIC_RPC_SCROLL_SEPOLIA || '',
     SUBGRAPH_API: process.env.NEXT_PUBLIC_SUBGRAPH_API_SCROLL_SEPOLIA || '',
-    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE || '',
+    COIN_TYPE: process.env.NEXT_PUBLIC_ENS_COINTYPE_SCROLL_SEPOLIA || '',
   },
 }
 

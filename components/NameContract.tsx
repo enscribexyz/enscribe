@@ -35,7 +35,7 @@ import { v4 as uuid } from 'uuid'
 import { fetchGeneratedName, logMetric, checkIfSafe } from '@/components/componentUtils'
 import { getEnsAddress, readContract, writeContract } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
-import { isAddress, keccak256, toBytes } from 'viem'
+import { isAddress, keccak256, toBytes, toHex, getAddress } from 'viem'
 import enscribeContractABI from '../contracts/Enscribe'
 import ownableContractABI from '@/contracts/Ownable'
 
@@ -405,20 +405,20 @@ export default function NameContract() {
       return
     }
 
-    try {
-      const fullEnsName = `${label}.${parentName}`
-      let resolvedAddress = await getEnsAddress(walletClient, {
-        name: normalize(fullEnsName),
-      })
+    // try {
+    //   const fullEnsName = `${label}.${parentName}`
+    //   let resolvedAddress = await getEnsAddress(walletClient, {
+    //     name: normalize(fullEnsName),
+    //   })
 
-      if (resolvedAddress) {
-        setError('ENS name already used, please change label')
-      } else {
-        setError('')
-      }
-    } catch (err) {
-      console.error('Error checking ENS name:', err)
-    }
+    //   if (resolvedAddress) {
+    //     setError('ENS name already used, please change label')
+    //   } else {
+    //     setError('')
+    //   }
+    // } catch (err) {
+    //   console.error('Error checking ENS name:', err)
+    // }
   }
 
   function isEmpty(value: string) {
@@ -781,6 +781,7 @@ export default function NameContract() {
       // Step 1: Create Subname
       steps.push({
         title: titleFirst,
+        chainId: chainId, // Add chainId for L1 transaction
         action: async () => {
           if (parentType === 'web3labs') {
             const currentAddr = (await readContract(walletClient, {
@@ -1016,6 +1017,7 @@ export default function NameContract() {
       if (parentType != 'web3labs' && !skipL1Naming) {
         steps.push({
           title: 'Set forward resolution',
+          chainId: chainId, // Add chainId for L1 transaction
           action: async () => {
             const currentAddr = (await readContract(walletClient, {
               address: publicResolverAddress,
@@ -1078,6 +1080,7 @@ export default function NameContract() {
         const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
         steps.push({
           title: 'Set reverse resolution',
+          chainId: chainId, // Add chainId for L1 transaction
           action: async () => {
             console.log('set revres::writeContract calling setName on PUBLIC_RESOLVER')
             let txn
@@ -1126,6 +1129,7 @@ export default function NameContract() {
         setIsPrimaryNameSet(true)
         steps.push({
           title: 'Set reverse resolution',
+          chainId: chainId, // Add chainId for L1 transaction
           action: async () => {
             console.log('set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR')
             let txn
@@ -1201,14 +1205,24 @@ export default function NameContract() {
       // Second: Add all L2 forward resolution steps (on current chain)
       for (const l2Chain of selectedL2Chains) {
         const l2Config = CONTRACTS[l2Chain.chainId]
-        const coinType = Number(l2Config.COIN_TYPE || '60')
+        const coinType = Number((l2Config.COIN_TYPE) || '60')
         
-        if (l2Config) {
+        if (l2Config && coinType) {
           // Add forward resolution step for this L2 chain
           steps.push({
             title: `Set forward resolution for ${l2Chain.name}`,
+            chainId: chainId, // Add chainId for L1 transaction (forward resolution happens on L1)
             action: async () => {
 
+              const currentAddr = (await readContract(walletClient, {
+                address: publicResolverAddress,
+                abi: publicResolverABI,
+                functionName: 'addr',
+                args: [node, coinType],
+              })) as `0x${string}`
+
+
+              if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
               let txn
               if (isSafeWallet) {
                 writeContract(walletClient, {
@@ -1240,7 +1254,11 @@ export default function NameContract() {
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
               )
-              return txn
+                return txn
+              } else {
+                setError('Forward resolution already set on this chain')
+                console.log('Forward resolution already set on this chain')
+              }
             },
           })
         } else {
@@ -1259,6 +1277,7 @@ export default function NameContract() {
           // Add reverse resolution step for this L2 chain
           steps.push({
             title: `Switch to ${l2Chain.name} and set L2 primary name`,
+            chainId: l2Chain.chainId, // Add chainId for L2 transaction
             action: async () => {
               console.log(`Starting ${l2Chain.name} L2 primary name step...`)
               
