@@ -1382,10 +1382,33 @@ export default function NameContract() {
 
       // Then: Add L2 primary naming steps (switch to each chain, then proceed)
       for (const l2Chain of selectedL2Chains) {
-        // setIsPrimaryNameSet(true)
         const l2Config = CONTRACTS[l2Chain.chainId]
         
-        if (l2Config && l2Config.L2_REVERSE_REGISTRAR) {
+        // Check if contract is ownable on this specific L2 chain
+        let isOwnableOnThisL2Chain = false
+        switch (l2Chain.name) {
+          case 'Optimism':
+            isOwnableOnThisL2Chain = isOwnableOptimism === true
+            break
+          case 'Arbitrum':
+            isOwnableOnThisL2Chain = isOwnableArbitrum === true
+            break
+          case 'Scroll':
+            isOwnableOnThisL2Chain = isOwnableScroll === true
+            break
+          case 'Base':
+            isOwnableOnThisL2Chain = isOwnableBase === true
+            break
+          case 'Linea':
+            isOwnableOnThisL2Chain = isOwnableLinea === true
+            break
+          default:
+            isOwnableOnThisL2Chain = false
+        }
+        
+        // Only add L2 primary name step if contract is ownable on this L2 chain
+        if (l2Config && l2Config.L2_REVERSE_REGISTRAR && isOwnableOnThisL2Chain) {
+          setIsPrimaryNameSet(true)
           // Add reverse resolution step for this L2 chain
           steps.push({
             title: `Switch to ${l2Chain.name} and set L2 primary name`,
@@ -1513,12 +1536,11 @@ export default function NameContract() {
             },
           })
         } else {
-          console.error(`${l2Chain.name} configuration missing:`, {
+          console.error(`${l2Chain.name} configuration missing or contract not ownable:`, {
             hasConfig: !!l2Config,
             hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
             config: l2Config
           })
-          // setIsPrimaryNameSet(false)
         }
       }
 
