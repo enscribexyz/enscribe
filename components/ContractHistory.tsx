@@ -378,23 +378,303 @@ export default function ContractHistory() {
       ) : error ? (
         <p className="text-red-500">{error}</p>
       ) : (
-        <Tabs defaultValue="with-ens">
+        <Tabs defaultValue="without-ens">
           <TabsList className="inline-flex bg-gray-100 dark:bg-gray-700 shadow-sm">
-            <TabsTrigger
-              value="with-ens"
-              className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
-            >
-              Named Contracts
-            </TabsTrigger>
-
             <TabsTrigger
               value="without-ens"
               className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
             >
               Unnamed Contracts
             </TabsTrigger>
+
+            <TabsTrigger
+              value="with-ens"
+              className="px-6 py-2 rounded-md text-sm font-medium transition-all bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-400 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:text-gray-900 dark:data-[state=active]:text-white"
+            >
+              Named Contracts
+            </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="without-ens">
+            <Card className="p-6">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Tx Hash</TableHead>
+                    <TableHead>Date Created</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated(withoutENS, pageWithout).map((c, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`${etherscanUrl}address/${c.contractAddress}`}
+                            target="_blank"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {truncate(c.contractAddress)}
+                          </Link>
+                          {c.isOwnable ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Info className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" align="center">
+                                  <p>
+                                    You can set Primary Name for this contract
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <CircleAlert className="w-5 h-5 inline text-amber-500 ml-2 cursor-pointer" />
+                                </TooltipTrigger>
+                                <TooltipContent side="top" align="center">
+                                  <p>
+                                    You can only set Forward Resolution for this
+                                    contract
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+
+                          {(c.sourcifyVerification === 'exact_match' ||
+                            c.sourcifyVerification === 'match') && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                              >
+                                <Link
+                                  href={`${SOURCIFY_URL}${chainId}/${c.contractAddress.toLowerCase()}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="cursor-pointer"
+                                >
+                                  <img
+                                    src="/sourcify.svg"
+                                    alt="Sourcify"
+                                    className="w-4 h-4"
+                                  />
+                                  Verified
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                          {c.etherscanVerification === 'verified' && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                              >
+                                <Link
+                                  href={`${etherscanUrl}address/${c.contractAddress}#code`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <img
+                                    src="/etherscan.svg"
+                                    alt="Etherscan"
+                                    className="w-4 h-4"
+                                  />
+                                  Verifed
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                          {(c.blockscoutVerification === 'exact_match' ||
+                            c.blockscoutVerification === 'match') && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                              >
+                                <Link
+                                  href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="cursor-pointer"
+                                >
+                                  <img
+                                    src="/blockscout.svg"
+                                    alt="Blockscout"
+                                    className="w-4 h-4"
+                                  />
+                                  Verified
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                          {c.sourcifyVerification === 'unverified' && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                              >
+                                <Link
+                                  href={`https://sourcify.dev/#/verifier`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <img
+                                    src="/sourcify.svg"
+                                    alt="Sourcify"
+                                    className="w-4 h-4"
+                                  />
+                                  Verify
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                          {c.etherscanVerification === 'unverified' && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                              >
+                                <Link
+                                  href={`${etherscanUrl}address/${c.contractAddress}#code`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <img
+                                    src="/etherscan.svg"
+                                    alt="Etherscan"
+                                    className="w-4 h-4"
+                                  />
+                                  Verify
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                          {c.blockscoutVerification === 'unverified' && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                asChild
+                                size="sm"
+                                variant="outline"
+                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
+                              >
+                                <Link
+                                  href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="cursor-pointer"
+                                >
+                                  <img
+                                    src="/blockscout.svg"
+                                    alt="Blockscout"
+                                    className="w-4 h-4"
+                                  />
+                                  Verify
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          href={`${etherscanUrl}tx/${c.txHash}`}
+                          target="_blank"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {truncate(c.txHash)}
+                        </Link>
+                      </TableCell>
+                      <TableCell>{c.contractCreated}</TableCell>
+                      <TableCell className="flex gap-2 justify-center">
+                        {c.isOwnable ? (
+                          <Button asChild variant="default">
+                            <Link
+                              href={`/nameContract?contract=${c.contractAddress}`}
+                              target="_blank"
+                            >
+                              Name Contract
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button asChild variant="default">
+                            <Link
+                              href={`/nameContract?contract=${c.contractAddress}`}
+                              target="_blank"
+                            >
+                              Forward Resolve
+                            </Link>
+                          </Button>
+                        )}
+                        {/* <Button asChild variant="default">
+                                                    <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
+                                                        Name Contract
+                                                    </Link>
+                                                </Button> */}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {!processing && withoutENS.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-black-700 py-4"
+                      >
+                        No Contracts Deployed
+                      </TableCell>
+                    </TableRow>
+                  )}
+
+                  {processing && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-4">
+                        <div className="w-6 h-6 mx-auto border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+              <div className="flex justify-center mt-4 space-x-4">
+                <Button
+                  variant="ghost"
+                  onClick={() => setPageWithout((p) => p - 1)}
+                  disabled={pageWithout === 1}
+                >
+                  Previous
+                </Button>
+
+                <Badge>
+                  {`Page ${pageWithout} of ${Math.max(1, Math.ceil(withoutENS.length / itemsPerPage))}`}
+                </Badge>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => setPageWithout((p) => p + 1)}
+                  disabled={
+                    pageWithout >= Math.ceil(withoutENS.length / itemsPerPage)
+                  }
+                >
+                  Next
+                </Button>
+              </div>
+            </Card>
+          </TabsContent>
           <TabsContent value="with-ens">
             <Card className="p-6">
               <Table>
@@ -703,287 +983,6 @@ export default function ContractHistory() {
                   onClick={() => setPageWith((p) => p + 1)}
                   disabled={
                     pageWith >= Math.ceil(withENS.length / itemsPerPage)
-                  }
-                >
-                  Next
-                </Button>
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="without-ens">
-            <Card className="p-6">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Address</TableHead>
-                    <TableHead>Tx Hash</TableHead>
-                    <TableHead>Date Created</TableHead>
-                    <TableHead className="text-center">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginated(withoutENS, pageWithout).map((c, i) => (
-                    <TableRow key={i}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`${etherscanUrl}address/${c.contractAddress}`}
-                            target="_blank"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {truncate(c.contractAddress)}
-                          </Link>
-                          {c.isOwnable ? (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Info className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" align="center">
-                                  <p>
-                                    You can set Primary Name for this contract
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <CircleAlert className="w-5 h-5 inline text-amber-500 ml-2 cursor-pointer" />
-                                </TooltipTrigger>
-                                <TooltipContent side="top" align="center">
-                                  <p>
-                                    You can only set Forward Resolution for this
-                                    contract
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-
-                          {(c.sourcifyVerification === 'exact_match' ||
-                            c.sourcifyVerification === 'match') && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                              >
-                                <Link
-                                  href={`${SOURCIFY_URL}${chainId}/${c.contractAddress.toLowerCase()}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="cursor-pointer"
-                                >
-                                  <img
-                                    src="/sourcify.svg"
-                                    alt="Sourcify"
-                                    className="w-4 h-4"
-                                  />
-                                  Verified
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                          {c.etherscanVerification === 'verified' && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                              >
-                                <Link
-                                  href={`${etherscanUrl}address/${c.contractAddress}#code`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <img
-                                    src="/etherscan.svg"
-                                    alt="Etherscan"
-                                    className="w-4 h-4"
-                                  />
-                                  Verifed
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                          {(c.blockscoutVerification === 'exact_match' ||
-                            c.blockscoutVerification === 'match') && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="border border-green-800 text-green-800 hover:bg-emerald-100 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                              >
-                                <Link
-                                  href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="cursor-pointer"
-                                >
-                                  <img
-                                    src="/blockscout.svg"
-                                    alt="Blockscout"
-                                    className="w-4 h-4"
-                                  />
-                                  Verified
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                          {c.sourcifyVerification === 'unverified' && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                              >
-                                <Link
-                                  href={`https://sourcify.dev/#/verifier`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <img
-                                    src="/sourcify.svg"
-                                    alt="Sourcify"
-                                    className="w-4 h-4"
-                                  />
-                                  Verify
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                          {c.etherscanVerification === 'unverified' && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                              >
-                                <Link
-                                  href={`${etherscanUrl}address/${c.contractAddress}#code`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <img
-                                    src="/etherscan.svg"
-                                    alt="Etherscan"
-                                    className="w-4 h-4"
-                                  />
-                                  Verify
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                          {c.blockscoutVerification === 'unverified' && (
-                            <div className="flex items-center gap-2">
-                              <Button
-                                asChild
-                                size="sm"
-                                variant="outline"
-                                className="hover:bg-gray-200 text-xs px-2 py-1 h-auto flex items-center gap-1"
-                              >
-                                <Link
-                                  href={`${config?.BLOCKSCOUT_URL}address/${c.contractAddress.toLowerCase()}?tab=contract`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="cursor-pointer"
-                                >
-                                  <img
-                                    src="/blockscout.svg"
-                                    alt="Blockscout"
-                                    className="w-4 h-4"
-                                  />
-                                  Verify
-                                </Link>
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          href={`${etherscanUrl}tx/${c.txHash}`}
-                          target="_blank"
-                          className="text-blue-600 hover:underline"
-                        >
-                          {truncate(c.txHash)}
-                        </Link>
-                      </TableCell>
-                      <TableCell>{c.contractCreated}</TableCell>
-                      <TableCell className="flex gap-2 justify-center">
-                        {c.isOwnable ? (
-                          <Button asChild variant="default">
-                            <Link
-                              href={`/nameContract?contract=${c.contractAddress}`}
-                              target="_blank"
-                            >
-                              Name Contract
-                            </Link>
-                          </Button>
-                        ) : (
-                          <Button asChild variant="default">
-                            <Link
-                              href={`/nameContract?contract=${c.contractAddress}`}
-                              target="_blank"
-                            >
-                              Forward Resolve
-                            </Link>
-                          </Button>
-                        )}
-                        {/* <Button asChild variant="default">
-                                                    <Link href={`/nameContract?contract=${c.contractAddress}`} target="_blank">
-                                                        Name Contract
-                                                    </Link>
-                                                </Button> */}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {!processing && withoutENS.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center text-black-700 py-4"
-                      >
-                        No Contracts Deployed
-                      </TableCell>
-                    </TableRow>
-                  )}
-
-                  {processing && (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center py-4">
-                        <div className="w-6 h-6 mx-auto border-4 border-gray-300 border-t-black rounded-full animate-spin"></div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-              <div className="flex justify-center mt-4 space-x-4">
-                <Button
-                  variant="ghost"
-                  onClick={() => setPageWithout((p) => p - 1)}
-                  disabled={pageWithout === 1}
-                >
-                  Previous
-                </Button>
-
-                <Badge>
-                  {`Page ${pageWithout} of ${Math.max(1, Math.ceil(withoutENS.length / itemsPerPage))}`}
-                </Badge>
-
-                <Button
-                  variant="ghost"
-                  onClick={() => setPageWithout((p) => p + 1)}
-                  disabled={
-                    pageWithout >= Math.ceil(withoutENS.length / itemsPerPage)
                   }
                 >
                   Next
