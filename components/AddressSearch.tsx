@@ -155,7 +155,7 @@ export default function AddressSearch({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          className={`pr-3 ${error ? 'border-red-500' : ''}`}
+          className={`pr-3 ${error ? 'border-red-500' : ''} bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200`}
         />
         {error && (
           <p className="text-xs text-red-600 dark:text-red-400 mt-1 absolute">
