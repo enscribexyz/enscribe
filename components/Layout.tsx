@@ -425,14 +425,14 @@ export default function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Address Search Component */}
-          <div className="flex-1 max-w-md">
+          <div className="flex-1 max-w-none sm:max-w-md mr-2">
             <AddressSearch
               selectedChain={selectedChain}
               setManuallyChanged={setManuallyChanged}
             />
           </div>
 
-          <div className="flex-1"></div>
+          <div className="hidden sm:block flex-1"></div>
 
           {/* Chain Selector - only visible when wallet is not connected */}
           {!isConnected && (
