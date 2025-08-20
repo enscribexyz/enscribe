@@ -103,8 +103,8 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter()
 
   const navigation = [
-    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
     { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
+    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
     ...(isConnected
       ? [
           {
