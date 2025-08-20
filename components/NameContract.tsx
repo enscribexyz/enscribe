@@ -33,7 +33,7 @@ import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { Checkbox } from '@/components/ui/checkbox'
 import { v4 as uuid } from 'uuid'
 import { fetchGeneratedName, logMetric, checkIfSafe } from '@/components/componentUtils'
-import { getEnsAddress, readContract, writeContract } from 'viem/actions'
+import { getEnsAddress, readContract, writeContract, getBytecode } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
 import { isAddress, keccak256, toBytes, toHex, getAddress } from 'viem'
 import { createPublicClient, http } from 'viem'
@@ -65,6 +65,7 @@ export default function NameContract() {
   const [loading, setLoading] = useState(false)
   const [isAddressEmpty, setIsAddressEmpty] = useState(true)
   const [isAddressInvalid, setIsAddressInvalid] = useState(true)
+  const [isContractExists, setIsContractExists] = useState<boolean | null>(null)
   const [isOwnable, setIsOwnable] = useState<boolean | null>(false)
   const [isContractOwner, setIsContractOwner] = useState<boolean | null>(false)
   const [isReverseClaimable, setIsReverseClaimable] = useState<boolean | null>(
@@ -149,6 +150,7 @@ export default function NameContract() {
     setIsReverseClaimable(false)
     setIsAddressEmpty(true)
     setIsAddressInvalid(false)
+    setIsContractExists(null)
     setSelectedL2ChainNames([])
     setDropdownValue('')
     setSkipL1Naming(false)
@@ -459,6 +461,35 @@ export default function NameContract() {
       return false
     }
     return true
+  }
+
+  const checkIfContractExists = async (address: string) => {
+    if (
+      checkIfAddressEmpty(address) ||
+      !isAddressValid(address) ||
+      !walletClient
+    ) {
+      setIsContractExists(null)
+      return
+    }
+
+    try {
+      // Try to get the contract code to check if it exists
+      const code = await getBytecode(walletClient, {
+        address: address as `0x${string}`
+      })
+
+      if (code && code !== '0x') {
+        console.log('Contract exists on L1')
+        setIsContractExists(true)
+      } else {
+        console.log('Contract does not exist on L1')
+        setIsContractExists(false)
+      }
+    } catch (err) {
+      console.log('Error checking contract existence:', err)
+      setIsContractExists(false)
+    }
   }
 
   const checkIfContractOwner = async (address: string) => {
@@ -859,18 +890,18 @@ export default function NameContract() {
 
       const steps: Step[] = []
 
-      let publicResolverAddress = config.PUBLIC_RESOLVER! as `0x${string}`
-      try {
-        publicResolverAddress = (await readContract(walletClient, {
-          address: config.ENS_REGISTRY as `0x${string}`,
-          abi: ensRegistryABI,
-          functionName: 'resolver',
-          args: [parentNode],
-        })) as `0x${string}`
-      } catch (err) {
-        console.log('err ' + err)
-        setError('Failed to get public resolver')
-      }
+      const publicResolverAddress = config.PUBLIC_RESOLVER! as `0x${string}`
+      // try {
+      //   publicResolverAddress = (await readContract(walletClient, {
+      //     address: config.ENS_REGISTRY as `0x${string}`,
+      //     abi: ensRegistryABI,
+      //     functionName: 'resolver',
+      //     args: [parentNode],
+      //   })) as `0x${string}`
+      // } catch (err) {
+      //   console.log('err ' + err)
+      //   setError('Failed to get public resolver')
+      // }
 
       console.log('label - ', labelNormalized)
       console.log('label hash - ', labelHash)
@@ -1591,6 +1622,7 @@ export default function NameContract() {
           value={existingContractAddress}
           onChange={async (e) => {
             setExistingContractAddress(e.target.value)
+            await checkIfContractExists(e.target.value)
             await checkIfContractOwner(e.target.value)
             await checkIfOwnable(e.target.value)
             await checkIfOwnableOnL2Chains(e.target.value)
@@ -1604,10 +1636,18 @@ export default function NameContract() {
         {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
         {!isAddressEmpty &&
           !isAddressInvalid &&
+          isContractExists === false && (
+          <p className="text-red-600 dark:text-red-300">
+            {chain?.name}: Contract doesn't exist
+          </p>
+        )}
+        {!isAddressEmpty &&
+          !isAddressInvalid &&
+          isContractExists === true &&
           !isOwnable &&
           !isReverseClaimable && (
           <p className="text-yellow-600 dark:text-yellow-300">
-              L1: Contract address does not extend{' '}
+            {chain?.name}: Contract address does not extend{' '}
               <Link
                 href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                 className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1652,7 +1692,7 @@ export default function NameContract() {
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
                 <p className="text-gray-600 inline ml-1 dark:text-gray-300">
-                  L1: You are not the contract owner and cannot set its primary name
+                {chain?.name}: You are not the contract owner and cannot set its primary name
                 </p>
               </div>
             )}
@@ -1662,7 +1702,7 @@ export default function NameContract() {
                   <div className="flex items-center">
                     <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
                     <p className="text-gray-700 dark:text-gray-200">
-                      L1: Contract implements{' '}
+                    {chain?.name}: Contract implements{' '}
                       <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1676,7 +1716,7 @@ export default function NameContract() {
                   <div className="flex items-center">
                     <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
                     <p className="text-gray-700 dark:text-gray-200">
-                      L1: Contract is{' '}
+                    {chain?.name}: Contract is{' '}
                       <Link
                         href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
                         className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"

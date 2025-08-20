@@ -103,8 +103,8 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter()
 
   const navigation = [
-    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
     { name: 'Name Contract', href: '/nameContract', icon: DocumentTextIcon },
+    { name: 'Deploy Contract', href: '/deploy', icon: PencilSquareIcon },
     ...(isConnected
       ? [
           {
@@ -425,14 +425,14 @@ export default function Layout({ children }: LayoutProps) {
           </div>
 
           {/* Address Search Component */}
-          <div className="flex-1 max-w-md">
+          <div className="flex-1 max-w-none sm:max-w-md mr-2">
             <AddressSearch
               selectedChain={selectedChain}
               setManuallyChanged={setManuallyChanged}
             />
           </div>
 
-          <div className="flex-1"></div>
+          <div className="hidden sm:block flex-1"></div>
 
           {/* Chain Selector - only visible when wallet is not connected */}
           {!isConnected && (
@@ -464,20 +464,46 @@ export default function Layout({ children }: LayoutProps) {
 
           {/* WalletConnect Button */}
           <ConnectErrorBoundary>
-            <ConnectButton
-            accountStatus={{
-              smallScreen: 'avatar',
-              largeScreen: 'full',
-            }}
-            chainStatus={{
-              smallScreen: 'icon',
-              largeScreen: 'full',
-            }}
-            showBalance={{
-              smallScreen: false,
-              largeScreen: true,
-            }}
-            />
+            <div className="relative">
+              {/* Mobile compact button - visible only on mobile when not connected */}
+              {!isConnected && (
+                <button
+                  onClick={() => {
+                    // Find and click the actual RainbowKit connect button
+                    const rkButton = document.querySelector('[data-testid="rk-connect-button"]') as HTMLButtonElement;
+                    if (rkButton) {
+                      rkButton.click();
+                    }
+                  }}
+                  className="sm:hidden flex flex-col items-center justify-center px-3 py-2 bg-[#0E76FD] hover:bg-[#0E76FD]/90 text-white rounded-xl text-xs font-semibold transition-all duration-200 min-w-[64px] h-10 shadow-sm border border-transparent"
+                  style={{
+                    background: 'linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%),rgb(56, 152, 255)',
+                    boxShadow: '0px 2px 2px rgba(0, 0, 0, 0), inset 0px 1px 0px rgba(255, 255, 255, 0.1)'
+                  }}
+                >
+                  <span className="leading-tight">Connect</span>
+                  <span className="leading-tight">Wallet</span>
+                </button>
+              )}
+              
+              {/* Standard RainbowKit button - hidden on mobile when not connected, always visible when connected */}
+              <div className={!isConnected ? "hidden sm:block" : ""}>
+                <ConnectButton
+                accountStatus={{
+                  smallScreen: 'avatar',
+                  largeScreen: 'full',
+                }}
+                chainStatus={{
+                  smallScreen: 'icon',
+                  largeScreen: 'full',
+                }}
+                showBalance={{
+                  smallScreen: false,
+                  largeScreen: true,
+                }}
+                />
+              </div>
+            </div>
           </ConnectErrorBoundary>
         </header>
 
