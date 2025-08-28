@@ -1270,7 +1270,7 @@ export default function ENSDetails({
                 <div className="mt-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Implementation Address:
+                      Implementation Address
                     </span>
                     <Button
                       variant="ghost"
