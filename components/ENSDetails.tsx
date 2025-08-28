@@ -15,6 +15,7 @@ import {
   ExternalLink,
   ShieldCheck,
   XCircle,
+  TriangleAlert
 } from 'lucide-react'
 import {
   CHAINS,
@@ -118,6 +119,7 @@ export default function ENSDetails({
   const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<
     number | null
   >(null)
+  const [selectedForwardName, setSelectedForwardName] = useState<string | null>(null)
   const [verificationStatus, setVerificationStatus] =
     useState<VerificationStatus | null>(null)
   const [hasAttestations, setHasAttestations] = useState<boolean>(false)
@@ -629,6 +631,32 @@ export default function ENSDetails({
           '[ENSDetails] Set associated ENS names with expiry dates:',
           sortedDomains,
         )
+       
+       // Also set forward resolution names for contracts without primary names
+       if (isContract && !primaryName && sortedDomains.length > 0) {
+         // Sort domains: deployer's names first, then by expiry date (newest first)
+         const forwardSortedDomains = sortedDomains.sort((a: any, b: any) => {
+           // First priority: names owned by the contract deployer
+           const aIsDeployer = a.owner?.id?.toLowerCase() === contractDeployerAddress?.toLowerCase()
+           const bIsDeployer = b.owner?.id?.toLowerCase() === contractDeployerAddress?.toLowerCase()
+           
+           if (aIsDeployer && !bIsDeployer) return -1
+           if (!aIsDeployer && bIsDeployer) return 1
+           
+           // Second priority: by expiry date (newest first)
+           const aExpiry = a.expiryDate || 0
+           const bExpiry = b.expiryDate || 0
+           return bExpiry - aExpiry
+         })
+
+         const names = forwardSortedDomains.map((domain: any) => domain.name)
+         
+         // Select the first name (either deployer's or highest priority)
+         setSelectedForwardName(names[0])
+         
+         console.log(`[ENSDetails] Set forward resolution names:`, names)
+         console.log(`[ENSDetails] Selected forward name: ${names[0]}`)
+       }
       }
     } catch (error) {
       console.error('[ENSDetails] Error fetching associated ENS names:', error)
@@ -681,7 +709,7 @@ export default function ENSDetails({
           fetchAssociatedNames(),
           isContract ? fetchVerificationStatus() : Promise.resolve(),
           fetchUserOwnedDomains(),
-          fetchAttestationData(),
+          fetchAttestationData()
         ])
       } catch (err) {
         console.error('[ENSDetails] Error fetching data:', err)
@@ -701,7 +729,7 @@ export default function ENSDetails({
     fetchPrimaryName,
     fetchAssociatedNames,
     fetchVerificationStatus,
-    fetchUserOwnedDomains,
+    fetchUserOwnedDomains
   ])
 
   const getENS = async (
@@ -921,11 +949,8 @@ export default function ENSDetails({
               {/* Details section */}
               <div className="space-y-2">
                 {/* Heading + Expiry badge in a single row */}
-                <div className="flex flex-wrap justify-between items-center gap-2">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-s font-medium text-gray-500 dark:text-gray-400">
-                      Primary ENS Name
-                    </h3>
+                <div className="flex flex-wrap justify-between items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <TooltipProvider>
                       {isContract &&
                         verificationStatus &&
@@ -957,6 +982,63 @@ export default function ENSDetails({
                           </div>
                         )}
                     </TooltipProvider>
+                    <span className="text-xl text-gray-900 dark:text-white flex items-center gap-1.5 font-bold">
+                      {primaryName}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="ml-1 inline-flex items-center justify-center h-8 w-8 cursor-default">
+                              <svg
+                                className="h-8 w-8 text-blue-500"
+                                viewBox="0 0 24 24"
+                                fill="currentColor"
+                                xmlns="http://www.w3.org/2000/svg"
+                                aria-hidden="true"
+                                shape-rendering="geometricPrecision"
+                              >
+                                {/* Solid flower-like silhouette using overlapping petals */}
+                                <g fill="currentColor">
+                                  <circle cx="12" cy="7" r="3" />
+                                  <circle cx="15.5" cy="8.5" r="3" />
+                                  <circle cx="17" cy="12" r="3" />
+                                  <circle cx="15.5" cy="15.5" r="3" />
+                                  <circle cx="12" cy="17" r="3" />
+                                  <circle cx="8.5" cy="15.5" r="3" />
+                                  <circle cx="7" cy="12" r="3" />
+                                  <circle cx="8.5" cy="8.5" r="3" />
+                                  {/* center to ensure no gaps */}
+                                  <circle cx="12" cy="12" r="3.2" />
+                                </g>
+                                {/* White check mark */}
+                                <path
+                                  d="M9.4 12.6l1.2 1.2 3.2-3.2"
+                                  fill="none"
+                                  stroke="white"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" align="center">
+                            <p>Primary ENS Name is set for this contract</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-0"
+                      onClick={() => copyToClipboard(primaryName, 'primary-name')}
+                    >
+                      {copied['primary-name'] ? (
+                        <Check className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
                   {/* Expiry badge always at end of row */}
                   {primaryNameExpiryDate &&
@@ -1057,32 +1139,40 @@ export default function ENSDetails({
                 </div>
 
                 {/* ENS Name + copy + link below */}
-                <div className="flex items-center gap-x-2 mt-1 flex-wrap">
-                  <span className="text-gray-900 dark:text-white">
-                    {primaryName}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-1"
-                    onClick={() => copyToClipboard(primaryName, 'primary-name')}
-                  >
-                    {copied['primary-name'] ? (
-                      <Check className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button variant="ghost" size="sm" className="ml-1" asChild>
-                    <a
-                      href={`${config?.ENS_APP_URL || 'https://app.ens.domains'}${primaryName}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </div>
+                {/* Removed separate row to align with expiry badge */}
+              </div>
+            </div>
+          )}
+
+          {/* Forward Resolution Name Display (when no primary name) */}
+          {!primaryName && isContract && selectedForwardName && (
+            <div className="mt-4">
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-lg text-gray-900 dark:text-white font-medium flex items-center gap-2">
+                        {selectedForwardName}
+                        <TriangleAlert className="h-4 w-4 text-yellow-500" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      <p>Warning, name only forward resolves to this address, no reverse record is set</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-0"
+                  onClick={() => copyToClipboard(selectedForwardName, 'forward-name')}
+                >
+                  {copied['forward-name'] ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
             </div>
           )}
@@ -1115,13 +1205,21 @@ export default function ENSDetails({
                 )}
               </Button>
               <Button variant="ghost" size="sm" className="ml-1" asChild>
-                <a
-                  href={`${etherscanUrl}address/${address}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </a>
+                {isContract && !primaryName ? (
+                  <Link href={`/nameContract?contract=${address}`} className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 px-2 py-2 font-medium rounded-md cursor-pointer">
+                    <span className="relative z-10 px-1.5 py-1 text-xs md:text-sm">✨Name Contract</span>
+                    <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+                    <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+                  </Link>
+                ) : (
+                  <a
+                    href={`${etherscanUrl}address/${address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                )}
               </Button>
             </div>
 
