@@ -1151,9 +1151,9 @@ export default function ENSDetails({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="text-lg text-gray-900 dark:text-white font-medium flex items-center gap-2">
+                      <span className="text-lg text-gray-900 dark:text-white font-bold flex items-center gap-2">
                         {selectedForwardName}
-                        <TriangleAlert className="h-4 w-4 text-yellow-500" />
+                        <TriangleAlert className="h-5 w-5 text-yellow-500" />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="center">
@@ -1206,8 +1206,13 @@ export default function ENSDetails({
               </Button>
               <Button variant="ghost" size="sm" className="ml-1" asChild>
                 {isContract && !primaryName ? (
-                  <Link href={`/nameContract?contract=${address}`} className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 px-2 py-2 font-medium rounded-md cursor-pointer">
-                    <span className="relative z-10 px-1.5 py-1 text-xs md:text-sm">✨Name Contract</span>
+                  <Link
+                    href={`/nameContract?contract=${address}`}
+                    className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 px-2 py-2 font-medium rounded-md cursor-pointer"
+                  >
+                    <span className="relative z-10 px-1.5 py-1 text-sm md:text-base font-bold text-white dark:text-white">
+                      ✨Name It!
+                    </span>
                     <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
                     <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
                   </Link>
