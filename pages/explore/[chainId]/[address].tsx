@@ -1,9 +1,9 @@
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
 import { isAddress } from 'viem/utils'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, toCoinType } from 'viem'
 import { normalize } from 'viem/ens'
-import { mainnet, sepolia } from 'viem/chains'
+import { mainnet, sepolia, base, linea } from 'viem/chains'
 import Layout from '@/components/Layout'
 import ENSDetails from '@/components/ENSDetails'
 import { Button } from '@/components/ui/button'
@@ -308,39 +308,48 @@ export default function ExploreAddressPage() {
         }
         
         // Check for L2-specific ENS support
-        if (config.ENS_REGISTRY || config.REVERSE_REGISTRAR) {
-          console.log(`[address] Chain ${chainIdNumber} has ENS contracts - attempting resolution`)
-          
-          // Create a custom chain client for L2
-          chainClient = createPublicClient({
-            chain: {
-              id: chainIdNumber,
-              name: config.name,
-              network: config.name.toLowerCase().replace(/\s+/g, '-'),
-              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-              rpcUrls: {
-                default: { http: [config.RPC_ENDPOINT] },
-                public: { http: [config.RPC_ENDPOINT] },
-              }
-            },
-            transport: http(config.RPC_ENDPOINT),
-          })
-        } else {
-          // No ENS support on this chain
-          console.log(`[address] Chain ${chainIdNumber} has no ENS support`)
-          console.log('[address] L2 chains typically don\'t support forward ENS resolution')
-          console.log('[address] You can explore addresses directly or use reverse lookup features')
-          return null
-        }
+        console.log(`[address] Chain ${chainIdNumber} has ENS contracts - attempting resolution`)
+        
+        // Create a custom chain client for L2
+        chainClient = createPublicClient({
+          chain: {
+            id: chainIdNumber,
+            name: config.name,
+            network: config.name.toLowerCase().replace(/\s+/g, '-'),
+            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls: {
+              default: { http: [config.RPC_ENDPOINT] },
+              public: { http: [config.RPC_ENDPOINT] },
+            }
+          },
+          transport: http(config.RPC_ENDPOINT),
+        })
       }
 
       // Try to resolve the ENS name on the current chain
       let resolvedAddress: string | null = null
       
       try {
-        resolvedAddress = await chainClient.getEnsAddress({
-          name: normalizedName,
-        })
+        let reqObject
+        // Use 2LD checks to determine coinType for ENS resolution
+        let coinType = 0 // default coinType (mainnet)
+        if (normalizedName.endsWith('.base.eth')) {
+          coinType = base.id
+        } else if (normalizedName.endsWith('.linea.eth')) {
+          coinType = linea.id
+        }
+
+        if (coinType === 0) {
+          reqObject = {
+            name: normalizedName,
+          }
+        } else {
+          reqObject = {
+            name: normalizedName,
+            coinType: toCoinType(coinType),
+          }
+        }
+        resolvedAddress = await chainClient.getEnsAddress(reqObject)
         console.log(`[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber}`)
       } catch (error) {
         console.log(`[address] Failed to resolve ${normalizedName} on chain ${chainIdNumber}:`, error)
