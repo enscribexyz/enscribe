@@ -2,6 +2,8 @@ import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
 import { isAddress } from 'viem/utils'
 import { createPublicClient, http } from 'viem'
+import { normalize } from 'viem/ens'
+import { mainnet, sepolia } from 'viem/chains'
 import Layout from '@/components/Layout'
 import ENSDetails from '@/components/ENSDetails'
 import { Button } from '@/components/ui/button'
@@ -18,6 +20,8 @@ import publicResolverABI from '@/contracts/PublicResolver'
 export default function ExploreAddressPage() {
   const router = useRouter()
   const { address, chainId } = router.query
+  const [resolvedAddress, setResolvedAddress] = useState<string | null>(null)
+  const [isENSName, setIsENSName] = useState(false)
   const [isValidAddress, setIsValidAddress] = useState(false)
   const [isValidChain, setIsValidChain] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
@@ -237,7 +241,7 @@ export default function ExploreAddressPage() {
     }
   }
 
-  const fetchContractCreator = async (
+    const fetchContractCreator = async (
     contractAddress: string,
     chainId: number,
   ): Promise<string | null> => {
@@ -249,12 +253,128 @@ export default function ExploreAddressPage() {
       return data.result[0].contractCreator
     } else {
       return null
+      }
+  }
+
+  const resolveENSName = async (ensName: string): Promise<string | null> => {
+    try {
+      console.log(`[address] Resolving ENS name: ${ensName}`)
+      
+      // Validate ENS name format
+      let normalizedName: string
+      try {
+        normalizedName = normalize(ensName)
+      } catch (normalizeError) {
+        console.error('[address] Invalid ENS name format:', normalizeError)
+        return null
+      }
+
+      // Get the current chainId from router query
+      if (!chainId || typeof chainId !== 'string') {
+        console.error('[address] No valid chainId available for ENS resolution')
+        return null
+      }
+
+      const chainIdNumber = parseInt(chainId)
+      if (isNaN(chainIdNumber)) {
+        console.error('[address] Invalid chainId format')
+        return null
+      }
+
+      // Create the appropriate client based on the current chain
+      let chainClient: any = null
+      
+      if (chainIdNumber === CHAINS.MAINNET) {
+        chainClient = createPublicClient({
+          chain: mainnet,
+          transport: http(),
+        })
+        console.log('[address] Using mainnet client for ENS resolution')
+      } else if (chainIdNumber === CHAINS.SEPOLIA) {
+        chainClient = createPublicClient({
+          chain: sepolia,
+          transport: http(),
+        })
+        console.log('[address] Using sepolia client for ENS resolution')
+      } else {
+        // For L2 chains and other networks
+        console.log(`[address] Chain ${chainIdNumber} detected - checking ENS capabilities`)
+        
+        // Check if this chain has ENS contracts configured
+        const config = CONTRACTS[chainIdNumber]
+        if (!config) {
+          console.log(`[address] Chain ${chainIdNumber} not supported`)
+          return null
+        }
+        
+        // Check for L2-specific ENS support
+        if (config.ENS_REGISTRY || config.REVERSE_REGISTRAR) {
+          console.log(`[address] Chain ${chainIdNumber} has ENS contracts - attempting resolution`)
+          
+          // Create a custom chain client for L2
+          chainClient = createPublicClient({
+            chain: {
+              id: chainIdNumber,
+              name: config.name,
+              network: config.name.toLowerCase().replace(/\s+/g, '-'),
+              nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+              rpcUrls: {
+                default: { http: [config.RPC_ENDPOINT] },
+                public: { http: [config.RPC_ENDPOINT] },
+              }
+            },
+            transport: http(config.RPC_ENDPOINT),
+          })
+        } else {
+          // No ENS support on this chain
+          console.log(`[address] Chain ${chainIdNumber} has no ENS support`)
+          console.log('[address] L2 chains typically don\'t support forward ENS resolution')
+          console.log('[address] You can explore addresses directly or use reverse lookup features')
+          return null
+        }
+      }
+
+      // Try to resolve the ENS name on the current chain
+      let resolvedAddress: string | null = null
+      
+      try {
+        resolvedAddress = await chainClient.getEnsAddress({
+          name: normalizedName,
+        })
+        console.log(`[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber}`)
+      } catch (error) {
+        console.log(`[address] Failed to resolve ${normalizedName} on chain ${chainIdNumber}:`, error)
+        
+        // Handle L2-specific errors
+        if (chainIdNumber !== CHAINS.MAINNET && chainIdNumber !== CHAINS.SEPOLIA) {
+          console.log(`[address] L2 chain resolution failed - this is expected behavior`)
+          console.log(`[address] Most L2 chains don't support forward ENS resolution`)
+          console.log(`[address] You can try the same name on mainnet or use an address directly`)
+          
+          // Check if this is a "no data" error (name doesn't exist)
+          if (error instanceof Error && 
+              (error.message.includes('returned no data') || 
+               error.message.includes('0x') ||
+               error.message.includes('resolve'))) {
+            console.log(`[address] ENS name ${normalizedName} does not exist on this L2 chain`)
+          }
+        }
+        
+        return null
+      }
+
+      return resolvedAddress
+    } catch (err) {
+      console.error('[address] Error resolving ENS name:', err)
+      return null
     }
   }
 
   // Reset state when URL parameters change
   useEffect(() => {
     if (router.isReady) {
+      setResolvedAddress(null)
+      setIsENSName(false)
       setIsValidAddress(false)
       setIsContract(false)
       setProxyInfo({ isProxy: false })
@@ -337,24 +457,44 @@ export default function ExploreAddressPage() {
     // Set loading state at the beginning of the effect
     setIsLoading(true)
     console.log(
-      'Starting address validation for:',
+      'Starting validation for:',
       address,
       'on chain:',
       chainId,
     )
 
-    // Function to validate the address
-    const validateAddress = async () => {
+    // Function to validate the input (address or ENS name)
+    const validateInput = async () => {
       try {
+        let targetAddress = address
+        let isInputENSName = false
+
         // Check if it's a valid Ethereum address format
         const addressIsValid = isAddress(address)
         console.log('Address format validation result:', addressIsValid)
 
         if (!addressIsValid) {
-          console.log('Invalid address format:', address)
-          setIsValidAddress(false)
-          setError('Invalid Ethereum address format')
-          return
+          // If it's not a valid address, try to resolve it as an ENS name
+          console.log('Not a valid address, trying to resolve as ENS name:', address)
+          
+          const resolvedAddr = await resolveENSName(address)
+          if (resolvedAddr) {
+            targetAddress = resolvedAddr
+            isInputENSName = true
+            setResolvedAddress(resolvedAddr)
+            setIsENSName(true)
+            console.log('Successfully resolved ENS name to address:', resolvedAddr)
+          } else {
+            console.log('Failed to resolve as ENS name:', address)
+            setIsValidAddress(false)
+            // setError('Invalid Ethereum address or ENS name')
+            setIsLoading(false)
+            return
+          }
+        } else {
+          // It's a valid address
+          setIsENSName(false)
+          setResolvedAddress(null)
         }
 
         // Mark as valid address format
@@ -362,9 +502,9 @@ export default function ExploreAddressPage() {
 
         try {
           // Get bytecode to determine if it's a contract
-          console.log('Getting bytecode for address:', address)
+          console.log('Getting bytecode for address:', targetAddress)
           const bytecode = await client.getBytecode({
-            address: address as `0x${string}`,
+            address: targetAddress as `0x${string}`,
           })
           const isContractAddress = bytecode && bytecode !== '0x'
 
@@ -386,7 +526,7 @@ export default function ExploreAddressPage() {
             try {
               console.log('fetching contract deployer details ...')
               const creatorAddress = await fetchContractCreator(
-                address,
+                targetAddress,
                 Number(chainId),
               )
               setContractDeployerAddress(creatorAddress)
@@ -402,7 +542,7 @@ export default function ExploreAddressPage() {
 
               console.log('Checking if contract is a proxy...')
               const proxyData = await checkIfProxy(
-                address as string,
+                targetAddress as string,
                 Number(chainId),
               )
               setProxyInfo(proxyData)
@@ -419,18 +559,18 @@ export default function ExploreAddressPage() {
           setIsContract(false)
         }
       } catch (err) {
-        console.error('Error in address validation:', err)
+        console.error('Error in input validation:', err)
         setIsValidAddress(false)
-        setError('An error occurred while validating the address')
+        setError('An error occurred while validating the input')
       } finally {
         // Always make sure to finish loading
-        console.log('Completing address validation')
+        console.log('Completing input validation')
         setIsLoading(false)
       }
     }
 
     // Run the validation
-    validateAddress()
+    validateInput()
   }, [router.isReady, chainId, address, client])
 
   if (isLoading) {
@@ -451,7 +591,7 @@ export default function ExploreAddressPage() {
             ? isContract
               ? 'Contract Details'
               : 'Account Details'
-            : 'Invalid Chain ID or Address'}
+            : 'Invalid Chain ID or Address/ENS name'}
         </h1>
       </div>
 
@@ -475,7 +615,7 @@ export default function ExploreAddressPage() {
 
       {isValidAddress && isValidChain && (
         <ENSDetails
-          address={address as string}
+          address={resolvedAddress || (address as string)}
           contractDeployerAddress={contractDeployerAddress!}
           contractDeployerName={contractDeployerPrimaryName}
           chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
