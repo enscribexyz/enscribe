@@ -284,70 +284,34 @@ export default function ExploreAddressPage() {
       // Create the appropriate client based on the current chain
       let chainClient: any = null
       
-      if (chainIdNumber === CHAINS.MAINNET) {
+      if (
+        chainIdNumber === CHAINS.MAINNET ||
+        chainIdNumber === CHAINS.BASE ||
+        chainIdNumber === CHAINS.LINEA ||
+        chainIdNumber === CHAINS.ARBITRUM||
+        chainIdNumber === CHAINS.OPTIMISM||
+        chainIdNumber === CHAINS.SCROLL
+      ) {
         chainClient = createPublicClient({
           chain: mainnet,
           transport: http(),
         })
         console.log('[address] Using mainnet client for ENS resolution')
-      } else if (chainIdNumber === CHAINS.SEPOLIA) {
+      } else {
         chainClient = createPublicClient({
           chain: sepolia,
           transport: http(),
         })
         console.log('[address] Using sepolia client for ENS resolution')
-      } else {
-        // For L2 chains and other networks
-        console.log(`[address] Chain ${chainIdNumber} detected - checking ENS capabilities`)
-        
-        // Check if this chain has ENS contracts configured
-        const config = CONTRACTS[chainIdNumber]
-        if (!config) {
-          console.log(`[address] Chain ${chainIdNumber} not supported`)
-          return null
-        }
-        
-        // Check for L2-specific ENS support
-        console.log(`[address] Chain ${chainIdNumber} has ENS contracts - attempting resolution`)
-        
-        // Create a custom chain client for L2
-        chainClient = createPublicClient({
-          chain: {
-            id: chainIdNumber,
-            name: config.name,
-            network: config.name.toLowerCase().replace(/\s+/g, '-'),
-            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-            rpcUrls: {
-              default: { http: [config.RPC_ENDPOINT] },
-              public: { http: [config.RPC_ENDPOINT] },
-            }
-          },
-          transport: http(config.RPC_ENDPOINT),
-        })
-      }
+      } 
 
       // Try to resolve the ENS name on the current chain
       let resolvedAddress: string | null = null
       
       try {
-        let reqObject
-        // Use 2LD checks to determine coinType for ENS resolution
-        let coinType = 0 // default coinType (mainnet)
-        if (normalizedName.endsWith('.base.eth')) {
-          coinType = base.id
-        } else if (normalizedName.endsWith('.linea.eth')) {
-          coinType = linea.id
-        }
-
-        if (coinType === 0) {
-          reqObject = {
-            name: normalizedName,
-          }
-        } else {
-          reqObject = {
-            name: normalizedName,
-            coinType: toCoinType(coinType),
-          }
+        const reqObject = {
+          name: normalizedName,
+          coinType: toCoinType(chainIdNumber),
         }
         resolvedAddress = await chainClient.getEnsAddress(reqObject)
         console.log(`[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber}`)
