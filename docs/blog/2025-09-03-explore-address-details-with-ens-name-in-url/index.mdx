@@ -1,0 +1,52 @@
+---
+slug: explore-address-details-with-ens-name-in-url
+title: "ENS Names Come to Enscribe URLs!"
+authors: [abhi]
+tags: [ens, enscribe]
+---
+
+With [Enscribe](https://www.enscribe.xyz), our mission has always been simple yet ambitious — to eliminate hex contract addresses from the Ethereum user experience. Hex strings like `0x123abc…` are cryptic, intimidating and unfriendly to users.
+
+ENS transforms these meaningless identifiers into human-readable names like abhi.eth just like DNS resolves domain names on the internet to IP addresses.
+
+With our latest update, we’re eliminating these annoying hex addresses from URLs, further enhancing Enscribe’s UX.
+
+## A Friendlier Way to Explore Contracts and Accounts
+
+Previously, if you wanted to explore details about an account or contract on Enscribe, you had to navigate using its hexadecimal address:
+
+[https://app.enscribe.xyz/explore/1/0x6c0C183f5ed59c0C88F9f36f902E3F0a41bF72f6](https://app.enscribe.xyz/explore/1/0x6c0C183f5ed59c0C88F9f36f902E3F0a41bF72f6)
+
+Where `1` is the chain-id (Ethereum) and `0x6c0C183f5ed59c0C88F9f36f902E3F0a41bF72f6` is an EOA on Ethereum.
+
+Now, we’ve enhanced the experience so you can simply use ENS names instead:
+
+[https://app.enscribe.xyz/explore/1/abhi.eth](https://app.enscribe.xyz/explore/1/abhi.eth)
+
+![account](account.png)
+
+
+Whether it’s an EOA (Externally Owned Account) or a smart contract, Enscribe will resolve the ENS name and fetch its details.
+
+This doesn’t just work for the mainnet. Thanks to the support for resolving names on Layer 2 chains, we can also use a Layer 2 chain-id and the name with it, such as
+
+[https://app.enscribe.xyz/explore/8453/greg.base.eth](https://app.enscribe.xyz/explore/8453/greg.base.eth)
+
+![account2](account2.png)
+
+Why This Matters
+
+Ethereum’s UX still leans heavily on raw addresses, making the ecosystem less approachable for everyday users. Our goal at Enscribe is to flip that narrative, to make names the default, and hex addresses optional. By supporting ENS names everywhere we display or consume on-chain data, we’re moving toward an Ethereum experience that’s:
+
+    - Human-friendly → Users interact with alice.eth, not `0x4b2...9f7`.
+    - Consistent → Works across EOAs and contracts alike.
+    - Aligned with ENS adoption → Encouraging the ecosystem to name their contracts and improve discoverability.
+
+Enscribe isn’t just about contract naming — we’re helping reshape Ethereum’s UX around names, not hex.
+
+You can try it out now in the Enscribe app, check out `abhi.eth` at
+
+[https://app.enscribe.xyz/explore/1/abhi.eth](https://app.enscribe.xyz/explore/1/abhi.eth)
+
+
+Happy Naming! 🚀
