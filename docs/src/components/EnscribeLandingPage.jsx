@@ -118,6 +118,9 @@ export default function EnscribeLandingPage() {
             <Link to="/docs" className="text-sm font-medium transition-colors hover:text-cyan-400">
               Docs
             </Link>
+            <Link to="/guide" className="text-sm font-medium transition-colors hover:text-cyan-400">
+              Guide
+            </Link>
             <Link to="/blog" className="text-sm font-medium transition-colors hover:text-cyan-400">
               Blog
             </Link>
@@ -146,6 +149,9 @@ export default function EnscribeLandingPage() {
                 <Link to="/docs"
                       className="block text-white text-lg font-bold hover:text-cyan-400"
                       onClick={() => setMenuOpen(false)}>Docs</Link>
+                <Link to="/guide"
+                      className="block text-white text-lg font-bold hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>Guide</Link>
                 <Link to="/blog"
                       className="block text-white text-lg font-bold hover:text-cyan-400"
                       onClick={() => setMenuOpen(false)}>Blog</Link>

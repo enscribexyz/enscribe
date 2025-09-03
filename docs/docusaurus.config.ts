@@ -39,7 +39,17 @@ const config = {
         },
       }
     },
-  'docusaurus-plugin-image-zoom',
+    'docusaurus-plugin-image-zoom',
+    [
+      '@docusaurus/plugin-content-docs',
+      {
+        id: 'guide',
+        path: 'guide',
+        routeBasePath: 'guide',
+        sidebarPath: require.resolve('./sidebars.ts'),
+        editUrl: 'https://github.com/enscribexyz/enscribe/tree/main/docs',
+      },
+    ],
   ],
 
   markdown: {
@@ -130,6 +140,12 @@ const config = {
             position: "left",
             label: "Docs",
           },
+          {
+            to: "/guide",
+            label: "Guide",
+            position: "left",
+            activeBaseRegex: `/guide/`,
+          },
           { to: "/blog", label: "Blog", position: "left" },
           {
             href: "https://github.com/enscribexyz/enscribe",
@@ -158,6 +174,10 @@ const config = {
               {
                 label: "Getting Started",
                 to: "/docs/getting-started",
+              },
+              {
+                label: "Guide",
+                to: "/guide",
               },
             ],
           },
