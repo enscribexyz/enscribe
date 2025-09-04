@@ -283,6 +283,7 @@ export default function ExploreAddressPage() {
 
       // Create the appropriate client based on the current chain
       let chainClient: any = null
+      let reqObject
       
       if (
         chainIdNumber === CHAINS.MAINNET ||
@@ -296,12 +297,20 @@ export default function ExploreAddressPage() {
           chain: mainnet,
           transport: http(),
         })
+        reqObject = {
+          name: normalizedName,
+          coinType: toCoinType(chainIdNumber),
+        }
         console.log('[address] Using mainnet client for ENS resolution')
       } else {
         chainClient = createPublicClient({
           chain: sepolia,
           transport: http(),
         })
+        // for sepolia, coinType doesn't work according to gregskril
+        reqObject = {
+          name: normalizedName
+        }
         console.log('[address] Using sepolia client for ENS resolution')
       } 
 
@@ -309,12 +318,8 @@ export default function ExploreAddressPage() {
       let resolvedAddress: string | null = null
       
       try {
-        const reqObject = {
-          name: normalizedName,
-          coinType: toCoinType(chainIdNumber),
-        }
         resolvedAddress = await chainClient.getEnsAddress(reqObject)
-        console.log(`[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber}`)
+        console.log(`[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber} with cointype: ${toCoinType(chainIdNumber)}`)
       } catch (error) {
         console.log(`[address] Failed to resolve ${normalizedName} on chain ${chainIdNumber}:`, error)
         
