@@ -1,0 +1,201 @@
+---
+sidebar_position: 7
+sidebar_label: "What is a Primary Name in ENS?"
+---
+
+# What is a Primary Name in ENS?
+
+Understand the fundamental concepts of ENS primary names, reverse vs. forward resolution, and why they're important for smart contract identity and user experience.
+
+## The Two-Way Nature of ENS
+
+ENS (Ethereum Name Service) works in two directions, creating a complete naming system that mirrors how the internet's DNS works:
+
+### Forward Resolution
+**ENS Name → Address**
+```
+alice.eth → 0x1234...5678
+```
+This is the familiar direction - typing a name and getting an address.
+
+### Reverse Resolution (Primary Name)
+**Address → ENS Name**
+```
+0x1234...5678 → alice.eth
+```
+This is the "primary name" - when you see an address, it shows the associated name.
+
+Forward resolution helps you **find** contracts. Reverse resolution helps you **recognize** them. Together, they create a complete identity system.
+
+## What is a Primary Name?
+
+A **primary name** is the ENS name that an address (wallet or contract) has chosen as its canonical identity. When applications look up that address, they display the primary name instead of the raw hex address.
+
+### Key Characteristics
+
+**Ownership Required**: Only the address owner can set their primary name
+**One at a Time**: Each address can have only one primary name  
+**Reversible**: The address resolves back to its primary name
+**Voluntary**: Setting a primary name is optional
+
+### Visual Example
+
+**Without Primary Name:**
+```
+Contract: 0x742d35cc567890c000c000c07c81c25d7df34793
+User sees: 0x742d35...34793 (confusing hex)
+```
+
+**With Primary Name:**
+```
+Contract: 0x742d35cc567890c000c000c07c81c25d7df34793
+Primary Name: my-defi-vault.eth
+User sees: my-defi-vault.eth (clear identity)
+```
+
+## Forward vs. Reverse Resolution Deep Dive
+
+### Forward Resolution: Name to Address
+
+**How it works:**
+1. User enters `mycontract.eth`
+2. ENS Registry finds the resolver for `mycontract.eth`
+3. Resolver returns the contract address
+4. Application connects to that address
+
+**Who can set it:**
+- Anyone who owns or controls the ENS name
+- Multiple names can point to the same address
+- No restrictions on the target address
+
+**Example use cases:**
+```
+// Multiple names pointing to same contract
+uniswap-v3-router.eth → 0xE592...C374
+swap-router.eth → 0xE592...C374
+router.uniswap.eth → 0xE592...C374
+```
+
+### Reverse Resolution: Address to Name
+
+**How it works:**
+1. Application encounters address `0x1234...5678`
+2. Queries reverse registrar for `1234...5678.addr.reverse`
+3. Gets back the primary name (if set)
+4. Displays name instead of address
+
+**Who can set it:**
+- Only the address itself (for wallets)
+- Only the owner of the address (for contracts)
+- Requires proving ownership/control
+
+**Technical requirement:**
+The address must be able to call the ENS reverse registrar to claim its reverse node.
+
+## Primary Names for Smart Contracts
+
+### Contract Compatibility
+
+Not all smart contracts can set primary names. The contract must implement specific interfaces:
+
+| Interface | Description | Common Use |
+|-----------|-------------|-------------|
+| **Ownable** | OpenZeppelin ownership pattern | Most common |
+| **ERC173** | Standard ownership interface | Alternative standard |
+| **ReverseClaimer** | Custom ENS reverse claiming | Specialized contracts |
+| **ReverseSetter** | Direct reverse setting capability | Advanced use cases |
+
+### How Contract Primary Names Work
+
+**Compatible Contracts (Ownable/ERC173):**
+```solidity
+contract MyContract is Ownable {
+    constructor(address owner) Ownable(owner) {
+        // Contract can have primary name set by owner
+    }
+}
+```
+
+**Process for setting primary name:**
+1. Contract owner initiates primary name setup
+2. ENS reverse registrar verifies ownership
+3. Contract's reverse node is claimed
+4. Primary name is set for the contract address
+
+**Incompatible Contracts:**
+```solidity
+contract BasicContract {
+    // No ownership interface
+    // Cannot set primary name
+    // Can still have forward resolution
+}
+```
+
+## Benefits of Primary Names
+
+### For Contract Owners
+
+**Brand Recognition:**
+- Contract appears with your chosen name in wallets
+- Professional appearance in block explorers
+- Consistent identity across platforms
+
+**Trust Building:**
+- Users can verify contract ownership
+- Clear association with your project
+- Reduced phishing risks
+
+**Developer Experience:**
+```javascript
+// With primary name
+const contractName = await provider.lookupAddress(contractAddress);
+console.log(contractName); // "my-defi-vault.eth"
+
+// Without primary name  
+const contractName = await provider.lookupAddress(contractAddress);
+console.log(contractName); // null
+```
+
+### For Users
+
+**Improved UX:**
+- See meaningful names instead of hex addresses
+- Easier to verify contract authenticity
+- Reduced chance of interacting with wrong contracts
+
+**Enhanced Security:**
+- Clear identification of contract ownership
+- Harder for scammers to impersonate contracts
+- Visual confirmation of legitimate contracts
+
+**Better Bookmarking:**
+- Remember contracts by name, not address
+- Consistent names across different dApps
+- Easier sharing and discussion
+
+### For dApp Developers
+
+**Cleaner Interfaces:**
+```jsx
+// Display name instead of address
+function ContractCard({ address }) {
+  const { name } = useENSName(address);
+  
+  return (
+    <div>
+      <h3>{name || address}</h3>
+      <p>Contract: {address}</p>
+    </div>
+  );
+}
+```
+
+**Enhanced Analytics:**
+- Track contracts by recognizable names
+- Better user experience metrics
+- Clearer transaction histories
+
+
+**Ready to set up primary names for your contracts?** Visit [enscribe.xyz](https://enscribe.xyz) and give your smart contracts the professional identity they deserve.
+
+*Making blockchain addresses human-readable, one primary name at a time.*

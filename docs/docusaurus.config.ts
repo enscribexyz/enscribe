@@ -43,9 +43,9 @@ const config = {
     [
       '@docusaurus/plugin-content-docs',
       {
-        id: 'guide',
-        path: 'guide',
-        routeBasePath: 'guide',
+        id: 'guides',
+        path: 'guides',
+        routeBasePath: 'guides',
         sidebarPath: require.resolve('./sidebars.ts'),
         editUrl: 'https://github.com/enscribexyz/enscribe/tree/main/docs',
       },
@@ -141,10 +141,10 @@ const config = {
             label: "Docs",
           },
           {
-            to: "/guide",
-            label: "Guide",
+            to: "/guides",
+            label: "Guides",
             position: "left",
-            activeBaseRegex: `/guide/`,
+            activeBaseRegex: `/guides/`,
           },
           { to: "/blog", label: "Blog", position: "left" },
           {
@@ -176,8 +176,8 @@ const config = {
                 to: "/docs/getting-started",
               },
               {
-                label: "Guide",
-                to: "/guide",
+                label: "Guides",
+                to: "/guides",
               },
             ],
           },
