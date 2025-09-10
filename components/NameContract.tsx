@@ -89,6 +89,10 @@ export default function NameContract() {
   const [skipL1Naming, setSkipL1Naming] = useState<boolean>(false)
   const [showL2Modal, setShowL2Modal] = useState<boolean>(false)
   const [isSafeWallet, setIsSafeWallet] = useState(false)
+  const [sldAsPrimary, setSldAsPrimary] = useState<boolean>(true)
+  const [ensModalFromPicker, setEnsModalFromPicker] = useState<boolean>(false)
+  const [ensNameChosen, setEnsNameChosen] = useState<boolean>(false)
+  const [selectedAction, setSelectedAction] = useState<'subname' | 'pick' | null>(null)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -413,13 +417,32 @@ export default function NameContract() {
     if (isEmpty(label) || !walletClient) return
 
     // Validate label and parent name before checking
-    if (!parentName.trim()) {
-      setError('Parent name cannot be empty')
-      return
-    }
-    if (label.includes('.')) {
-      setError("Can't include '.' in label name")
-      return
+    // Check if label looks like a 2LD (has exactly one dot)
+    const isLabel2LD = label.split('.').length === 2 && label.split('.')[0] && label.split('.')[1]
+    
+    if (!sldAsPrimary && !isLabel2LD) {
+      if (!parentName.trim()) {
+        setError('Parent name cannot be empty')
+        return
+      }
+      if (label.includes('.')) {
+        setError("Can't include '.' in label name")
+        return
+      }
+    } else if (sldAsPrimary) {
+      // sldAsPrimary mode: ensure label is a valid ENS name (any level)
+      const parts = label.split('.')
+      if (parts.length < 2 || !parts[0] || !parts[parts.length - 1]) {
+        setError('Enter a valid ENS name')
+        return
+      }
+    } else {
+      // 2LD detected: ensure label is a valid 2LD like abhi.eth
+      const parts = label.split('.')
+      if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        setError('Enter a valid second-level domain like abhi.eth')
+        return
+      }
     }
 
     // try {
@@ -744,14 +767,33 @@ export default function NameContract() {
       return
     }
 
-    if (label.includes('.')) {
+    // Check if label looks like a 2LD (has exactly one dot)
+    const isLabel2LD = label.split('.').length === 2 && label.split('.')[0] && label.split('.')[1]
+    
+    if (!sldAsPrimary && !isLabel2LD && label.includes('.')) {
       setError("Can't include '.' in label name")
       return
     }
 
-    if (!parentName.trim()) {
-      setError('Parent name cannot be empty')
-      return
+    if (!sldAsPrimary && !isLabel2LD) {
+      if (!parentName.trim()) {
+        setError('Parent name cannot be empty')
+        return
+      }
+    } else if (sldAsPrimary) {
+      // sldAsPrimary mode: ensure label is a valid ENS name (any level)
+      const parts = label.split('.')
+      if (parts.length < 2 || !parts[0] || !parts[parts.length - 1]) {
+        setError('Enter a valid ENS name')
+        return
+      }
+    } else {
+      // 2LD detected: ensure label is a valid 2LD like abhi.eth
+      const parts = label.split('.')
+      if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        setError('Enter a valid second-level domain like abhi.eth')
+        return
+      }
     }
 
     if (!config) {
@@ -770,13 +812,30 @@ export default function NameContract() {
         return
       }
 
-      const labelNormalized = normalize(label)
-      const parentNameNormalized = normalize(parentName)
-      const name = normalize(`${labelNormalized}.${parentNameNormalized}`)
+      // Compute label/parent from inputs; in SLD mode the label contains the full name
+      let labelNormalized: string
+      let parentNameNormalized: string
+      let name: string
+      if (sldAsPrimary) {
+        const [labelPart, parentPart] = label.split('.')
+        labelNormalized = normalize(labelPart)
+        parentNameNormalized = normalize(parentPart)
+        name = normalize(label)
+      } else {
+        labelNormalized = normalize(label)
+        parentNameNormalized = normalize(parentName)
+        name = normalize(`${labelNormalized}.${parentNameNormalized}`)
+      }
       const chainId = chain?.id!
 
+      // Skip subname creation if a name was selected from dialog
+      const skipSubnameCreation = ensNameChosen
+
       const parentNode = getParentNode(parentNameNormalized)
-      const node = namehash(labelNormalized + '.' + parentNameNormalized)
+      // When a name is selected from dialog, use the full name directly
+      const node = skipSubnameCreation 
+        ? namehash(label) // Use the full selected name
+        : namehash(labelNormalized + '.' + parentNameNormalized) // Construct from parts
       const labelHash = keccak256(toBytes(labelNormalized))
 
       const nameExist = (await readContract(walletClient, {
@@ -920,8 +979,9 @@ export default function NameContract() {
 
       const titleFirst = parentType === 'web3labs' ? (skipL1Naming ? 'Create subname' : 'Set forward resolution') : 'Create subname'
 
-      // Step 1: Create Subname
-      steps.push({
+      // Step 1: Create Subname (skip if using existing name)
+      if (!skipSubnameCreation) {
+        steps.push({
         title: titleFirst,
         chainId: chainId, // Add chainId for L1 transaction
         action: async () => {
@@ -1153,10 +1213,13 @@ export default function NameContract() {
             }
           }
         },
-      })
+        })
+      }
 
-      // Step 2: Set Forward Resolution (if not web3labs). If skipL1Naming, omit this.
-      if (parentType != 'web3labs' && !skipL1Naming) {
+      // Step 2: Set Forward Resolution
+      // For existing names, always set forward resolution (even for web3labs), since we skip subname creation.
+      // For new names, set forward only if parentType is not 'web3labs'. If skipL1Naming, omit this.
+      if (!skipL1Naming && (skipSubnameCreation || parentType != 'web3labs')) {
         steps.push({
           title: 'Set forward resolution',
           chainId: chainId, // Add chainId for L1 transaction
@@ -1216,58 +1279,7 @@ export default function NameContract() {
       }
 
       // Step 3: Set Reverse Resolution (if Primary). If skipL1Naming, omit this.
-      if (isReverseClaimable && !skipL1Naming) {
-        setIsPrimaryNameSet(true)
-        const addrLabel = existingContractAddress.slice(2).toLowerCase()
-        const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
-        steps.push({
-          title: 'Set reverse resolution',
-          chainId: chainId, // Add chainId for L1 transaction
-          action: async () => {
-            console.log('set revres::writeContract calling setName on PUBLIC_RESOLVER')
-            let txn
-            
-            if (isSafeWallet) {
-              writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setName',
-                args: [
-                  reversedNode,
-                  `${labelNormalized}.${parentNameNormalized}`,
-                ],
-                account: walletAddress,
-              })
-              txn = 'safe wallet'
-            } else {
-              txn = await writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setName',
-                args: [
-                  reversedNode,
-                  `${labelNormalized}.${parentNameNormalized}`,
-                ],
-                account: walletAddress,
-              })
-            }
-            
-            await logMetric(
-              corelationId,
-              Date.now(),
-              chainId,
-              existingContractAddress,
-              walletAddress,
-              name,
-              'revres::setName',
-              txn,
-              'ReverseClaimer',
-              opType,
-            )
-            return txn
-          },
-        })
-      } else if (isContractOwner && isOwnable && !skipL1Naming) {
+      if (!skipL1Naming && (sldAsPrimary || skipSubnameCreation) && isContractOwner && isOwnable) {
         setIsPrimaryNameSet(true)
         steps.push({
           title: 'Set reverse resolution',
@@ -1285,7 +1297,7 @@ export default function NameContract() {
                   existingContractAddress,
                   walletAddress,
                   publicResolverAddress,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
                 ],
                 account: walletAddress,
               })
@@ -1299,7 +1311,7 @@ export default function NameContract() {
                   existingContractAddress,
                   walletAddress,
                   publicResolverAddress,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
                 ],
                 account: walletAddress,
               })
@@ -1311,10 +1323,61 @@ export default function NameContract() {
               chainId,
               existingContractAddress,
               walletAddress,
-              name,
+              skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
               'revres::setNameForAddr',
               txn,
               'Ownable',
+              opType,
+            )
+            return txn
+          },
+        })
+      } else if (!skipL1Naming && (sldAsPrimary || skipSubnameCreation) && isReverseClaimable) {
+        setIsPrimaryNameSet(true)
+        const addrLabel = existingContractAddress.slice(2).toLowerCase()
+        const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
+        steps.push({
+          title: 'Set reverse resolution',
+          chainId: chainId, // Add chainId for L1 transaction
+          action: async () => {
+            console.log('set revres::writeContract calling setName on PUBLIC_RESOLVER')
+            let txn
+            
+            if (isSafeWallet) {
+              writeContract(walletClient, {
+                address: publicResolverAddress,
+                abi: publicResolverABI,
+                functionName: 'setName',
+                args: [
+                  reversedNode,
+                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+              txn = 'safe wallet'
+            } else {
+              txn = await writeContract(walletClient, {
+                address: publicResolverAddress,
+                abi: publicResolverABI,
+                functionName: 'setName',
+                args: [
+                  reversedNode,
+                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+            }
+            
+            await logMetric(
+              corelationId,
+              Date.now(),
+              chainId,
+              existingContractAddress,
+              walletAddress,
+              skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+              'revres::setName',
+              txn,
+              'ReverseClaimer',
               opType,
             )
             return txn
@@ -1478,7 +1541,7 @@ export default function NameContract() {
               console.log(`Executing reverse resolution on ${l2Chain.name}...`)
               console.log('L2 Reverse Registrar:', l2Config.L2_REVERSE_REGISTRAR)
               console.log('Contract Address:', existingContractAddress)
-              console.log('ENS Name:', `${labelNormalized}.${parentNameNormalized}`)
+              console.log('ENS Name:', skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`)
               
               // Perform reverse resolution on L2
               let txn
@@ -1508,7 +1571,7 @@ export default function NameContract() {
                   functionName: 'setNameForAddr',
                   args: [
                     existingContractAddress as `0x${string}`,
-                    `${labelNormalized}.${parentNameNormalized}`,
+                    skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
                   ],
                   account: walletAddress,
                   chain: l2Chain.chain
@@ -1556,7 +1619,7 @@ export default function NameContract() {
                 l2Chain.chainId,
                 existingContractAddress,
                 walletAddress,
-                `${labelNormalized}.${parentNameNormalized}`,
+                skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
                 'revres::setNameForAddr',
                 txn,
                 'L2Primary',
@@ -1602,7 +1665,7 @@ export default function NameContract() {
   return (
     <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8 border border-gray-200 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
-        Name Existing Contract
+        Name Contract
       </h2>
       {(!isConnected || isUnsupportedL2Chain) && (
         <p className="text-red-500">
@@ -1633,61 +1696,11 @@ export default function NameContract() {
           className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200}`}
         />
 
-        {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
-        {!isAddressEmpty &&
-          !isAddressInvalid &&
-          isContractExists === false && (
-          <p className="text-red-600 dark:text-red-300">
-            {chain?.name}: Contract doesn't exist
-          </p>
-        )}
-        {!isAddressEmpty &&
-          !isAddressInvalid &&
-          isContractExists === true &&
-          !isOwnable &&
-          !isReverseClaimable && (
-          <p className="text-yellow-600 dark:text-yellow-300">
-            {chain?.name}: Contract address does not extend{' '}
-              <Link
-                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Ownable
-              </Link>{' '}
-              or{' '}
-              <Link
-                href="https://eips.ethereum.org/EIPS/eip-173"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                ERC-173
-              </Link>{' '}
-              or{' '}
-              <Link
-                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                ReverseClaimable
-              </Link>
-              . You can only{' '}
-              <Link
-                href="https://docs.ens.domains/learn/resolution#forward-resolution"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                forward resolve
-              </Link>{' '}
-              this name.{' '}
-              <Link
-                href="https://www.enscribe.xyz/docs/"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Why is this?
-              </Link>
-            </p>
-          )}
+        {/* Contract Status Information */}
         {((!isAddressEmpty && !isContractOwner) ||
           isOwnable ||
           (isReverseClaimable && !isOwnable)) && (
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-1 mt-4">
             {!isAddressEmpty && !isContractOwner && isOwnable && (
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
@@ -1811,34 +1824,171 @@ export default function NameContract() {
             )}
           </div>
         )}
-        <label className="block text-gray-700 dark:text-gray-300">
-          Contract Name
-        </label>
-        <div className={'flex items-center space-x-2'}>
-          <Input
-            type="text"
-            required
-            value={label}
-            onChange={(e) => {
-              setLabel(e.target.value)
-              setError('')
-            }}
-            onBlur={checkENSReverseResolution}
-            placeholder="label"
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-          />
+
+        {/* Toggle Buttons */}
+        <div className="flex items-center gap-2 mt-4">
           <Button
-            onClick={populateName}
-            className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
+            type="button"
+            className={`${
+              selectedAction === 'subname'
+                ? 'bg-green-600 text-white ring-2 ring-green-500 ring-offset-2 dark:bg-green-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-green-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-green-800'
+            }`}
+            onClick={() => {
+              if (selectedAction === 'subname') {
+                setSelectedAction(null)
+              } else {
+                setSelectedAction('subname')
+                // Clear the text field and reset states for subname creation
+                setLabel('')
+                setEnsNameChosen(false)
+                // TODO: Implement create subname functionality
+                console.log('Create New Name selected')
+              }
+            }}
           >
-            <span className="relative z-10 p-2">✨Generate Name</span>
-            {/* Glow effect on hover */}
-            <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
-            {/* Outer glow */}
-            <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+            Create New Name
+          </Button>
+          <Button
+            type="button"
+            className={`${
+              selectedAction === 'pick'
+                ? 'bg-blue-600 text-white ring-2 ring-blue-500 ring-offset-2 dark:bg-blue-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-blue-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-blue-800'
+            }`}
+            onClick={() => {
+              if (selectedAction === 'pick') {
+                if (ensNameChosen) {
+                  setEnsModalFromPicker(true)
+                  setShowENSModal(true)
+                  fetchUserOwnedDomains()
+                } else {
+                  setSelectedAction(null)
+                }
+              } else {
+                setSelectedAction('pick')
+                setParentName('')
+                setEnsModalFromPicker(true)
+                setShowENSModal(true)
+                fetchUserOwnedDomains()
+              }
+            }}
+          >
+            Use Existing Name
           </Button>
         </div>
 
+        {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
+        {!isAddressEmpty &&
+          !isAddressInvalid &&
+          isContractExists === false && (
+          <p className="text-red-600 dark:text-red-300">
+            {chain?.name}: Contract doesn't exist
+          </p>
+        )}
+        {!isAddressEmpty &&
+          !isAddressInvalid &&
+          isContractExists === true &&
+          !isOwnable &&
+          !isReverseClaimable && (
+          <p className="text-yellow-600 dark:text-yellow-300">
+            {chain?.name}: Contract address does not extend{' '}
+              <Link
+                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Ownable
+              </Link>{' '}
+              or{' '}
+              <Link
+                href="https://eips.ethereum.org/EIPS/eip-173"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                ERC-173
+              </Link>{' '}
+              or{' '}
+              <Link
+                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                ReverseClaimable
+              </Link>
+              . You can only{' '}
+              <Link
+                href="https://docs.ens.domains/learn/resolution#forward-resolution"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                forward resolve
+              </Link>{' '}
+              this name.{' '}
+              <Link
+                href="https://www.enscribe.xyz/docs/"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Why is this?
+              </Link>
+            </p>
+          )}
+        {selectedAction && (
+          <>
+            <label className="block text-gray-700 dark:text-gray-300">
+              Contract Name
+            </label>
+            <div className={'flex items-center space-x-2'}>
+              <Input
+                type="text"
+                required
+                value={label}
+                readOnly={selectedAction === 'pick' && ensNameChosen}
+                onChange={(e) => {
+                  // Only allow editing if not a picked name
+                  if (selectedAction === 'pick' && ensNameChosen) return
+                  
+                  const newVal = e.target.value
+                  setLabel(newVal)
+                  // Any manual edit should show the ENS Parent controls again
+                  if (ensNameChosen) {
+                    setEnsNameChosen(false)
+                  }
+                  setError('')
+                  // Auto-enable SLD mode when a dotted 2LD is typed (e.g., abhi.eth)
+                  const dotParts = newVal.split('.')
+                  if (dotParts.length === 2 && dotParts[0] && dotParts[1]) {
+                    if (!sldAsPrimary) {
+                      setSldAsPrimary(true)
+                    }
+                    if (parentName) {
+                      setParentName('')
+                    }
+                  }
+                }}
+                onBlur={checkENSReverseResolution}
+                placeholder="myawesomeapp"
+                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  selectedAction === 'pick' && ensNameChosen
+                    ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed'
+                    : 'bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200'
+                } dark:border-gray-600`}
+              />
+              {!(selectedAction === 'pick' && ensNameChosen) && (
+                <Button
+                  onClick={populateName}
+                  className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
+                >
+                  <span className="relative z-10 p-2">✨Generate Name</span>
+                  {/* Glow effect on hover */}
+                  <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+                  {/* Outer glow */}
+                  <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+
+
+        {selectedAction === 'subname' && (
+        <>
         <label className="block text-gray-700 dark:text-gray-300">
           ENS Parent
         </label>
@@ -1851,6 +2001,7 @@ export default function NameContract() {
               setParentName(enscribeDomain)
             } else {
               setParentName('')
+              setEnsModalFromPicker(false)
               setShowENSModal(true)
               fetchUserOwnedDomains()
             }
@@ -1890,6 +2041,7 @@ export default function NameContract() {
                 <Button
                   onClick={() => {
                     setParentName('')
+                    setEnsModalFromPicker(false)
                     setShowENSModal(true)
                   }}
                   className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
@@ -1900,9 +2052,11 @@ export default function NameContract() {
             )}
           </>
         )}
+        </>
+        )}
 
         {/* Full ENS Name Preview */}
-        {!isEmpty(label) && !isEmpty(parentName) && (
+        {selectedAction === 'subname' && !isEmpty(label) && !isEmpty(parentName) && (
           <div className="mt-4 mb-4">
             <label className="block text-gray-700 dark:text-gray-300 mb-5">
               Full ENS Name
@@ -2098,7 +2252,17 @@ export default function NameContract() {
                                   key={domain}
                                   className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                                   onClick={() => {
-                                    setParentName(domain)
+                                    // Auto-detect if selected domain has dots and enable SLD mode
+                                    const parts = domain.split('.')
+                                    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                      setSldAsPrimary(true)
+                                      setLabel(domain)
+                                    } else if (sldAsPrimary) {
+                                      setLabel(domain)
+                                    } else {
+                                      setParentName(domain)
+                                    }
+                                    setEnsNameChosen(true)
                                     setShowENSModal(false)
                                   }}
                                 >
@@ -2120,7 +2284,17 @@ export default function NameContract() {
                                   key={domain}
                                   className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
                                   onClick={() => {
-                                    setParentName(domain)
+                                    // Auto-detect if selected domain has dots and enable SLD mode
+                                    const parts = domain.split('.')
+                                    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                      setSldAsPrimary(true)
+                                      setLabel(domain)
+                                    } else if (sldAsPrimary) {
+                                      setLabel(domain)
+                                    } else {
+                                      setParentName(domain)
+                                    }
+                                    setEnsNameChosen(true)
                                     setShowENSModal(false)
                                   }}
                                 >
@@ -2145,18 +2319,21 @@ export default function NameContract() {
               )}
 
               <div className="flex justify-end gap-3 mt-6">
+                {!ensModalFromPicker && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setParentName('')
+                      setShowENSModal(false)
+                    }}
+                    className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                  >
+                    Enter manually
+                  </Button>
+                )}
                 <Button
-                  variant="outline"
                   onClick={() => {
-                    setParentName('')
-                    setShowENSModal(false)
-                  }}
-                  className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
-                >
-                  Enter manually
-                </Button>
-                <Button
-                  onClick={() => {
+                    setEnsModalFromPicker(false)
                     setShowENSModal(false)
                   }}
                   className="bg-gray-900 hover:bg-gray-800 text-white"
@@ -2242,7 +2419,7 @@ export default function NameContract() {
             loading ||
             isAddressEmpty ||
             isAddressInvalid ||
-            isEmpty(label) ||
+            (isEmpty(label) && !(selectedAction === 'pick' && ensNameChosen)) ||
             isUnsupportedL2Chain
           }
           className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group"
