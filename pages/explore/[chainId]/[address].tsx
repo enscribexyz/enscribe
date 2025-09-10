@@ -248,7 +248,7 @@ export default function ExploreAddressPage() {
     const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getcontractcreation&contractaddresses=${contractAddress}`
     const response = await fetch(etherscanApi)
     const data = await response.json()
-    if (data.result !== undefined && data.result.length > 0) {
+    if (data.result !== undefined && data.result !== null && data.result.length > 0) {
       console.log(`cont creator ${data.result[0].contractCreator}`)
       return data.result[0].contractCreator
     } else {
