@@ -1901,7 +1901,7 @@ export default function DeployForm() {
               {isOwnable && (
                 <>
                   <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                  <p className="ml-1 text-gray-700 inline">
+                  <p className="ml-1 text-gray-700 dark:text-gray-300 inline">
                     Contract implements{' '}
                     <Link
                       href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
@@ -1915,7 +1915,7 @@ export default function DeployForm() {
               {isReverseClaimable && (
                 <>
                   <CheckCircleIcon className="w-5 h-5 inline text-green-500 ml-2 cursor-pointer" />
-                  <p className="ml-1 text-gray-700 inline">
+                  <p className="ml-1 text-gray-700 dark:text-gray-300 inline">
                     Contract is either{' '}
                     <Link
                       href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
