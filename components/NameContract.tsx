@@ -2146,7 +2146,7 @@ export default function NameContract() {
         <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-              Choose Your ENS Parent
+              {selectedAction === 'pick' ? 'Choose Your ENS Name' : 'Choose Your ENS Parent'}
             </DialogTitle>
           </DialogHeader>
 
