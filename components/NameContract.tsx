@@ -56,7 +56,8 @@ export default function NameContract() {
 
   const [existingContractAddress, setExistingContractAddress] = useState('')
   const [label, setLabel] = useState('')
-  const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
+  const [parentType, setParentType] = useState<'web3labs' | 'own' | 'register'>('web3labs')
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false)
   const [parentName, setParentName] = useState(enscribeDomain)
   const [fetchingENS, setFetchingENS] = useState(false)
   const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([])
@@ -200,6 +201,8 @@ export default function NameContract() {
   useEffect(() => {
     if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
       setParentName(config.ENSCRIBE_DOMAIN)
+    } else if (parentType === 'register') {
+      // Don't set parentName for register type - user needs to go to ENS app first
     }
   }, [config, parentType])
 
@@ -1847,7 +1850,7 @@ export default function NameContract() {
               }
             }}
           >
-            Create New Name
+            Create Subname
           </Button>
           <Button
             type="button"
@@ -1858,19 +1861,10 @@ export default function NameContract() {
             }`}
             onClick={() => {
               if (selectedAction === 'pick') {
-                if (ensNameChosen) {
-                  setEnsModalFromPicker(true)
-                  setShowENSModal(true)
-                  fetchUserOwnedDomains()
-                } else {
-                  setSelectedAction(null)
-                }
+                setSelectedAction(null)
               } else {
                 setSelectedAction('pick')
                 setParentName('')
-                setEnsModalFromPicker(true)
-                setShowENSModal(true)
-                fetchUserOwnedDomains()
               }
             }}
           >
@@ -1939,10 +1933,10 @@ export default function NameContract() {
                 type="text"
                 required
                 value={label}
-                readOnly={selectedAction === 'pick' && ensNameChosen}
+                readOnly={selectedAction === 'pick'}
                 onChange={(e) => {
-                  // Only allow editing if not a picked name
-                  if (selectedAction === 'pick' && ensNameChosen) return
+                  // Only allow editing if not in Use Existing Name flow
+                  if (selectedAction === 'pick') return
                   
                   const newVal = e.target.value
                   setLabel(newVal)
@@ -1965,12 +1959,25 @@ export default function NameContract() {
                 onBlur={checkENSReverseResolution}
                 placeholder="myawesomeapp"
                 className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  selectedAction === 'pick' && ensNameChosen
+                  selectedAction === 'pick'
                     ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed'
                     : 'bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200'
                 } dark:border-gray-600`}
               />
-              {!(selectedAction === 'pick' && ensNameChosen) && (
+              {selectedAction === 'pick' && (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setEnsModalFromPicker(false)
+                    setShowENSModal(true)
+                    fetchUserOwnedDomains()
+                  }}
+                  className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/50"
+                >
+                  Select Name
+                </Button>
+              )}
+              {selectedAction !== 'pick' && (
                 <Button
                   onClick={populateName}
                   className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
@@ -1990,20 +1997,22 @@ export default function NameContract() {
         {selectedAction === 'subname' && (
         <>
         <label className="block text-gray-700 dark:text-gray-300">
-          ENS Parent
+          Parent Domain
         </label>
         <Select
           value={parentType}
           onValueChange={(e) => {
-            const selected = e as 'web3labs' | 'own'
+            const selected = e as 'web3labs' | 'own' | 'register'
             setParentType(selected)
             if (selected === 'web3labs') {
               setParentName(enscribeDomain)
-            } else {
+            } else if (selected === 'own') {
               setParentName('')
-              setEnsModalFromPicker(false)
+              setEnsModalFromPicker(true)
               setShowENSModal(true)
               fetchUserOwnedDomains()
+            } else if (selected === 'register') {
+              setShowRegisterDialog(true)
             }
           }}
         >
@@ -2012,7 +2021,8 @@ export default function NameContract() {
           </SelectTrigger>
           <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
             <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
-            <SelectItem value="own">Your ENS Parent</SelectItem>
+            <SelectItem value="own">My Own Domain</SelectItem>
+            <SelectItem value="register">Register New Name</SelectItem>
           </SelectContent>
         </Select>
         {parentType === 'own' && (
@@ -2041,12 +2051,12 @@ export default function NameContract() {
                 <Button
                   onClick={() => {
                     setParentName('')
-                    setEnsModalFromPicker(false)
+                    setEnsModalFromPicker(true)
                     setShowENSModal(true)
                   }}
                   className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
-                  Choose ENS
+                  Select Domain
                 </Button>
               </div>
             )}
@@ -2254,7 +2264,11 @@ export default function NameContract() {
                                   onClick={() => {
                                     // Auto-detect if selected domain has dots and enable SLD mode
                                     const parts = domain.split('.')
-                                    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                    if (ensModalFromPicker) {
+                                      // In Create Subname flow, selected domain should be the parent
+                                      setParentName(domain)
+                                    } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                      // In Use Existing Name flow, full domain goes to label
                                       setSldAsPrimary(true)
                                       setLabel(domain)
                                     } else if (sldAsPrimary) {
@@ -2286,7 +2300,11 @@ export default function NameContract() {
                                   onClick={() => {
                                     // Auto-detect if selected domain has dots and enable SLD mode
                                     const parts = domain.split('.')
-                                    if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                    if (ensModalFromPicker) {
+                                      // In Create Subname flow, selected domain should be the parent
+                                      setParentName(domain)
+                                    } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                      // In Use Existing Name flow, full domain goes to label
                                       setSldAsPrimary(true)
                                       setLabel(domain)
                                     } else if (sldAsPrimary) {
@@ -2319,7 +2337,7 @@ export default function NameContract() {
               )}
 
               <div className="flex justify-end gap-3 mt-6">
-                {!ensModalFromPicker && (
+                {ensModalFromPicker && (
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -2411,6 +2429,45 @@ export default function NameContract() {
         </DialogContent>
       </Dialog>
 
+      {/* Register New Name Dialog */}
+      <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
+        <DialogContent className="max-w-md bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+              Register New Domain
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Visit the ENS app to register a new domain. Once you are done, come back to Enscribe to name your contract.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end gap-3 mt-6 text-gray-900 dark:text-gray-300">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRegisterDialog(false)
+                setParentType('web3labs')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const ensAppUrl = chain?.id === CHAINS.SEPOLIA 
+                  ? 'https://sepolia.app.ens.domains/' 
+                  : 'https://app.ens.domains/'
+                window.open(ensAppUrl, '_blank')
+                setShowRegisterDialog(false)
+                setParentType('web3labs')
+              }}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Go to ENS App
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex gap-4 mt-6">
         <Button
           onClick={() => setPrimaryName()}
@@ -2420,7 +2477,8 @@ export default function NameContract() {
             isAddressEmpty ||
             isAddressInvalid ||
             (isEmpty(label) && !(selectedAction === 'pick' && ensNameChosen)) ||
-            isUnsupportedL2Chain
+            isUnsupportedL2Chain ||
+            parentType === 'register'
           }
           className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group"
           style={{
