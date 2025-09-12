@@ -2153,168 +2153,139 @@ export default function NameContract() {
             </DialogDescription>
           </DialogHeader>
 
-          {fetchingENS ? (
-            <div className="flex justify-center items-center p-6">
-              <svg
-                className="animate-spin h-5 w-5 mr-3 text-indigo-600 dark:text-indigo-400"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-              <p className="text-gray-700 dark:text-gray-300">
-                Fetching your ENS domains...
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4 px-1">
-              {userOwnedDomains.length > 0 ? (
-                <div className="max-h-[50vh] overflow-y-auto pr-1">
-                  {(() => {
-                    // Function to get the 2LD for a domain
-                    const get2LD = (domain: string): string => {
-                      const parts = domain.split('.')
-                      if (parts.length < 2) return domain
-                      return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
-                    }
+          {selectedAction === 'subname' && (
+            <div className="space-y-6 mb-6">
+              {/* Choose Enscribe's Domain */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                  Choose Enscribe's Domain
+                </h3>
+                <div
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                  onClick={() => {
+                    setParentName(enscribeDomain)
+                    setEnsNameChosen(true)
+                    setShowENSModal(false)
+                  }}
+                >
+                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                    {enscribeDomain}
+                  </span>
+                </div>
+              </div>
 
-                    // Separate domains with labelhashes
-                    const domainsWithLabelhash = userOwnedDomains.filter(
-                      (domain) => domain.includes('[') && domain.includes(']'),
-                    )
-                    const regularDomains = userOwnedDomains.filter(
-                      (domain) =>
-                        !(domain.includes('[') && domain.includes(']')),
-                    )
-
-                    // Group regular domains by 2LD
-                    const domainGroups: { [key: string]: string[] } = {}
-
-                    regularDomains.forEach((domain) => {
-                      const parent2LD = get2LD(domain)
-                      if (!domainGroups[parent2LD]) {
-                        domainGroups[parent2LD] = []
+              {/* Choose Your Own Domain */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                  Choose Your Own Domain
+                </h3>
+                {userOwnedDomains.length > 0 ? (
+                  <div className="max-h-[30vh] overflow-y-auto pr-1">
+                    {(() => {
+                      // Function to get the 2LD for a domain
+                      const get2LD = (domain: string): string => {
+                        const parts = domain.split('.')
+                        if (parts.length < 2) return domain
+                        return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
                       }
-                      domainGroups[parent2LD].push(domain)
-                    })
 
-                    // Sort 2LDs alphabetically
-                    const sorted2LDs = Object.keys(domainGroups).sort()
+                      // Separate domains with labelhashes
+                      const domainsWithLabelhash = userOwnedDomains.filter(
+                        (domain) => domain.includes('[') && domain.includes(']'),
+                      )
+                      const regularDomains = userOwnedDomains.filter(
+                        (domain) =>
+                          !(domain.includes('[') && domain.includes(']')),
+                      )
 
-                    return (
-                      <div className="space-y-4">
-                        {/* Regular domains grouped by 2LD */}
-                        {sorted2LDs.map((parent2LD) => (
-                          <div
-                            key={parent2LD}
-                            className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
-                          >
-                            <div className="flex flex-wrap gap-2">
-                              {domainGroups[parent2LD].map((domain, index) => (
-                                <div
-                                  key={domain}
-                                  className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                                  onClick={() => {
-                                    // Auto-detect if selected domain has dots and enable SLD mode
-                                    const parts = domain.split('.')
-                                    if (ensModalFromPicker) {
-                                      // In Create Subname flow, selected domain should be the parent
+                      // Group regular domains by 2LD
+                      const domainGroups: { [key: string]: string[] } = {}
+
+                      regularDomains.forEach((domain) => {
+                        const parent2LD = get2LD(domain)
+                        if (!domainGroups[parent2LD]) {
+                          domainGroups[parent2LD] = []
+                        }
+                        domainGroups[parent2LD].push(domain)
+                      })
+
+                      // Sort 2LDs alphabetically
+                      const sorted2LDs = Object.keys(domainGroups).sort()
+
+                      return (
+                        <div className="space-y-4">
+                          {/* Regular domains grouped by 2LD */}
+                          {sorted2LDs.map((parent2LD) => (
+                            <div
+                              key={parent2LD}
+                              className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
+                            >
+                              <div className="flex flex-wrap gap-2">
+                                {domainGroups[parent2LD].map((domain, index) => (
+                                  <div
+                                    key={domain}
+                                    className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                    onClick={() => {
                                       setParentName(domain)
-                                    } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
-                                      // In Use Existing Name flow, full domain goes to label
-                                      setSldAsPrimary(true)
-                                      setLabel(domain)
-                                    } else if (sldAsPrimary) {
-                                      setLabel(domain)
-                                    } else {
-                                      setParentName(domain)
-                                    }
-                                    setEnsNameChosen(true)
-                                    setShowENSModal(false)
-                                  }}
-                                >
-                                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                                    {domain}
-                                  </span>
-                                </div>
-                              ))}
+                                      setEnsNameChosen(true)
+                                      setShowENSModal(false)
+                                    }}
+                                  >
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                      {domain}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
 
-                        {/* Domains with labelhashes at the end */}
-                        {domainsWithLabelhash.length > 0 && (
-                          <div className="pt-2">
-                            <div className="flex flex-wrap gap-2">
-                              {domainsWithLabelhash.map((domain) => (
-                                <div
-                                  key={domain}
-                                  className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
-                                  onClick={() => {
-                                    // Auto-detect if selected domain has dots and enable SLD mode
-                                    const parts = domain.split('.')
-                                    if (ensModalFromPicker) {
-                                      // In Create Subname flow, selected domain should be the parent
+                          {/* Domains with labelhashes at the end */}
+                          {domainsWithLabelhash.length > 0 && (
+                            <div className="pt-2">
+                              <div className="flex flex-wrap gap-2">
+                                {domainsWithLabelhash.map((domain) => (
+                                  <div
+                                    key={domain}
+                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                    onClick={() => {
                                       setParentName(domain)
-                                    } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
-                                      // In Use Existing Name flow, full domain goes to label
-                                      setSldAsPrimary(true)
-                                      setLabel(domain)
-                                    } else if (sldAsPrimary) {
-                                      setLabel(domain)
-                                    } else {
-                                      setParentName(domain)
-                                    }
-                                    setEnsNameChosen(true)
-                                    setShowENSModal(false)
-                                  }}
-                                >
-                                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                                    {domain}
-                                  </span>
-                                </div>
-                              ))}
+                                      setEnsNameChosen(true)
+                                      setShowENSModal(false)
+                                    }}
+                                  >
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                      {domain}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    No ENS domains found for your address.
-                  </p>
-                </div>
-              )}
+                          )}
+                        </div>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No ENS domains found for your address.
+                    </p>
+                  </div>
+                )}
+              </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                {ensModalFromPicker && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setParentName('')
-                      setShowENSModal(false)
-                    }}
-                    className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
-                  >
-                    Enter manually
-                  </Button>
-                )}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setParentName('')
+                    setShowENSModal(false)
+                  }}
+                  className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                >
+                  Enter manually
+                </Button>
                 <Button
                   onClick={() => {
                     setEnsModalFromPicker(false)
@@ -2326,6 +2297,185 @@ export default function NameContract() {
                 </Button>
               </div>
             </div>
+          )}
+
+          {selectedAction !== 'subname' && (
+            <>
+              {fetchingENS ? (
+                <div className="flex justify-center items-center p-6">
+                  <svg
+                    className="animate-spin h-5 w-5 mr-3 text-indigo-600 dark:text-indigo-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
+                  </svg>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    Fetching your ENS domains...
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 px-1">
+                  {userOwnedDomains.length > 0 ? (
+                    <div className="max-h-[50vh] overflow-y-auto pr-1">
+                      {(() => {
+                        // Function to get the 2LD for a domain
+                        const get2LD = (domain: string): string => {
+                          const parts = domain.split('.')
+                          if (parts.length < 2) return domain
+                          return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
+                        }
+
+                        // Separate domains with labelhashes
+                        const domainsWithLabelhash = userOwnedDomains.filter(
+                          (domain) => domain.includes('[') && domain.includes(']'),
+                        )
+                        const regularDomains = userOwnedDomains.filter(
+                          (domain) =>
+                            !(domain.includes('[') && domain.includes(']')),
+                        )
+
+                        // Group regular domains by 2LD
+                        const domainGroups: { [key: string]: string[] } = {}
+
+                        regularDomains.forEach((domain) => {
+                          const parent2LD = get2LD(domain)
+                          if (!domainGroups[parent2LD]) {
+                            domainGroups[parent2LD] = []
+                          }
+                          domainGroups[parent2LD].push(domain)
+                        })
+
+                        // Sort 2LDs alphabetically
+                        const sorted2LDs = Object.keys(domainGroups).sort()
+
+                        return (
+                          <div className="space-y-4">
+                            {/* Regular domains grouped by 2LD */}
+                            {sorted2LDs.map((parent2LD) => (
+                              <div
+                                key={parent2LD}
+                                className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
+                              >
+                                <div className="flex flex-wrap gap-2">
+                                  {domainGroups[parent2LD].map((domain, index) => (
+                                    <div
+                                      key={domain}
+                                      className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                      onClick={() => {
+                                        // Auto-detect if selected domain has dots and enable SLD mode
+                                        const parts = domain.split('.')
+                                        if (ensModalFromPicker) {
+                                          // In Create Subname flow, selected domain should be the parent
+                                          setParentName(domain)
+                                        } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                          // In Use Existing Name flow, full domain goes to label
+                                          setSldAsPrimary(true)
+                                          setLabel(domain)
+                                        } else if (sldAsPrimary) {
+                                          setLabel(domain)
+                                        } else {
+                                          setParentName(domain)
+                                        }
+                                        setEnsNameChosen(true)
+                                        setShowENSModal(false)
+                                      }}
+                                    >
+                                      <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                        {domain}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Domains with labelhashes at the end */}
+                            {domainsWithLabelhash.length > 0 && (
+                              <div className="pt-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {domainsWithLabelhash.map((domain) => (
+                                    <div
+                                      key={domain}
+                                      className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                      onClick={() => {
+                                        // Auto-detect if selected domain has dots and enable SLD mode
+                                        const parts = domain.split('.')
+                                        if (ensModalFromPicker) {
+                                          // In Create Subname flow, selected domain should be the parent
+                                          setParentName(domain)
+                                        } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                          // In Use Existing Name flow, full domain goes to label
+                                          setSldAsPrimary(true)
+                                          setLabel(domain)
+                                        } else if (sldAsPrimary) {
+                                          setLabel(domain)
+                                        } else {
+                                          setParentName(domain)
+                                        }
+                                        setEnsNameChosen(true)
+                                        setShowENSModal(false)
+                                      }}
+                                    >
+                                      <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                        {domain}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No ENS domains found for your address.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-3 mt-6">
+                    {ensModalFromPicker && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setParentName('')
+                          setShowENSModal(false)
+                        }}
+                        className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                      >
+                        Enter manually
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() => {
+                        setEnsModalFromPicker(false)
+                        setShowENSModal(false)
+                      }}
+                      className="bg-gray-900 hover:bg-gray-800 text-white"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
