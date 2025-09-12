@@ -1925,71 +1925,71 @@ export default function NameContract() {
           )}
         {selectedAction && (
           <>
-            <label className="block text-gray-700 dark:text-gray-300">
-              Contract Name
-            </label>
-            <div className={'flex items-center space-x-2'}>
-              <Input
-                type="text"
-                required
-                value={label}
-                readOnly={selectedAction === 'pick'}
-                onChange={(e) => {
-                  // Only allow editing if not in Use Existing Name flow
-                  if (selectedAction === 'pick') return
-                  
-                  const newVal = e.target.value
-                  setLabel(newVal)
-                  // Any manual edit should show the ENS Parent controls again
-                  if (ensNameChosen) {
-                    setEnsNameChosen(false)
-                  }
-                  setError('')
-                  // Auto-enable SLD mode when a dotted 2LD is typed (e.g., abhi.eth)
-                  const dotParts = newVal.split('.')
-                  if (dotParts.length === 2 && dotParts[0] && dotParts[1]) {
-                    if (!sldAsPrimary) {
-                      setSldAsPrimary(true)
-                    }
-                    if (parentName) {
-                      setParentName('')
-                    }
-                  }
-                }}
-                onBlur={checkENSReverseResolution}
-                placeholder="myawesomeapp"
-                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
-                  selectedAction === 'pick'
-                    ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 cursor-not-allowed'
-                    : 'bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200'
-                } dark:border-gray-600`}
-              />
-              {selectedAction === 'pick' && (
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setEnsModalFromPicker(false)
-                    setShowENSModal(true)
-                    fetchUserOwnedDomains()
-                  }}
-                  className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/50"
-                >
-                  Select Name
-                </Button>
-              )}
-              {selectedAction !== 'pick' && (
-                <Button
-                  onClick={populateName}
-                  className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
-                >
-                  <span className="relative z-10 p-2">✨Generate Name</span>
-                  {/* Glow effect on hover */}
-                  <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
-                  {/* Outer glow */}
-                  <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
-                </Button>
-              )}
-            </div>
+            {selectedAction === 'pick' ? (
+              <>
+                <label className="block text-gray-700 dark:text-gray-300">
+                  Contract Name
+                </label>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setEnsModalFromPicker(false)
+                      setShowENSModal(true)
+                      fetchUserOwnedDomains()
+                    }}
+                    className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/50"
+                  >
+                    Select Name
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <label className="block text-gray-700 dark:text-gray-300">
+                  Contract Name
+                </label>
+                <div className={'flex items-center space-x-2'}>
+                  <Input
+                    type="text"
+                    required
+                    value={label}
+                    onChange={(e) => {
+                      const newVal = e.target.value
+                      setLabel(newVal)
+                      // Any manual edit should show the ENS Parent controls again
+                      if (ensNameChosen) {
+                        setEnsNameChosen(false)
+                      }
+                      setError('')
+                      // Auto-enable SLD mode when a dotted 2LD is typed (e.g., abhi.eth)
+                      const dotParts = newVal.split('.')
+                      if (dotParts.length === 2 && dotParts[0] && dotParts[1]) {
+                        if (!sldAsPrimary) {
+                          setSldAsPrimary(true)
+                        }
+                        if (parentName) {
+                          setParentName('')
+                        }
+                      }
+                    }}
+                    onBlur={checkENSReverseResolution}
+                    placeholder="myawesomeapp"
+                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+                  />
+                  <Button
+                    onClick={populateName}
+                    className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
+                  >
+                    <span className="relative z-10 p-2">✨Generate Name</span>
+                    {/* Glow effect on hover */}
+                    <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+                    {/* Outer glow */}
+                    <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+                  </Button>
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -2033,14 +2033,15 @@ export default function NameContract() {
         )}
 
         {/* Full ENS Name Preview */}
-        {selectedAction === 'subname' && !isEmpty(label) && !isEmpty(parentName) && (
+        {((selectedAction === 'subname' && !isEmpty(label) && !isEmpty(parentName)) || 
+          (selectedAction === 'pick' && !isEmpty(label))) && (
           <div className="mt-4 mb-4">
             <label className="block text-gray-700 dark:text-gray-300 mb-5">
               Full ENS Name
             </label>
             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
               <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
-                {`${label}.${parentName}`}
+                {selectedAction === 'pick' ? label : `${label}.${parentName}`}
               </div>
             </div>
           </div>
@@ -2147,7 +2148,7 @@ export default function NameContract() {
         <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-              {selectedAction === 'pick' ? 'Choose Your ENS Name' : 'Choose Your ENS Parent'}
+              {selectedAction === 'pick' ? 'Choose Your ENS Name' : 'Choose Domain'}
             </DialogTitle>
           </DialogHeader>
 
@@ -2156,7 +2157,7 @@ export default function NameContract() {
               {/* Choose Your Own Domain */}
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <h3 className="text-base font-medium text-gray-900 dark:text-white mb-3">
-                  Choose Your Own Domain
+                  Your Domains
                 </h3>
                 {userOwnedDomains.length > 0 ? (
                   <div className="max-h-[30vh] overflow-y-auto pr-1">
@@ -2242,19 +2243,6 @@ export default function NameContract() {
                             </div>
                           )}
 
-                          {/* Register New Domain button */}
-                          <div className="pt-4">
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setShowRegisterDialog(true)
-                                setShowENSModal(false)
-                              }}
-                              className="w-full bg-gray-900 hover:bg-gray-800 text-white"
-                            >
-                              Register New Domain
-                            </Button>
-                          </div>
                         </div>
                       )
                     })()}
@@ -2271,7 +2259,7 @@ export default function NameContract() {
               {/* Choose Enscribe's Domain */}
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <h3 className="text-base font-medium text-gray-900 dark:text-white mb-3">
-                  Choose Enscribe's Domain
+                  Other Domains
                 </h3>
                 <div
                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
@@ -2284,6 +2272,20 @@ export default function NameContract() {
                   <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
                     {enscribeDomain}
                   </span>
+                </div>
+                
+                {/* Purchase New Domain button */}
+                <div className="pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowRegisterDialog(true)
+                      setShowENSModal(false)
+                    }}
+                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                  >
+                    Purchase New Domain
+                  </Button>
                 </div>
               </div>
 
