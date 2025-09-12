@@ -1,0 +1,102 @@
+---
+slug: ensip-proposal
+title: "ENSIP: Contract Metadata Standard and Text Records"
+authors: [nischal]
+tags: [ens, enscribe]
+description: "We've proposed a new ENS standard for smart contract metadata that enables complete contract identity and verification"
+---
+
+# ENSIP: Contract Metadata Standard and Text Records
+
+Smart contracts power the onchain economy, but they lack proper identity infrastructure. When users encounter a contract address like `0x742d35cc567890c000c000c07c81c25d7df34793`, they can't easily verify what it does, who built it, or whether it's safe to use.
+
+Enscribe has been working to solve this through contract naming. Now we're taking the next step by proposing a new ENS Improvement Proposal that establishes a comprehensive metadata standard for smart contracts.
+
+## The Problem with Contract Identity
+
+Smart contracts face several identity challenges:
+
+- **Trust Issues**: Users can't easily verify if a contract is legitimate or malicious
+- **Missing Documentation**: No standard way to find a contract's docs, source code, or audit reports  
+- **Inconsistent Information**: Wallets and dApps show different (or no) contract details
+- **Poor Developer Experience**: No standard API for contract discovery and metadata
+
+While ENS enables human-readable contract names, the ecosystem lacks standardized metadata storage. Projects create custom solutions, users rely on centralized services, and critical information gets scattered across different platforms.
+
+## Our Proposed Solution
+
+We've [submitted an ENSIP](https://github.com/ensdomains/ensips/pull/50) that extends [ENSIP-5 (Text Records)](https://docs.ens.domains/ensip/5) with standardized metadata fields for smart contracts. This creates one source of truth for contract information, stored directly in ENS records.
+
+Imagine if instead of simply seeing a hex contract address you had a rich view of the contract such as this:
+
+![Enscribe contract profile showing organized technical details](mock.png)
+
+Our proposed standard would serve as a foundation to make such information available for smart contracts across Ethereum.
+
+
+### New Text Record Fields
+
+**Contract Classification**:
+- `category`: Contract type (defi, dao, utility, gaming)
+- `license`: Software license (MIT, Apache-2.0)
+- `docs`: Official documentation links
+
+**Security Information**:
+- `audits`: Structured audit report data with auditor names and report links
+- `proxy`: Proxy contract details and implementation addresses
+
+### Compiled Metadata Resolver
+
+The proposal introduces a new resolver profile for complete compiler-generated metadata. Building on [ENSIP-4's (Support for contract ABIs)](https://docs.ens.domains/ensip/4) multi-encoding approach, it supports:
+
+- **JSON formats**: Uncompressed and compressed
+- **CBOR encoding**: For onchain parsing
+- **URI storage**: IPFS, Arweave for large files
+
+This metadata contains everything needed for contract verification: ABI definitions, compiler settings, source code hashes, and NatSpec documentation.
+
+## Real Impact
+
+This standard solves concrete problems:
+
+- **Users** can verify contract authenticity before signing transactions
+- **Developers** get standard APIs for contract metadata across all applications  
+- **Projects** build professional contract identity that increases user trust
+- **Ecosystem** reduces dependence on centralized services
+
+
+## Contract Metadata in Action
+
+We've implemented this metadata standard for our own contract as a demonstration. You can see `v0.enscribe.named.eth` on [ENS Manager](https://sepolia.app.ens.domains/v0.enscribe.named.eth) with all the proposed metadata fields populated (some values are placeholder for now).
+
+Since the ENS manager app doesn't yet render contract metadata optimally (it's designed for user profiles), here's how we envision displaying contract metadata in applications built for contracts:
+
+![ENS Manager showing basic contract metadata fields](ens-manager.png)
+*Current ENS Manager view - shows metadata but not optimized for contracts*
+
+![Enscribe contract profile view](mock-expanded.png)
+*Enscribe's contract-focused interface - Technical details, security audits, and expanded metadata view*
+
+The difference is clear: contract-specific interfaces can organize and display metadata in ways that help developers and users understand what they're interacting with.
+
+## We Need Your Input
+
+The proposal draws from our experience building contract naming tools, but community feedback shapes the final standard.
+
+**Help us refine**:
+- Technical implementation approach
+- Additional metadata fields 
+- Wallet and dApp integration needs
+- Use cases we should address
+
+## Review and Feedback
+
+Enscribe makes smart contracts easier to trust by giving them human-readable names. This ENSIP extends that mission — moving from basic naming to complete contract identity infrastructure.
+
+Read the full proposal: [ENSIP: Contract Metadata Standard and Text Records](https://github.com/ensdomains/ensips/pull/50)
+
+The proposal includes technical specifications, implementation examples, and design rationale. Whether you build protocols, develop wallets, or use onchain applications, your input helps create better infrastructure.
+
+Join the discussion and help us build standardized, discoverable contract identity for the onchain world.  You can also share your thoughts, suggestions, and any issues you encounter through our [Discord community](https://discord.gg/8QUMMdS5GY), [Telegram](https://t.me/enscribers), or [X](https://x.com/enscribe_).
+
+Happy naming! 🚀
