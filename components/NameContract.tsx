@@ -1993,42 +1993,10 @@ export default function NameContract() {
           </>
         )}
 
-
         {selectedAction === 'subname' && (
-        <>
-        <label className="block text-gray-700 dark:text-gray-300">
-          Parent Domain
-        </label>
-        <Select
-          value={parentType}
-          onValueChange={(e) => {
-            const selected = e as 'web3labs' | 'own' | 'register'
-            setParentType(selected)
-            if (selected === 'web3labs') {
-              setParentName(enscribeDomain)
-            } else if (selected === 'own') {
-              setParentName('')
-              setEnsModalFromPicker(true)
-              setShowENSModal(true)
-              fetchUserOwnedDomains()
-            } else if (selected === 'register') {
-              setShowRegisterDialog(true)
-            }
-          }}
-        >
-          <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-            <SelectValue className="text-gray-900" />
-          </SelectTrigger>
-          <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
-            <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
-            <SelectItem value="own">My Own Domain</SelectItem>
-            <SelectItem value="register">Register New Name</SelectItem>
-          </SelectContent>
-        </Select>
-        {parentType === 'own' && (
           <>
             <label className="block text-gray-700 dark:text-gray-300">
-              Parent Name
+              Parent Domain
             </label>
             {fetchingENS ? (
               <p className="text-gray-500 dark:text-gray-400">
@@ -2061,8 +2029,6 @@ export default function NameContract() {
               </div>
             )}
           </>
-        )}
-        </>
         )}
 
         {/* Full ENS Name Preview */}
