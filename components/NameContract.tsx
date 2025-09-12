@@ -2021,6 +2021,7 @@ export default function NameContract() {
                     setParentName('')
                     setEnsModalFromPicker(true)
                     setShowENSModal(true)
+                    fetchUserOwnedDomains()
                   }}
                   className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
