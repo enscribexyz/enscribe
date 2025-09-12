@@ -1850,7 +1850,7 @@ export default function NameContract() {
               }
             }}
           >
-            Create Subname
+            Create New Name
           </Button>
           <Button
             type="button"
