@@ -2148,35 +2148,13 @@ export default function NameContract() {
             <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
               Choose Your ENS Parent
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Choose one of your owned ENS domains or enter manually.
-            </DialogDescription>
           </DialogHeader>
 
           {selectedAction === 'subname' && (
             <div className="space-y-6 mb-6">
-              {/* Choose Enscribe's Domain */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
-                  Choose Enscribe's Domain
-                </h3>
-                <div
-                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
-                  onClick={() => {
-                    setParentName(enscribeDomain)
-                    setEnsNameChosen(true)
-                    setShowENSModal(false)
-                  }}
-                >
-                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                    {enscribeDomain}
-                  </span>
-                </div>
-              </div>
-
               {/* Choose Your Own Domain */}
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-3">
                   Choose Your Own Domain
                 </h3>
                 {userOwnedDomains.length > 0 ? (
@@ -2289,17 +2267,26 @@ export default function NameContract() {
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
-                <Button
-                  variant="outline"
+              {/* Choose Enscribe's Domain */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-3">
+                  Choose Enscribe's Domain
+                </h3>
+                <div
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
                   onClick={() => {
-                    setParentName('')
+                    setParentName(enscribeDomain)
+                    setEnsNameChosen(true)
                     setShowENSModal(false)
                   }}
-                  className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
-                  Enter manually
-                </Button>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                    {enscribeDomain}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
                 <Button
                   onClick={() => {
                     setEnsModalFromPicker(false)
@@ -2465,18 +2452,6 @@ export default function NameContract() {
                   )}
 
                   <div className="flex justify-end gap-3 mt-6">
-                    {ensModalFromPicker && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setParentName('')
-                          setShowENSModal(false)
-                        }}
-                        className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
-                      >
-                        Enter manually
-                      </Button>
-                    )}
                     <Button
                       onClick={() => {
                         setEnsModalFromPicker(false)
