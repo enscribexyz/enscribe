@@ -2262,6 +2262,20 @@ export default function NameContract() {
                               </div>
                             </div>
                           )}
+
+                          {/* Register New Domain button */}
+                          <div className="pt-4">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setShowRegisterDialog(true)
+                                setShowENSModal(false)
+                              }}
+                              className="w-full hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                            >
+                              Register New Domain
+                            </Button>
+                          </div>
                         </div>
                       )
                     })()}
