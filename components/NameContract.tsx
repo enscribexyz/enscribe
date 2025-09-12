@@ -2249,7 +2249,7 @@ export default function NameContract() {
                                 setShowRegisterDialog(true)
                                 setShowENSModal(false)
                               }}
-                              className="w-full hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                              className="w-full bg-gray-900 hover:bg-gray-800 text-white"
                             >
                               Register New Domain
                             </Button>
