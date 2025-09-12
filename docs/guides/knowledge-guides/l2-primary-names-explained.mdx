@@ -1,0 +1,168 @@
+---
+sidebar_position: 8
+sidebar_label: "What is an ENS L2 Primary Name?"
+---
+
+# What is an ENS L2 Primary Name?
+
+Learn about L2 primary names - a new ENS feature that enables setting primary names directly on Layer 2 networks, making multi-chain identity management simpler and more cost-effective.
+
+## Why L2 Primary Names Matter
+
+Prior to August 2025, setting an ENS primary name required a transaction on Ethereum Mainnet, and only worked in L1 Ethereum. Since most user activity now happens on L2 networks like Arbitrum, Base, and Optimism, this created a poor user experience.
+
+L2 primary names solve this by allowing you to set primary names directly on Layer 2 networks, with automatic fallback to a default primary name on Ethereum.
+
+:::tip Visual Comparison
+**Before L2 Primary Names**: Set primary name only on Ethereum → expensive, limited  
+**With L2 Primary Names**: Set primary names on each L2 → cheaper, network-specific
+:::
+
+L2 primary names were enabled with the [ENSIP-19](https://docs.ens.domains/ensip/19/) standard.
+
+## Understanding Primary Names vs Reverse Records
+
+According to the [ENS documentation](https://docs.ens.domains/web/reverse#l2-primary-names), it's important to understand the difference:
+
+**Reverse Record**: A mapping from an address to an ENS name (only part of a primary name)  
+**Primary Name**: A complete bi-directional relationship where:
+1. The ENS name resolves to your address (forward resolution)
+2. Your address resolves back to the ENS name (reverse resolution)
+
+For a primary name to work, **both directions must be properly configured**.
+
+## Supported Networks
+
+L2 primary names are now available on these networks:
+
+| Network | Mainnet | Testnet |
+|---------|---------|---------|
+| **Arbitrum** | ✅ | ✅ Sepolia |
+| **Base** | ✅ | ✅ Sepolia |
+| **Linea** | ✅ | ✅ Sepolia |
+| **OP Mainnet** | ✅ | ✅ Sepolia |
+| **Scroll** | ✅ | ✅ Sepolia |
+
+## How L2 Primary Names Work
+
+### The Verification Process
+
+The key concept is that **the forward address for a given chain must match the reverse record on that chain's reverse registrar**.
+
+**Example scenario:**
+1. You own `alice.eth` 
+2. It resolves to `0x1234...5678` on Ethereum
+3. You call `setName("alice.eth")` on Base reverse registrar
+4. **This doesn't work yet** because `alice.eth` only has an Ethereum address set
+
+**To fix this:**
+1. Set the Base address for `alice.eth` by calling:
+```solidity
+setAddr(
+  namehash("alice.eth"), 
+  2147483653, // Base coin type
+  0x1234...5678 // your address
+)
+```
+2. Now both directions work:
+   - `alice.eth` → `0x1234...5678` on Base (forward)
+   - `0x1234...5678` → `alice.eth` on Base (reverse)
+
+### Network Coin Types
+
+Each network has a unique identifier for multi-chain resolution:
+
+| Network | Coin Type |
+|---------|-----------|
+| Ethereum | `60` |
+| Arbitrum | `2147483652` |
+| Base | `2147483653` |
+| Linea | `2147483656` |
+| OP Mainnet | `2147483658` |
+| Scroll | `2147483657` |
+
+## Default vs Network-Specific Primary Names
+
+### Default Primary Name
+- Set on Ethereum Mainnet
+- Works as fallback across all networks
+- Best for users with same address everywhere
+- Requires ETH on Ethereum for gas
+
+### Network-Specific Primary Names  
+- Set individually on each L2
+- Overrides default primary name on that network
+- Best for different names per network
+- Requires ETH on that specific L2 for gas
+
+### Choosing Your Strategy
+
+**Use Default Primary Name when:**
+- You want the same ENS name across all networks
+- You use the same address on all chains
+- You want simple, universal setup
+
+**Use Network-Specific Primary Names when:**
+- You want different primary names on different networks
+- Your contract addresses differ across chains
+- You want granular control per network
+
+## Setting Up L2 Primary Names with Enscribe
+
+### Prerequisites
+- ENS name registered and configured
+- Contract deployed on target L2 networks
+- ETH for gas on Ethereum (for address records)
+- ETH for gas on target L2 networks (for primary names)
+
+### Process Overview
+
+**For Wallets:**
+1. Go to [primary.ens.domains](https://primary.ens.domains)
+2. Connect your wallet and search your ENS name
+3. Choose "Default" for universal setup or specific networks for targeted setup
+4. Complete transactions for both forward and reverse resolution
+
+**For Smart Contracts:**
+1. Use Enscribe's L2 primary name feature
+2. Connect to Ethereum mainnet first
+3. Select target L2 networks
+4. Complete multi-chain setup process
+
+## Sync Times and Status
+
+After setting primary names, sync times vary by network:
+
+| Network | Sync Time |
+|---------|-----------|
+| Ethereum | ~1 block |
+| Base | ~6 hours |
+| Arbitrum | ~6 hours |
+| OP Mainnet | ~6 hours |
+| Linea | 8-24 hours |
+| Scroll | ~1 hour |
+
+## Common Use Cases
+
+### Multi-Chain DeFi Protocol
+```
+protocol.mydefi.eth
+├── Ethereum: 0xabc...123
+├── Arbitrum: 0xabc...123 (same address)
+├── Base: 0xdef...456 (different address)
+└── Optimism: 0xabc...123 (same address)
+```
+
+### Personal Wallet Identity
+```
+alice.eth (default on Ethereum)
+├── Arbitrum: Uses default alice.eth
+├── Base: alice-base.eth (network-specific)
+└── OP Mainnet: Uses default alice.eth
+```
+
+---
+
+**Ready to set up L2 primary names?** Visit [primary.ens.domains](https://primary.ens.domains) for wallets or use Enscribe's L2 naming features for smart contracts.
+
+*Making ENS work seamlessly across all networks.* 🌐

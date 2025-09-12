@@ -1,0 +1,196 @@
+---
+sidebar_position: 4
+sidebar_label: "Name Existing Smart Contract"
+---
+
+# How to Name Your Smart Contract with ENS on Ethereum
+
+Already have a smart contract deployed on Ethereum? Learn how to give it a human-readable ENS name using Enscribe, making your contract more discoverable and trustworthy.
+
+:::tip Visual Comparison
+**Before**: `0x742d35cc567890c000c000c07c81c25d7df34793`
+**After**: `my-defi-vault.eth`
+:::
+
+## What You'll Learn
+
+This guides covers:
+
+1. **Understanding contract compatibility** for ENS naming
+2. **Using Enscribe's Name Contract tool** for existing contracts
+4. **Managing the naming process** step-by-step
+5. **Troubleshooting common issues**
+
+## Prerequisites
+
+Before you begin:
+
+- **Contract deployed** on Ethereum (mainnet or testnet)
+- **Web3 wallet** connected (MetaMask, Safe, WalletConnect, etc.)
+- **Contract ownership** or proper permissions
+- **ETH for gas** fees on your chosen network
+
+## Understanding Contract Types and ENS Resolution
+
+Not all contracts support the same level of ENS naming. Enscribe automatically detects your contract type and add transactions to set forward and primary name accordingly.
+
+### Contract Compatibility Check
+
+Enscribe classifies contracts into two categories:
+
+| Contract Type | Forward Resolution | Primary Name (Reverse Resolution) |
+|---------------|-------------------|-----------------------------------|
+| **Compatible Contracts**<br/>*Ownable, ERC173, ReverseClaimer* | Yes | Yes |
+| **Other Contracts**<br/>*No ownership interface* | Yes | No |
+
+### What This Means
+
+**Forward Resolution** (ENS name → contract address)
+- Anyone can set this mapping
+- Makes your contract findable by ENS name
+- Example: `my-vault.eth` resolves to `0x742d35...`
+
+**Primary Name/Reverse Resolution** (contract address → ENS name)
+- Only the contract or its owner can set this
+- Shows ENS name when users look up the contract address
+- Example: `0x742d35...` displays as `my-vault.eth` in wallets
+
+Enscribe automatically detects the type of your contract so you don't need to know the technical details.
+
+## Step-by-Step Naming Process
+
+### Step 1: Access the Name Contract Tool
+
+1. Go to [enscribe.xyz](https://enscribe.xyz)
+2. Click **"Name Contract"** in the navigation or use the direct link: [app.enscribe.xyz/nameContract](https://app.enscribe.xyz/nameContract)
+3. Connect your wallet
+4. Select the Ethereum Mainnet network
+
+### Step 2: Enter Contract Information
+
+#### Contract Address
+
+- Enter the address of your deployed contract
+- Enscribe will automatically detect the contract type
+- If you see a green checkmark saying contract implements required interfaces(Ownable, ReverseClaimer), your contract supports primary names
+
+#### Choose Your ENS Name
+
+**Label Name**: The subdomain for your contract
+- Use descriptive names: `defi-vault`, `nft-marketplace`, `dao-governance`
+- You can auto generate a label name using the "Generate Name" button
+
+**ENS Parent Domain**: Choose where to create your subdomain
+
+**Option 1: Enscribe-Provided Parent** (Recommended for beginners)
+- No additional permissions needed
+- Instant setup
+- Your contract gets: `your-label.deployd.eth`
+
+**Option 2: Your Own ENS Domain**
+- Requires you to own an ENS domain
+- More control over branding
+- Your contract gets: `your-label.yourdomain.eth`
+- Better for established projects
+
+### Step 3: Review and Execute
+
+1. **Review details**: Double-check contract address and ENS name
+2. **Start naming**: Click "Name Contract"
+3. **Sign transactions**: Enscribe will open a modal with all the steps, approve each transaction in your wallet
+
+Based on your contract type , you'll see different number of trasanctions:
+
+**Your own ENS domain without ERC173/ReverseClaimer**
+1. Create subdomain
+2. Set forward resolution
+
+**Your own ENS domain + Primary name:**
+1. Create subdomain
+2. Set forward resolution
+3. Set primary name
+
+### Step 5: Verify Success
+
+After completion, you'll see a success modal with:
+- Contract address
+- Your new ENS name for the contract
+- Links to view txs on block explorer
+- Share on X/Twitter and Farcaster
+
+## Using Safe Wallet for Contract Naming
+
+If you're using a Safe wallet (multi-signature), the process works slightly differently:
+
+### Safe Wallet Setup
+
+1. **Connect via WalletConnect**:
+   - Choose WalletConnect in Enscribe
+   - Copy the connection link
+   - Paste in your Safe wallet app
+
+2. **Transaction Approval**:
+   - Transactions are queued in Safe
+   - All signers must approve
+   - Execution happens asynchronously
+
+3. **Benefits**:
+   - Multi-signature security
+   - Team-controlled naming
+   - Transparent approval process
+
+
+## Troubleshooting Common Issues
+
+### Transaction Failures
+
+**Gas Issues**:
+- Increase gas limit in wallet
+- Try during lower network congestion
+- Check you have sufficient ETH
+
+**Permission Errors**:
+- Verify you're the contract owner
+- Check connected wallet address
+- Ensure contract implements required interfaces
+
+
+### Retry Failed Steps
+
+If any transaction fails:
+1. Enscribe detects completed steps
+2. You can retry only failed transactions
+3. No need to start over completely
+
+
+
+## What Happens After Naming?
+
+### In Wallets and dApps
+- Your contract shows its ENS name instead of hex address
+- Users can interact using the readable name
+- Increased trust and recognition
+
+### In Block Explorers
+- Many explorers now support ENS lookups
+- Search for your ENS name to find the contract
+- Enhanced discoverability
+
+
+## Getting Help
+
+### Community Support
+- [Discord](https://discord.gg/8QUMMdS5GY): Real-time community help
+- [Telegram](https://t.me/enscribers): Developer discussions
+- [X/Twitter](https://x.com/enscribe_): Updates and announcements
+
+### Documentation Resources
+- [Complete Docs](/docs): Technical reference
+- Check our [FAQ](/docs/faqs)
+- [Use Cases](/guides/common-patterns): Naming patterns and strategies
+
+---
+
+**Ready to name your contract?** Head to [app.enscribe.xyz/nameContract](https://app.enscribe.xyz/nameContract) and give your smart contract the human-readable identity it deserves.
+
+*Making Ethereum contracts more discoverable, one name at a time.*
