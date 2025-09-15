@@ -120,7 +120,7 @@ export default function AddressSearch({
             console.log(
               'Using hard redirect for resolved ENS to ensure proper contract detection',
             )
-            window.location.href = `/explore/${selectedChain}/${resolvedAddress}`
+            window.location.href = `/explore/${selectedChain}/${cleanedQuery}`
           } else {
             setError("ENS name doesn't resolve to any address")
           }
