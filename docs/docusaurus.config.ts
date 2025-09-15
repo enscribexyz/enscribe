@@ -69,6 +69,12 @@ const config = {
           trackingID: 'G-190T6LGDNH',
           anonymizeIP: true,
         },
+        sitemap: {
+          ignorePatterns: [
+            '/blog/tags/**',
+            '/blog/page/**',
+          ],
+        }
       }),
     ],
   ],
