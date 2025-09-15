@@ -40,16 +40,17 @@ const config = {
       }
     },
     'docusaurus-plugin-image-zoom',
-    [
-      '@docusaurus/plugin-content-docs',
-      {
-        id: 'guides',
-        path: 'guides',
-        routeBasePath: 'guides',
-        sidebarPath: require.resolve('./sidebars.ts'),
-        editUrl: 'https://github.com/enscribexyz/enscribe/tree/main/docs',
-      },
-    ],
+     [
+       '@docusaurus/plugin-content-docs',
+       {
+         id: 'guides',
+         path: 'guides',
+         routeBasePath: 'guides',
+         sidebarPath: require.resolve('./guides-sidebars.ts'),
+         sidebarCollapsed: false,
+         editUrl: 'https://github.com/enscribexyz/enscribe/tree/main/docs',
+       },
+     ],
   ],
 
   markdown: {
@@ -141,10 +142,11 @@ const config = {
             label: "Docs",
           },
           {
-            to: "/guides",
-            label: "Guides",
+            type: "docSidebar",
+            sidebarId: "guidesSidebar",
             position: "left",
-            activeBaseRegex: `/guides/`,
+            label: "Guides",
+            docsPluginId: "guides",
           },
           { to: "/blog", label: "Blog", position: "left" },
           {
