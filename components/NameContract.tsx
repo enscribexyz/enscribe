@@ -201,9 +201,7 @@ export default function NameContract() {
   useEffect(() => {
     if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
       setParentName(config.ENSCRIBE_DOMAIN)
-    } else if (parentType === 'register') {
-      // Don't set parentName for register type - user needs to go to ENS app first
-    }
+    } 
   }, [config, parentType])
 
   const populateName = async () => {
@@ -751,33 +749,14 @@ export default function NameContract() {
       return
     }
 
-    // Check if label looks like a 2LD (has exactly one dot)
-    const isLabel2LD = label.split('.').length === 2 && label.split('.')[0] && label.split('.')[1]
-    
-    if (!sldAsPrimary && !isLabel2LD && label.includes('.')) {
+    if (label.includes('.')) {
       setError("Can't include '.' in label name")
       return
     }
 
-    if (!sldAsPrimary && !isLabel2LD) {
-      if (!parentName.trim()) {
-        setError('Parent name cannot be empty')
-        return
-      }
-    } else if (sldAsPrimary) {
-      // sldAsPrimary mode: ensure label is a valid ENS name (any level)
-      const parts = label.split('.')
-      if (parts.length < 2 || !parts[0] || !parts[parts.length - 1]) {
-        setError('Enter a valid ENS name')
-        return
-      }
-    } else {
-      // 2LD detected: ensure label is a valid 2LD like abhi.eth
-      const parts = label.split('.')
-      if (parts.length !== 2 || !parts[0] || !parts[1]) {
-        setError('Enter a valid second-level domain like abhi.eth')
-        return
-      }
+    if (!parentName.trim()) {
+      setError('Parent name cannot be empty')
+      return
     }
 
     if (!config) {
@@ -797,19 +776,9 @@ export default function NameContract() {
       }
 
       // Compute label/parent from inputs; in SLD mode the label contains the full name
-      let labelNormalized: string
-      let parentNameNormalized: string
-      let name: string
-      if (sldAsPrimary) {
-        const [labelPart, parentPart] = label.split('.')
-        labelNormalized = normalize(labelPart)
-        parentNameNormalized = normalize(parentPart)
-        name = normalize(label)
-      } else {
-        labelNormalized = normalize(label)
-        parentNameNormalized = normalize(parentName)
-        name = normalize(`${labelNormalized}.${parentNameNormalized}`)
-      }
+      const labelNormalized = normalize(label)
+      const parentNameNormalized = normalize(parentName)
+      const name = normalize(`${labelNormalized}.${parentNameNormalized}`)
       const chainId = chain?.id!
 
       // Skip subname creation if a name was selected from dialog
@@ -1263,60 +1232,7 @@ export default function NameContract() {
       }
 
       // Step 3: Set Reverse Resolution (if Primary). If skipL1Naming, omit this.
-      if (!skipL1Naming && isContractOwner && isOwnable) {
-        setIsPrimaryNameSet(true)
-        steps.push({
-          title: 'Set reverse resolution',
-          chainId: chainId, // Add chainId for L1 transaction
-          action: async () => {
-            console.log('set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR')
-            let txn
-            
-            if (isSafeWallet) {
-              writeContract(walletClient, {
-                address: config.REVERSE_REGISTRAR as `0x${string}`,
-                abi: reverseRegistrarABI,
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress,
-                  walletAddress,
-                  publicResolverAddress,
-                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
-                ],
-                account: walletAddress,
-              })
-              txn = 'safe wallet'
-            } else {
-              txn = await writeContract(walletClient, {
-                address: config.REVERSE_REGISTRAR as `0x${string}`,
-                abi: reverseRegistrarABI,
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress,
-                  walletAddress,
-                  publicResolverAddress,
-                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
-                ],
-                account: walletAddress,
-              })
-            }
-            
-            await logMetric(
-              corelationId,
-              Date.now(),
-              chainId,
-              existingContractAddress,
-              walletAddress,
-              skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
-              'revres::setNameForAddr',
-              txn,
-              'Ownable',
-              opType,
-            )
-            return txn
-          },
-        })
-      } else if (!skipL1Naming && isReverseClaimable) {
+      if (isReverseClaimable && !skipL1Naming) {
         setIsPrimaryNameSet(true)
         const addrLabel = existingContractAddress.slice(2).toLowerCase()
         const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
@@ -1334,7 +1250,7 @@ export default function NameContract() {
                 functionName: 'setName',
                 args: [
                   reversedNode,
-                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+                  `${labelNormalized}.${parentNameNormalized}`,
                 ],
                 account: walletAddress,
               })
@@ -1346,7 +1262,7 @@ export default function NameContract() {
                 functionName: 'setName',
                 args: [
                   reversedNode,
-                  skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+                  `${labelNormalized}.${parentNameNormalized}`,
                 ],
                 account: walletAddress,
               })
@@ -1358,10 +1274,63 @@ export default function NameContract() {
               chainId,
               existingContractAddress,
               walletAddress,
-              skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+              name,
               'revres::setName',
               txn,
               'ReverseClaimer',
+              opType,
+            )
+            return txn
+          },
+        })
+      } else if (isContractOwner && isOwnable && !skipL1Naming) {
+        setIsPrimaryNameSet(true)
+        steps.push({
+          title: 'Set reverse resolution',
+          chainId: chainId, // Add chainId for L1 transaction
+          action: async () => {
+            console.log('set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR')
+            let txn
+            
+            if (isSafeWallet) {
+              writeContract(walletClient, {
+                address: config.REVERSE_REGISTRAR as `0x${string}`,
+                abi: reverseRegistrarABI,
+                functionName: 'setNameForAddr',
+                args: [
+                  existingContractAddress,
+                  walletAddress,
+                  publicResolverAddress,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+              txn = 'safe wallet'
+            } else {
+              txn = await writeContract(walletClient, {
+                address: config.REVERSE_REGISTRAR as `0x${string}`,
+                abi: reverseRegistrarABI,
+                functionName: 'setNameForAddr',
+                args: [
+                  existingContractAddress,
+                  walletAddress,
+                  publicResolverAddress,
+                  `${labelNormalized}.${parentNameNormalized}`,
+                ],
+                account: walletAddress,
+              })
+            }
+            
+            await logMetric(
+              corelationId,
+              Date.now(),
+              chainId,
+              existingContractAddress,
+              walletAddress,
+              name,
+              'revres::setNameForAddr',
+              txn,
+              'Ownable',
               opType,
             )
             return txn
