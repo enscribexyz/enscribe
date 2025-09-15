@@ -1282,7 +1282,7 @@ export default function NameContract() {
       }
 
       // Step 3: Set Reverse Resolution (if Primary). If skipL1Naming, omit this.
-      if (!skipL1Naming && (sldAsPrimary || skipSubnameCreation) && isContractOwner && isOwnable) {
+      if (!skipL1Naming && isContractOwner && isOwnable) {
         setIsPrimaryNameSet(true)
         steps.push({
           title: 'Set reverse resolution',
@@ -1335,7 +1335,7 @@ export default function NameContract() {
             return txn
           },
         })
-      } else if (!skipL1Naming && (sldAsPrimary || skipSubnameCreation) && isReverseClaimable) {
+      } else if (!skipL1Naming && isReverseClaimable) {
         setIsPrimaryNameSet(true)
         const addrLabel = existingContractAddress.slice(2).toLowerCase()
         const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
@@ -1844,7 +1844,10 @@ export default function NameContract() {
                 setSelectedAction('subname')
                 // Clear the text field and reset states for subname creation
                 setLabel('')
+                setParentName('')
                 setEnsNameChosen(false)
+                setSldAsPrimary(false) // Reset to subname mode
+                setError('') // Clear any existing errors
                 // TODO: Implement create subname functionality
                 console.log('Create New Name selected')
               }
@@ -1865,6 +1868,10 @@ export default function NameContract() {
               } else {
                 setSelectedAction('pick')
                 setParentName('')
+                setLabel('')
+                setEnsNameChosen(false)
+                setSldAsPrimary(true) // Set to existing name mode
+                setError('') // Clear any existing errors
               }
             }}
           >
