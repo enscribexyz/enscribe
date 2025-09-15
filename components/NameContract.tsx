@@ -420,32 +420,13 @@ export default function NameContract() {
     if (isEmpty(label) || !walletClient) return
 
     // Validate label and parent name before checking
-    // Check if label looks like a 2LD (has exactly one dot)
-    const isLabel2LD = label.split('.').length === 2 && label.split('.')[0] && label.split('.')[1]
-    
-    if (!sldAsPrimary && !isLabel2LD) {
-      if (!parentName.trim()) {
-        setError('Parent name cannot be empty')
-        return
-      }
-      if (label.includes('.')) {
-        setError("Can't include '.' in label name")
-        return
-      }
-    } else if (sldAsPrimary) {
-      // sldAsPrimary mode: ensure label is a valid ENS name (any level)
-      const parts = label.split('.')
-      if (parts.length < 2 || !parts[0] || !parts[parts.length - 1]) {
-        setError('Enter a valid ENS name')
-        return
-      }
-    } else {
-      // 2LD detected: ensure label is a valid 2LD like abhi.eth
-      const parts = label.split('.')
-      if (parts.length !== 2 || !parts[0] || !parts[1]) {
-        setError('Enter a valid second-level domain like abhi.eth')
-        return
-      }
+    if (!parentName.trim()) {
+      setError('Parent name cannot be empty')
+      return
+    }
+    if (label.includes('.')) {
+      setError("Can't include '.' in label name")
+      return
     }
 
     // try {
@@ -2039,12 +2020,12 @@ export default function NameContract() {
           </>
         )}
 
-        {/* Full ENS Name Preview */}
+        {/* Full Contract Name Preview */}
         {((selectedAction === 'subname' && !isEmpty(label) && !isEmpty(parentName)) || 
           (selectedAction === 'pick' && !isEmpty(label))) && (
           <div className="mt-4 mb-4">
             <label className="block text-gray-700 dark:text-gray-300 mb-5">
-              Full ENS Name
+              Full Contract Name
             </label>
             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
               <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
@@ -2289,23 +2270,11 @@ export default function NameContract() {
                       setShowRegisterDialog(true)
                       setShowENSModal(false)
                     }}
-                    className="bg-gray-900 hover:bg-gray-800 text-white"
+                    className="bg-gray-900 text-white rounded-full"
                   >
                     Purchase New Domain
                   </Button>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <Button
-                  onClick={() => {
-                    setEnsModalFromPicker(false)
-                    setShowENSModal(false)
-                  }}
-                  className="bg-gray-900 hover:bg-gray-800 text-white"
-                >
-                  Cancel
-                </Button>
               </div>
             </div>
           )}
