@@ -815,8 +815,8 @@ export default function NameContract() {
       }
       const chainId = chain?.id!
 
-      // Skip subname creation if a name was selected from dialog
-      const skipSubnameCreation = ensNameChosen
+      // Skip subname creation only when not in Create New Name flow
+      const skipSubnameCreation = selectedAction !== 'subname'
 
       const parentNode = selectedAction === 'pick' ? getParentNode(name) : getParentNode(parentNameNormalized)
       // When a name is selected from dialog, use the full name directly
@@ -974,6 +974,7 @@ export default function NameContract() {
         title: titleFirst,
         chainId: chainId, // Add chainId for L1 transaction
         action: async () => {
+          console.log(`nameExist is ${nameExist} parentType is ${parentType}`)
           if (parentType === 'web3labs') {
             const currentAddr = (await readContract(walletClient, {
               address: publicResolverAddress,
@@ -1097,6 +1098,7 @@ export default function NameContract() {
               functionName: 'isWrapped',
               args: [parentNode],
             })
+            console.log(`nameExist is ${nameExist}`)
             if (!nameExist) {
               if (isWrapped) {
                 console.log('create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER')
@@ -1830,7 +1832,7 @@ export default function NameContract() {
                 setSelectedAction('subname')
                 // Clear the text field and reset states for subname creation
                 setLabel('')
-                setParentName('')
+                setParentName(enscribeDomain)
                 setEnsNameChosen(false)
                 setSldAsPrimary(false) // Reset to subname mode
                 setError('') // Clear any existing errors
@@ -1984,6 +1986,7 @@ export default function NameContract() {
                   value={parentName}
                   onChange={(e) => {
                     setParentName(e.target.value)
+                    setParentType(e.target.value === enscribeDomain ? 'web3labs' : 'own')
                   }}
                   onBlur={async () => {
                     await recordExist()
@@ -2182,6 +2185,7 @@ export default function NameContract() {
                                     className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
                                     onClick={() => {
                                       setParentName(domain)
+                                      setParentType(domain === enscribeDomain ? 'web3labs' : 'own')
                                       setEnsNameChosen(true)
                                       setShowENSModal(false)
                                     }}
@@ -2205,6 +2209,7 @@ export default function NameContract() {
                                     className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
                                     onClick={() => {
                                       setParentName(domain)
+                                      setParentType(domain === enscribeDomain ? 'web3labs' : 'own')
                                       setEnsNameChosen(true)
                                       setShowENSModal(false)
                                     }}
@@ -2240,6 +2245,7 @@ export default function NameContract() {
                   className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
                   onClick={() => {
                     setParentName(enscribeDomain)
+                    setParentType('web3labs')
                     setEnsNameChosen(true)
                     setShowENSModal(false)
                   }}
