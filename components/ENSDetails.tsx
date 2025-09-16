@@ -406,8 +406,12 @@ export default function ENSDetails({
       }),
     })
 
-    const attestations = await response.json()
-    setHasAttestations(attestations.data.attestations.length === 0)
+    try {
+      const attestations = await response.json()
+      setHasAttestations(attestations.data.attestations.length === 0)
+    } catch(err) {
+      setHasAttestations(false)
+    }
   }, [address])
 
   // Function to fetch primary ENS name for an address

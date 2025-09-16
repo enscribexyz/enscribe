@@ -418,11 +418,14 @@ export default function NameContract() {
     if (isEmpty(label) || !walletClient) return
 
     // Validate label and parent name before checking
-    if (!parentName.trim()) {
+    // Only require parentName for "Create New Name" flow
+    console.log('checkENSReverseResolution - selectedAction:', selectedAction, 'parentName:', parentName)
+    if (selectedAction !== 'pick' && !parentName.trim()) {
       setError('Parent name cannot be empty')
       return
     }
-    if (label.includes('.')) {
+    // In "use existing name" flow, allow dots in label (full name is allowed)
+    if (selectedAction !== 'pick' && label.includes('.')) {
       setError("Can't include '.' in label name")
       return
     }
@@ -728,6 +731,12 @@ export default function NameContract() {
     setError('')
     if (!walletClient || !walletAddress) return
 
+    // Force clear error for "Use Existing Name" flow
+    if (selectedAction === 'pick') {
+      console.log('setPrimaryName - Use Existing Name flow detected, clearing any existing errors')
+      setError('')
+    }
+
     if (isUnsupportedL2Chain) {
       setError(
         `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
@@ -749,12 +758,19 @@ export default function NameContract() {
       return
     }
 
-    if (label.includes('.')) {
+    // In "use existing name" flow, allow dots in label (full name is allowed)
+    if (selectedAction !== 'pick' && label.includes('.')) {
       setError("Can't include '.' in label name")
       return
     }
 
-    if (!parentName.trim()) {
+    // Only require parentName for "Create New Name" flow
+    console.log('setPrimaryName - selectedAction:', selectedAction, 'parentName:', parentName)
+    console.log('setPrimaryName - selectedAction !== "pick":', selectedAction !== 'pick')
+    console.log('setPrimaryName - !parentName.trim():', !parentName.trim())
+    console.log('setPrimaryName - condition result:', selectedAction !== 'pick' && !parentName.trim())
+    if (selectedAction !== 'pick' && !parentName.trim()) {
+      console.log('setPrimaryName - Setting error: Parent name cannot be empty')
       setError('Parent name cannot be empty')
       return
     }
@@ -776,20 +792,40 @@ export default function NameContract() {
       }
 
       // Compute label/parent from inputs; in SLD mode the label contains the full name
-      const labelNormalized = normalize(label)
-      const parentNameNormalized = normalize(parentName)
-      const name = normalize(`${labelNormalized}.${parentNameNormalized}`)
+      let labelNormalized: string
+      let parentNameNormalized: string
+      let name: string
+      
+      if (selectedAction === 'pick') {
+        // Use Existing Name flow: label contains the full ENS name
+        labelNormalized = normalize(label)
+        parentNameNormalized = '' // Not used in this flow
+        // Remove any trailing dots before normalizing
+        const cleanedLabel = label.replace(/\.$/, '')
+        name = normalize(cleanedLabel)
+        console.log('Use Existing Name flow - label:', label, 'cleanedLabel:', cleanedLabel, 'labelNormalized:', labelNormalized, 'name:', name)
+      } else {
+        // Create New Name flow: construct from label and parent
+        labelNormalized = normalize(label)
+        parentNameNormalized = normalize(parentName)
+        // Remove any trailing dots before constructing the name
+        const constructedName = `${labelNormalized}.${parentNameNormalized}`.replace(/\.$/, '')
+        name = normalize(constructedName)
+        console.log('Create New Name flow - label:', label, 'parentName:', parentName, 'labelNormalized:', labelNormalized, 'parentNameNormalized:', parentNameNormalized, 'constructedName:', constructedName, 'name:', name)
+      }
       const chainId = chain?.id!
 
       // Skip subname creation if a name was selected from dialog
       const skipSubnameCreation = ensNameChosen
 
-      const parentNode = getParentNode(parentNameNormalized)
+      const parentNode = selectedAction === 'pick' ? getParentNode(name) : getParentNode(parentNameNormalized)
       // When a name is selected from dialog, use the full name directly
       const node = skipSubnameCreation 
         ? namehash(label) // Use the full selected name
-        : namehash(labelNormalized + '.' + parentNameNormalized) // Construct from parts
-      const labelHash = keccak256(toBytes(labelNormalized))
+        : namehash(name) // Use the constructed name
+      const labelHash = selectedAction === 'pick' 
+        ? keccak256(toBytes(name.split('.')[0])) // Extract label part from full name
+        : keccak256(toBytes(labelNormalized))
 
       const nameExist = (await readContract(walletClient, {
         address: config.ENS_REGISTRY as `0x${string}`,
@@ -1250,7 +1286,7 @@ export default function NameContract() {
                 functionName: 'setName',
                 args: [
                   reversedNode,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1262,7 +1298,7 @@ export default function NameContract() {
                 functionName: 'setName',
                 args: [
                   reversedNode,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1301,7 +1337,7 @@ export default function NameContract() {
                   existingContractAddress,
                   walletAddress,
                   publicResolverAddress,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1315,7 +1351,7 @@ export default function NameContract() {
                   existingContractAddress,
                   walletAddress,
                   publicResolverAddress,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1494,7 +1530,7 @@ export default function NameContract() {
               console.log(`Executing reverse resolution on ${l2Chain.name}...`)
               console.log('L2 Reverse Registrar:', l2Config.L2_REVERSE_REGISTRAR)
               console.log('Contract Address:', existingContractAddress)
-              console.log('ENS Name:', skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`)
+              console.log('ENS Name:', skipSubnameCreation ? label : name)
               
               // Perform reverse resolution on L2
               let txn
@@ -1524,7 +1560,7 @@ export default function NameContract() {
                   functionName: 'setNameForAddr',
                   args: [
                     existingContractAddress as `0x${string}`,
-                    skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+                    skipSubnameCreation ? label : name,
                   ],
                   account: walletAddress,
                   chain: l2Chain.chain
@@ -1556,7 +1592,7 @@ export default function NameContract() {
                 functionName: 'setNameForAddr',
                 args: [
                   existingContractAddress as `0x${string}`,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
                 chain: l2Chain.chain
@@ -1572,7 +1608,7 @@ export default function NameContract() {
                 l2Chain.chainId,
                 existingContractAddress,
                 walletAddress,
-                skipSubnameCreation ? label : `${labelNormalized}.${parentNameNormalized}`,
+                skipSubnameCreation ? label : name,
                 'revres::setNameForAddr',
                 txn,
                 'L2Primary',
@@ -1882,71 +1918,53 @@ export default function NameContract() {
           )}
         {selectedAction && (
           <>
-            {selectedAction === 'pick' ? (
-              <>
-                <label className="block text-gray-700 dark:text-gray-300">
-                  Contract Name
-                </label>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setEnsModalFromPicker(false)
-                      setShowENSModal(true)
-                      fetchUserOwnedDomains()
-                    }}
-                    className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/50"
-                  >
-                    Select Name
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <label className="block text-gray-700 dark:text-gray-300">
-                  Contract Name
-                </label>
-                <div className={'flex items-center space-x-2'}>
-                  <Input
-                    type="text"
-                    required
-                    value={label}
-                    onChange={(e) => {
-                      const newVal = e.target.value
-                      setLabel(newVal)
-                      // Any manual edit should show the ENS Parent controls again
-                      if (ensNameChosen) {
-                        setEnsNameChosen(false)
-                      }
-                      setError('')
-                      // Auto-enable SLD mode when a dotted 2LD is typed (e.g., abhi.eth)
-                      const dotParts = newVal.split('.')
-                      if (dotParts.length === 2 && dotParts[0] && dotParts[1]) {
-                        if (!sldAsPrimary) {
-                          setSldAsPrimary(true)
-                        }
-                        if (parentName) {
-                          setParentName('')
-                        }
-                      }
-                    }}
-                    onBlur={checkENSReverseResolution}
-                    placeholder="myawesomeapp"
-                    className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
-                  />
-                  <Button
-                    onClick={populateName}
-                    className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
-                  >
-                    <span className="relative z-10 p-2">✨Generate Name</span>
-                    {/* Glow effect on hover */}
-                    <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
-                    {/* Outer glow */}
-                    <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
-                  </Button>
-                </div>
-              </>
-            )}
+            <label className="block text-gray-700 dark:text-gray-300">
+              Contract Name
+            </label>
+            <div className={'flex items-center space-x-2'}>
+              <Input
+                type="text"
+                required
+                value={label}
+                onChange={(e) => {
+                  const newVal = e.target.value
+                  setLabel(newVal)
+                  if (ensNameChosen) {
+                    setEnsNameChosen(false)
+                  }
+                  setError('')
+                }}
+                onBlur={() => {
+                  if (selectedAction === 'subname') {
+                    void checkENSReverseResolution()
+                  }
+                }}
+                placeholder="myawesomeapp"
+                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+              />
+              {selectedAction === 'subname' ? (
+                <Button
+                  onClick={populateName}
+                  className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
+                >
+                  <span className="relative z-10 p-2">✨Generate Name</span>
+                  <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+                  <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setEnsModalFromPicker(false)
+                    setShowENSModal(true)
+                    fetchUserOwnedDomains()
+                  }}
+                  className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/50"
+                >
+                  Select Name
+                </Button>
+              )}
+            </div>
           </>
         )}
 
@@ -2398,18 +2416,6 @@ export default function NameContract() {
                       </p>
                     </div>
                   )}
-
-                  <div className="flex justify-end gap-3 mt-6">
-                    <Button
-                      onClick={() => {
-                        setEnsModalFromPicker(false)
-                        setShowENSModal(false)
-                      }}
-                      className="bg-gray-900 hover:bg-gray-800 text-white"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
                 </div>
               )}
             </>
