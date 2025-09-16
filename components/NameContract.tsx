@@ -2263,7 +2263,7 @@ export default function NameContract() {
                       setShowRegisterDialog(true)
                       setShowENSModal(false)
                     }}
-                    className="bg-gray-900 text-white rounded-full"
+                    className="bg-gray-900 dark:bg-blue-700 text-white rounded-full"
                   >
                     Purchase New Domain
                   </Button>
