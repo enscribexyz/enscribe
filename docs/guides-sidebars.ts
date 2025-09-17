@@ -20,11 +20,11 @@ const sidebars: SidebarsConfig = {
       id: 'index',
       label: 'Welcome to the Guides',
     },
-    {
-      type: 'doc',
-      id: 'common-patterns',
-      label: 'Common Patterns',
-    },
+    // {
+    //   type: 'doc',
+    //   id: 'common-patterns',
+    //   label: 'Common Patterns',
+    // },
     {
       type: 'category',
       label: 'How To Guides',
