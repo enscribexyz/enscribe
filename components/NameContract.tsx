@@ -56,7 +56,8 @@ export default function NameContract() {
 
   const [existingContractAddress, setExistingContractAddress] = useState('')
   const [label, setLabel] = useState('')
-  const [parentType, setParentType] = useState<'web3labs' | 'own'>('web3labs')
+  const [parentType, setParentType] = useState<'web3labs' | 'own' | 'register'>('web3labs')
+  const [showRegisterDialog, setShowRegisterDialog] = useState(false)
   const [parentName, setParentName] = useState(enscribeDomain)
   const [fetchingENS, setFetchingENS] = useState(false)
   const [userOwnedDomains, setUserOwnedDomains] = useState<string[]>([])
@@ -89,6 +90,10 @@ export default function NameContract() {
   const [skipL1Naming, setSkipL1Naming] = useState<boolean>(false)
   const [showL2Modal, setShowL2Modal] = useState<boolean>(false)
   const [isSafeWallet, setIsSafeWallet] = useState(false)
+  const [sldAsPrimary, setSldAsPrimary] = useState<boolean>(true)
+  const [ensModalFromPicker, setEnsModalFromPicker] = useState<boolean>(false)
+  const [ensNameChosen, setEnsNameChosen] = useState<boolean>(false)
+  const [selectedAction, setSelectedAction] = useState<'subname' | 'pick' | null>(null)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -196,7 +201,7 @@ export default function NameContract() {
   useEffect(() => {
     if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
       setParentName(config.ENSCRIBE_DOMAIN)
-    }
+    } 
   }, [config, parentType])
 
   const populateName = async () => {
@@ -413,11 +418,14 @@ export default function NameContract() {
     if (isEmpty(label) || !walletClient) return
 
     // Validate label and parent name before checking
-    if (!parentName.trim()) {
+    // Only require parentName for "Create New Name" flow
+    console.log('checkENSReverseResolution - selectedAction:', selectedAction, 'parentName:', parentName)
+    if (selectedAction !== 'pick' && !parentName.trim()) {
       setError('Parent name cannot be empty')
       return
     }
-    if (label.includes('.')) {
+    // In "use existing name" flow, allow dots in label (full name is allowed)
+    if (selectedAction !== 'pick' && label.includes('.')) {
       setError("Can't include '.' in label name")
       return
     }
@@ -723,6 +731,12 @@ export default function NameContract() {
     setError('')
     if (!walletClient || !walletAddress) return
 
+    // Force clear error for "Use Existing Name" flow
+    if (selectedAction === 'pick') {
+      console.log('setPrimaryName - Use Existing Name flow detected, clearing any existing errors')
+      setError('')
+    }
+
     if (isUnsupportedL2Chain) {
       setError(
         `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
@@ -744,12 +758,19 @@ export default function NameContract() {
       return
     }
 
-    if (label.includes('.')) {
+    // In "use existing name" flow, allow dots in label (full name is allowed)
+    if (selectedAction !== 'pick' && label.includes('.')) {
       setError("Can't include '.' in label name")
       return
     }
 
-    if (!parentName.trim()) {
+    // Only require parentName for "Create New Name" flow
+    console.log('setPrimaryName - selectedAction:', selectedAction, 'parentName:', parentName)
+    console.log('setPrimaryName - selectedAction !== "pick":', selectedAction !== 'pick')
+    console.log('setPrimaryName - !parentName.trim():', !parentName.trim())
+    console.log('setPrimaryName - condition result:', selectedAction !== 'pick' && !parentName.trim())
+    if (selectedAction !== 'pick' && !parentName.trim()) {
+      console.log('setPrimaryName - Setting error: Parent name cannot be empty')
       setError('Parent name cannot be empty')
       return
     }
@@ -770,14 +791,41 @@ export default function NameContract() {
         return
       }
 
-      const labelNormalized = normalize(label)
-      const parentNameNormalized = normalize(parentName)
-      const name = normalize(`${labelNormalized}.${parentNameNormalized}`)
+      // Compute label/parent from inputs; in SLD mode the label contains the full name
+      let labelNormalized: string
+      let parentNameNormalized: string
+      let name: string
+      
+      if (selectedAction === 'pick') {
+        // Use Existing Name flow: label contains the full ENS name
+        labelNormalized = normalize(label)
+        parentNameNormalized = '' // Not used in this flow
+        // Remove any trailing dots before normalizing
+        const cleanedLabel = label.replace(/\.$/, '')
+        name = normalize(cleanedLabel)
+        console.log('Use Existing Name flow - label:', label, 'cleanedLabel:', cleanedLabel, 'labelNormalized:', labelNormalized, 'name:', name)
+      } else {
+        // Create New Name flow: construct from label and parent
+        labelNormalized = normalize(label)
+        parentNameNormalized = normalize(parentName)
+        // Remove any trailing dots before constructing the name
+        const constructedName = `${labelNormalized}.${parentNameNormalized}`.replace(/\.$/, '')
+        name = normalize(constructedName)
+        console.log('Create New Name flow - label:', label, 'parentName:', parentName, 'labelNormalized:', labelNormalized, 'parentNameNormalized:', parentNameNormalized, 'constructedName:', constructedName, 'name:', name)
+      }
       const chainId = chain?.id!
 
-      const parentNode = getParentNode(parentNameNormalized)
-      const node = namehash(labelNormalized + '.' + parentNameNormalized)
-      const labelHash = keccak256(toBytes(labelNormalized))
+      // Skip subname creation only when not in Create New Name flow
+      const skipSubnameCreation = selectedAction !== 'subname'
+
+      const parentNode = selectedAction === 'pick' ? getParentNode(name) : getParentNode(parentNameNormalized)
+      // When a name is selected from dialog, use the full name directly
+      const node = skipSubnameCreation 
+        ? namehash(label) // Use the full selected name
+        : namehash(name) // Use the constructed name
+      const labelHash = selectedAction === 'pick' 
+        ? keccak256(toBytes(name.split('.')[0])) // Extract label part from full name
+        : keccak256(toBytes(labelNormalized))
 
       const nameExist = (await readContract(walletClient, {
         address: config.ENS_REGISTRY as `0x${string}`,
@@ -920,11 +968,13 @@ export default function NameContract() {
 
       const titleFirst = parentType === 'web3labs' ? (skipL1Naming ? 'Create subname' : 'Set forward resolution') : 'Create subname'
 
-      // Step 1: Create Subname
-      steps.push({
+      // Step 1: Create Subname (skip if using existing name)
+      if (!skipSubnameCreation) {
+        steps.push({
         title: titleFirst,
         chainId: chainId, // Add chainId for L1 transaction
         action: async () => {
+          console.log(`nameExist is ${nameExist} parentType is ${parentType}`)
           if (parentType === 'web3labs') {
             const currentAddr = (await readContract(walletClient, {
               address: publicResolverAddress,
@@ -1048,6 +1098,7 @@ export default function NameContract() {
               functionName: 'isWrapped',
               args: [parentNode],
             })
+            console.log(`nameExist is ${nameExist}`)
             if (!nameExist) {
               if (isWrapped) {
                 console.log('create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER')
@@ -1153,10 +1204,13 @@ export default function NameContract() {
             }
           }
         },
-      })
+        })
+      }
 
-      // Step 2: Set Forward Resolution (if not web3labs). If skipL1Naming, omit this.
-      if (parentType != 'web3labs' && !skipL1Naming) {
+      // Step 2: Set Forward Resolution
+      // For existing names, always set forward resolution (even for web3labs), since we skip subname creation.
+      // For new names, set forward only if parentType is not 'web3labs'. If skipL1Naming, omit this.
+      if (!skipL1Naming && (skipSubnameCreation || parentType != 'web3labs')) {
         steps.push({
           title: 'Set forward resolution',
           chainId: chainId, // Add chainId for L1 transaction
@@ -1234,7 +1288,7 @@ export default function NameContract() {
                 functionName: 'setName',
                 args: [
                   reversedNode,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1246,7 +1300,7 @@ export default function NameContract() {
                 functionName: 'setName',
                 args: [
                   reversedNode,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1285,7 +1339,7 @@ export default function NameContract() {
                   existingContractAddress,
                   walletAddress,
                   publicResolverAddress,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1299,7 +1353,7 @@ export default function NameContract() {
                   existingContractAddress,
                   walletAddress,
                   publicResolverAddress,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
               })
@@ -1478,7 +1532,7 @@ export default function NameContract() {
               console.log(`Executing reverse resolution on ${l2Chain.name}...`)
               console.log('L2 Reverse Registrar:', l2Config.L2_REVERSE_REGISTRAR)
               console.log('Contract Address:', existingContractAddress)
-              console.log('ENS Name:', `${labelNormalized}.${parentNameNormalized}`)
+              console.log('ENS Name:', skipSubnameCreation ? label : name)
               
               // Perform reverse resolution on L2
               let txn
@@ -1508,7 +1562,7 @@ export default function NameContract() {
                   functionName: 'setNameForAddr',
                   args: [
                     existingContractAddress as `0x${string}`,
-                    `${labelNormalized}.${parentNameNormalized}`,
+                    skipSubnameCreation ? label : name,
                   ],
                   account: walletAddress,
                   chain: l2Chain.chain
@@ -1540,7 +1594,7 @@ export default function NameContract() {
                 functionName: 'setNameForAddr',
                 args: [
                   existingContractAddress as `0x${string}`,
-                  `${labelNormalized}.${parentNameNormalized}`,
+                  name,
                 ],
                 account: walletAddress,
                 chain: l2Chain.chain
@@ -1556,7 +1610,7 @@ export default function NameContract() {
                 l2Chain.chainId,
                 existingContractAddress,
                 walletAddress,
-                `${labelNormalized}.${parentNameNormalized}`,
+                skipSubnameCreation ? label : name,
                 'revres::setNameForAddr',
                 txn,
                 'L2Primary',
@@ -1602,7 +1656,7 @@ export default function NameContract() {
   return (
     <div className="w-full max-w-5xl mx-auto bg-white dark:bg-gray-800 shadow-lg rounded-xl p-8 border border-gray-200 dark:border-gray-700">
       <h2 className="text-3xl font-semibold text-gray-900 dark:text-white">
-        Name Existing Contract
+        Name Contract
       </h2>
       {(!isConnected || isUnsupportedL2Chain) && (
         <p className="text-red-500">
@@ -1633,61 +1687,11 @@ export default function NameContract() {
           className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200}`}
         />
 
-        {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
-        {!isAddressEmpty &&
-          !isAddressInvalid &&
-          isContractExists === false && (
-          <p className="text-red-600 dark:text-red-300">
-            {chain?.name}: Contract doesn't exist
-          </p>
-        )}
-        {!isAddressEmpty &&
-          !isAddressInvalid &&
-          isContractExists === true &&
-          !isOwnable &&
-          !isReverseClaimable && (
-          <p className="text-yellow-600 dark:text-yellow-300">
-            {chain?.name}: Contract address does not extend{' '}
-              <Link
-                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Ownable
-              </Link>{' '}
-              or{' '}
-              <Link
-                href="https://eips.ethereum.org/EIPS/eip-173"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                ERC-173
-              </Link>{' '}
-              or{' '}
-              <Link
-                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                ReverseClaimable
-              </Link>
-              . You can only{' '}
-              <Link
-                href="https://docs.ens.domains/learn/resolution#forward-resolution"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                forward resolve
-              </Link>{' '}
-              this name.{' '}
-              <Link
-                href="https://www.enscribe.xyz/docs/"
-                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
-              >
-                Why is this?
-              </Link>
-            </p>
-          )}
+        {/* Contract Status Information */}
         {((!isAddressEmpty && !isContractOwner) ||
           isOwnable ||
           (isReverseClaimable && !isOwnable)) && (
-          <div className="flex flex-col space-y-1">
+          <div className="flex flex-col space-y-1 mt-4">
             {!isAddressEmpty && !isContractOwner && isOwnable && (
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
@@ -1811,63 +1815,165 @@ export default function NameContract() {
             )}
           </div>
         )}
-        <label className="block text-gray-700 dark:text-gray-300">
-          Contract Name
-        </label>
-        <div className={'flex items-center space-x-2'}>
-          <Input
-            type="text"
-            required
-            value={label}
-            onChange={(e) => {
-              setLabel(e.target.value)
-              setError('')
-            }}
-            onBlur={checkENSReverseResolution}
-            placeholder="label"
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-          />
+
+        {/* Toggle Buttons */}
+        <div className="flex items-center gap-2 mt-4">
           <Button
-            onClick={populateName}
-            className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
+            type="button"
+            className={`${
+              selectedAction === 'subname'
+                ? 'bg-green-600 text-white ring-2 ring-green-500 ring-offset-2 dark:bg-green-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-green-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-green-800'
+            }`}
+            onClick={() => {
+              if (selectedAction === 'subname') {
+                setSelectedAction(null)
+              } else {
+                setSelectedAction('subname')
+                // Clear the text field and reset states for subname creation
+                setLabel('')
+                setParentName(enscribeDomain)
+                setEnsNameChosen(false)
+                setSldAsPrimary(false) // Reset to subname mode
+                setError('') // Clear any existing errors
+                // TODO: Implement create subname functionality
+                console.log('Create New Name selected')
+              }
+            }}
           >
-            <span className="relative z-10 p-2">✨Generate Name</span>
-            {/* Glow effect on hover */}
-            <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
-            {/* Outer glow */}
-            <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+            Create New Name
+          </Button>
+          <Button
+            type="button"
+            className={`${
+              selectedAction === 'pick'
+                ? 'bg-blue-600 text-white ring-2 ring-blue-500 ring-offset-2 dark:bg-blue-700'
+                : 'bg-gray-200 text-gray-700 hover:bg-blue-100 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-blue-800'
+            }`}
+            onClick={() => {
+              if (selectedAction === 'pick') {
+                setSelectedAction(null)
+              } else {
+                setSelectedAction('pick')
+                setParentName('')
+                setLabel('')
+                setEnsNameChosen(false)
+                setSldAsPrimary(true) // Set to existing name mode
+                setError('') // Clear any existing errors
+              }
+            }}
+          >
+            Use Existing Name
           </Button>
         </div>
 
-        <label className="block text-gray-700 dark:text-gray-300">
-          ENS Parent
-        </label>
-        <Select
-          value={parentType}
-          onValueChange={(e) => {
-            const selected = e as 'web3labs' | 'own'
-            setParentType(selected)
-            if (selected === 'web3labs') {
-              setParentName(enscribeDomain)
-            } else {
-              setParentName('')
-              setShowENSModal(true)
-              fetchUserOwnedDomains()
-            }
-          }}
-        >
-          <SelectTrigger className="bg-white text-gray-900 border border-gray-300 rounded-md p-3 focus:ring-2 focus:ring-indigo-500">
-            <SelectValue className="text-gray-900" />
-          </SelectTrigger>
-          <SelectContent className="bg-white text-gray-900 border border-gray-300 rounded-md">
-            <SelectItem value="web3labs">{enscribeDomain}</SelectItem>
-            <SelectItem value="own">Your ENS Parent</SelectItem>
-          </SelectContent>
-        </Select>
-        {parentType === 'own' && (
+        {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
+        {!isAddressEmpty &&
+          !isAddressInvalid &&
+          isContractExists === false && (
+          <p className="text-red-600 dark:text-red-300">
+            {chain?.name}: Contract doesn't exist
+          </p>
+        )}
+        {!isAddressEmpty &&
+          !isAddressInvalid &&
+          isContractExists === true &&
+          !isOwnable &&
+          !isReverseClaimable && (
+          <p className="text-yellow-600 dark:text-yellow-300">
+            {chain?.name}: Contract address does not extend{' '}
+              <Link
+                href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Ownable
+              </Link>{' '}
+              or{' '}
+              <Link
+                href="https://eips.ethereum.org/EIPS/eip-173"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                ERC-173
+              </Link>{' '}
+              or{' '}
+              <Link
+                href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                ReverseClaimable
+              </Link>
+              . You can only{' '}
+              <Link
+                href="https://docs.ens.domains/learn/resolution#forward-resolution"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                forward resolve
+              </Link>{' '}
+              this name.{' '}
+              <Link
+                href="https://www.enscribe.xyz/docs/"
+                className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
+              >
+                Why is this?
+              </Link>
+            </p>
+          )}
+        {selectedAction && (
           <>
             <label className="block text-gray-700 dark:text-gray-300">
-              Parent Name
+              Contract Name
+            </label>
+            <div className={'flex items-center space-x-2'}>
+              <Input
+                type="text"
+                required
+                value={label}
+                onChange={(e) => {
+                  const newVal = e.target.value
+                  setLabel(newVal)
+                  if (ensNameChosen) {
+                    setEnsNameChosen(false)
+                  }
+                  setError('')
+                }}
+                onBlur={() => {
+                  if (selectedAction === 'subname') {
+                    void checkENSReverseResolution()
+                  }
+                }}
+                placeholder="myawesomeapp"
+                className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
+              />
+              {selectedAction === 'subname' ? (
+                <Button
+                  onClick={populateName}
+                  className="relative overflow-hidden bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white hover:shadow-xl hover:shadow-pink-500/50 focus:ring-4 focus:ring-pink-500/50 group transition-all duration-300 hover:-translate-y-1 p-2.5 font-medium"
+                >
+                  <span className="relative z-10 p-2">✨Generate Name</span>
+                  <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0 opacity-0 group-hover:opacity-100 group-hover:animate-shine pointer-events-none blur-sm"></span>
+                  <span className="absolute -inset-1 rounded-md bg-gradient-to-r from-purple-600 via-pink-500 to-red-500 opacity-0 group-hover:opacity-70 group-hover:blur-md transition-all duration-300 pointer-events-none"></span>
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setEnsModalFromPicker(false)
+                    setShowENSModal(true)
+                    fetchUserOwnedDomains()
+                  }}
+                  className="bg-blue-600 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-500/50"
+                >
+                  Select Name
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+
+        {selectedAction === 'subname' && (
+          <>
+            <label className="block text-gray-700 dark:text-gray-300">
+              Parent Domain
             </label>
             {fetchingENS ? (
               <p className="text-gray-500 dark:text-gray-400">
@@ -1880,6 +1986,7 @@ export default function NameContract() {
                   value={parentName}
                   onChange={(e) => {
                     setParentName(e.target.value)
+                    setParentType(e.target.value === enscribeDomain ? 'web3labs' : 'own')
                   }}
                   onBlur={async () => {
                     await recordExist()
@@ -1890,26 +1997,29 @@ export default function NameContract() {
                 <Button
                   onClick={() => {
                     setParentName('')
+                    setEnsModalFromPicker(true)
                     setShowENSModal(true)
+                    fetchUserOwnedDomains()
                   }}
                   className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
-                  Choose ENS
+                  Select Domain
                 </Button>
               </div>
             )}
           </>
         )}
 
-        {/* Full ENS Name Preview */}
-        {!isEmpty(label) && !isEmpty(parentName) && (
+        {/* Full Contract Name Preview */}
+        {((selectedAction === 'subname' && !isEmpty(label) && !isEmpty(parentName)) || 
+          (selectedAction === 'pick' && !isEmpty(label))) && (
           <div className="mt-4 mb-4">
             <label className="block text-gray-700 dark:text-gray-300 mb-5">
-              Full ENS Name
+              Full Contract Name
             </label>
             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-2 flex items-center">
               <div className="flex-1 font-medium text-blue-800 dark:text-blue-300 text-sm break-all">
-                {`${label}.${parentName}`}
+                {selectedAction === 'pick' ? label : `${label}.${parentName}`}
               </div>
             </div>
           </div>
@@ -2016,155 +2126,305 @@ export default function NameContract() {
         <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-              Choose Your ENS Parent
+              {selectedAction === 'pick' ? 'Choose Your ENS Name' : 'Choose Domain'}
             </DialogTitle>
-            <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Choose one of your owned ENS domains or enter manually.
-            </DialogDescription>
           </DialogHeader>
 
-          {fetchingENS ? (
-            <div className="flex justify-center items-center p-6">
-              <svg
-                className="animate-spin h-5 w-5 mr-3 text-indigo-600 dark:text-indigo-400"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v8H4z"
-                ></path>
-              </svg>
-              <p className="text-gray-700 dark:text-gray-300">
-                Fetching your ENS domains...
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4 px-1">
-              {userOwnedDomains.length > 0 ? (
-                <div className="max-h-[50vh] overflow-y-auto pr-1">
-                  {(() => {
-                    // Function to get the 2LD for a domain
-                    const get2LD = (domain: string): string => {
-                      const parts = domain.split('.')
-                      if (parts.length < 2) return domain
-                      return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
-                    }
-
-                    // Separate domains with labelhashes
-                    const domainsWithLabelhash = userOwnedDomains.filter(
-                      (domain) => domain.includes('[') && domain.includes(']'),
-                    )
-                    const regularDomains = userOwnedDomains.filter(
-                      (domain) =>
-                        !(domain.includes('[') && domain.includes(']')),
-                    )
-
-                    // Group regular domains by 2LD
-                    const domainGroups: { [key: string]: string[] } = {}
-
-                    regularDomains.forEach((domain) => {
-                      const parent2LD = get2LD(domain)
-                      if (!domainGroups[parent2LD]) {
-                        domainGroups[parent2LD] = []
+          {selectedAction === 'subname' && (
+            <div className="space-y-6 mb-6">
+              {/* Choose Your Own Domain */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-3">
+                  Your Domains
+                </h3>
+                {userOwnedDomains.length > 0 ? (
+                  <div className="max-h-[30vh] overflow-y-auto pr-1">
+                    {(() => {
+                      // Function to get the 2LD for a domain
+                      const get2LD = (domain: string): string => {
+                        const parts = domain.split('.')
+                        if (parts.length < 2) return domain
+                        return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
                       }
-                      domainGroups[parent2LD].push(domain)
-                    })
 
-                    // Sort 2LDs alphabetically
-                    const sorted2LDs = Object.keys(domainGroups).sort()
+                      // Separate domains with labelhashes
+                      const domainsWithLabelhash = userOwnedDomains.filter(
+                        (domain) => domain.includes('[') && domain.includes(']'),
+                      )
+                      const regularDomains = userOwnedDomains.filter(
+                        (domain) =>
+                          !(domain.includes('[') && domain.includes(']')),
+                      )
 
-                    return (
-                      <div className="space-y-4">
-                        {/* Regular domains grouped by 2LD */}
-                        {sorted2LDs.map((parent2LD) => (
-                          <div
-                            key={parent2LD}
-                            className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
-                          >
-                            <div className="flex flex-wrap gap-2">
-                              {domainGroups[parent2LD].map((domain, index) => (
-                                <div
-                                  key={domain}
-                                  className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                                  onClick={() => {
-                                    setParentName(domain)
-                                    setShowENSModal(false)
-                                  }}
-                                >
-                                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                                    {domain}
-                                  </span>
-                                </div>
-                              ))}
+                      // Group regular domains by 2LD
+                      const domainGroups: { [key: string]: string[] } = {}
+
+                      regularDomains.forEach((domain) => {
+                        const parent2LD = get2LD(domain)
+                        if (!domainGroups[parent2LD]) {
+                          domainGroups[parent2LD] = []
+                        }
+                        domainGroups[parent2LD].push(domain)
+                      })
+
+                      // Sort 2LDs alphabetically
+                      const sorted2LDs = Object.keys(domainGroups).sort()
+
+                      return (
+                        <div className="space-y-4">
+                          {/* Regular domains grouped by 2LD */}
+                          {sorted2LDs.map((parent2LD) => (
+                            <div
+                              key={parent2LD}
+                              className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
+                            >
+                              <div className="flex flex-wrap gap-2">
+                                {domainGroups[parent2LD].map((domain, index) => (
+                                  <div
+                                    key={domain}
+                                    className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                    onClick={() => {
+                                      setParentName(domain)
+                                      setParentType(domain === enscribeDomain ? 'web3labs' : 'own')
+                                      setEnsNameChosen(true)
+                                      setShowENSModal(false)
+                                    }}
+                                  >
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                      {domain}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
 
-                        {/* Domains with labelhashes at the end */}
-                        {domainsWithLabelhash.length > 0 && (
-                          <div className="pt-2">
-                            <div className="flex flex-wrap gap-2">
-                              {domainsWithLabelhash.map((domain) => (
-                                <div
-                                  key={domain}
-                                  className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
-                                  onClick={() => {
-                                    setParentName(domain)
-                                    setShowENSModal(false)
-                                  }}
-                                >
-                                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                                    {domain}
-                                  </span>
-                                </div>
-                              ))}
+                          {/* Domains with labelhashes at the end */}
+                          {domainsWithLabelhash.length > 0 && (
+                            <div className="pt-2">
+                              <div className="flex flex-wrap gap-2">
+                                {domainsWithLabelhash.map((domain) => (
+                                  <div
+                                    key={domain}
+                                    className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                    onClick={() => {
+                                      setParentName(domain)
+                                      setParentType(domain === enscribeDomain ? 'web3labs' : 'own')
+                                      setEnsNameChosen(true)
+                                      setShowENSModal(false)
+                                    }}
+                                  >
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                      {domain}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })()}
-                </div>
-              ) : (
-                <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
-                  <p className="text-gray-500 dark:text-gray-400">
-                    No ENS domains found for your address.
-                  </p>
-                </div>
-              )}
+                          )}
 
-              <div className="flex justify-end gap-3 mt-6">
-                <Button
-                  variant="outline"
+                        </div>
+                      )
+                    })()}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 bg-gray-50 dark:bg-gray-800 rounded-md">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No ENS domains found for your address.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Choose Enscribe's Domain */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <h3 className="text-base font-medium text-gray-900 dark:text-white mb-3">
+                  Other Domains
+                </h3>
+                <div
+                  className="px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
                   onClick={() => {
-                    setParentName('')
+                    setParentName(enscribeDomain)
+                    setParentType('web3labs')
+                    setEnsNameChosen(true)
                     setShowENSModal(false)
                   }}
-                  className="hover:bg-gray-200 text-black dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 >
-                  Enter manually
-                </Button>
-                <Button
-                  onClick={() => {
-                    setShowENSModal(false)
-                  }}
-                  className="bg-gray-900 hover:bg-gray-800 text-white"
-                >
-                  Cancel
-                </Button>
+                  <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                    {enscribeDomain}
+                  </span>
+                </div>
+                
+                {/* Purchase New Domain button */}
+                <div className="pt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowRegisterDialog(true)
+                      setShowENSModal(false)
+                    }}
+                    className="bg-gray-900 dark:bg-blue-700 text-white rounded-full"
+                  >
+                    Purchase New Domain
+                  </Button>
+                </div>
               </div>
             </div>
+          )}
+
+          {selectedAction !== 'subname' && (
+            <>
+              {fetchingENS ? (
+                <div className="flex justify-center items-center p-6">
+                  <svg
+                    className="animate-spin h-5 w-5 mr-3 text-indigo-600 dark:text-indigo-400"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8H4z"
+                    ></path>
+                  </svg>
+                  <p className="text-gray-700 dark:text-gray-300">
+                    Fetching your ENS domains...
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 px-1">
+                  {userOwnedDomains.length > 0 ? (
+                    <div className="max-h-[50vh] overflow-y-auto pr-1">
+                      {(() => {
+                        // Function to get the 2LD for a domain
+                        const get2LD = (domain: string): string => {
+                          const parts = domain.split('.')
+                          if (parts.length < 2) return domain
+                          return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`
+                        }
+
+                        // Separate domains with labelhashes
+                        const domainsWithLabelhash = userOwnedDomains.filter(
+                          (domain) => domain.includes('[') && domain.includes(']'),
+                        )
+                        const regularDomains = userOwnedDomains.filter(
+                          (domain) =>
+                            !(domain.includes('[') && domain.includes(']')),
+                        )
+
+                        // Group regular domains by 2LD
+                        const domainGroups: { [key: string]: string[] } = {}
+
+                        regularDomains.forEach((domain) => {
+                          const parent2LD = get2LD(domain)
+                          if (!domainGroups[parent2LD]) {
+                            domainGroups[parent2LD] = []
+                          }
+                          domainGroups[parent2LD].push(domain)
+                        })
+
+                        // Sort 2LDs alphabetically
+                        const sorted2LDs = Object.keys(domainGroups).sort()
+
+                        return (
+                          <div className="space-y-4">
+                            {/* Regular domains grouped by 2LD */}
+                            {sorted2LDs.map((parent2LD) => (
+                              <div
+                                key={parent2LD}
+                                className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
+                              >
+                                <div className="flex flex-wrap gap-2">
+                                  {domainGroups[parent2LD].map((domain, index) => (
+                                    <div
+                                      key={domain}
+                                      className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                      onClick={() => {
+                                        // Auto-detect if selected domain has dots and enable SLD mode
+                                        const parts = domain.split('.')
+                                        if (ensModalFromPicker) {
+                                          // In Create Subname flow, selected domain should be the parent
+                                          setParentName(domain)
+                                        } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                          // In Use Existing Name flow, full domain goes to label
+                                          setSldAsPrimary(true)
+                                          setLabel(domain)
+                                        } else if (sldAsPrimary) {
+                                          setLabel(domain)
+                                        } else {
+                                          setParentName(domain)
+                                        }
+                                        setEnsNameChosen(true)
+                                        setShowENSModal(false)
+                                      }}
+                                    >
+                                      <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                        {domain}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Domains with labelhashes at the end */}
+                            {domainsWithLabelhash.length > 0 && (
+                              <div className="pt-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {domainsWithLabelhash.map((domain) => (
+                                    <div
+                                      key={domain}
+                                      className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
+                                      onClick={() => {
+                                        // Auto-detect if selected domain has dots and enable SLD mode
+                                        const parts = domain.split('.')
+                                        if (ensModalFromPicker) {
+                                          // In Create Subname flow, selected domain should be the parent
+                                          setParentName(domain)
+                                        } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                          // In Use Existing Name flow, full domain goes to label
+                                          setSldAsPrimary(true)
+                                          setLabel(domain)
+                                        } else if (sldAsPrimary) {
+                                          setLabel(domain)
+                                        } else {
+                                          setParentName(domain)
+                                        }
+                                        setEnsNameChosen(true)
+                                        setShowENSModal(false)
+                                      }}
+                                    >
+                                      <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                        {domain}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 bg-gray-50 dark:bg-gray-800 rounded-md">
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No ENS domains found for your address.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </DialogContent>
       </Dialog>
@@ -2234,6 +2494,45 @@ export default function NameContract() {
         </DialogContent>
       </Dialog>
 
+      {/* Register New Name Dialog */}
+      <Dialog open={showRegisterDialog} onOpenChange={setShowRegisterDialog}>
+        <DialogContent className="max-w-md bg-white dark:bg-gray-900 shadow-lg rounded-lg">
+          <DialogHeader className="mb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
+              Register New Domain
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Visit the ENS app to register a new domain. Once you are done, come back to Enscribe to name your contract.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end gap-3 mt-6 text-gray-900 dark:text-gray-300">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRegisterDialog(false)
+                setParentType('web3labs')
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                const ensAppUrl = chain?.id === CHAINS.SEPOLIA 
+                  ? 'https://sepolia.app.ens.domains/' 
+                  : 'https://app.ens.domains/'
+                window.open(ensAppUrl, '_blank')
+                setShowRegisterDialog(false)
+                setParentType('web3labs')
+              }}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              Go to ENS App
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="flex gap-4 mt-6">
         <Button
           onClick={() => setPrimaryName()}
@@ -2242,8 +2541,9 @@ export default function NameContract() {
             loading ||
             isAddressEmpty ||
             isAddressInvalid ||
-            isEmpty(label) ||
-            isUnsupportedL2Chain
+            (isEmpty(label) && !(selectedAction === 'pick' && ensNameChosen)) ||
+            isUnsupportedL2Chain ||
+            parentType === 'register'
           }
           className="relative overflow-hidden w-full py-6 text-lg font-medium transition-all duration-300 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5 focus:ring-4 focus:ring-blue-500/30 group"
           style={{
