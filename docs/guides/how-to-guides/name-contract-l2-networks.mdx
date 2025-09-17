@@ -18,17 +18,16 @@ Layer 2 networks like Arbitrum, Optimism, Base, Scroll, and Linea offer faster t
 
 ENS naming on L2 networks solves these problems by providing consistent, human-readable identities.
 
-With L2 ENS naming, `my-defi-vault.eth` can work consistently across Ethereum, Base, Arbitrum, and other supported networks.
+With L2 ENS naming, `app.enscribe.eth` can work consistently across Ethereum, Base, Arbitrum, and other supported networks.
 
 ## What You'll Learn
 
 This comprehensive guide covers:
 
-1. **Understanding L2 ENS naming** vs traditional single-chain names
-2. **Supported Layer 2 networks** and their capabilities
+1. **Understanding L2 ENS naming**
+2. **Supported Layer 2 networks**
 3. **Setting up L2 names** for existing contracts
 4. **Managing multi-chain contract identities**
-5. **Best practices** for cross-chain naming
 
 ## Supported Layer 2 Networks
 
@@ -77,6 +76,8 @@ L2 primary names must be set up from L1 (Ethereum mainnet or Sepolia) because th
 
 ### Step 1: Access Enscribe on L1
 
+![Name Contract L2](/img/guides/l2-contract-name.png)
+
 1. Go to [enscribe.xyz](https://enscribe.xyz)
 2. **Connect to Ethereum mainnet or Sepolia** (not L2)
 3. Navigate to **"Name Contract"**
@@ -87,18 +88,28 @@ If you're connected to an L2, Enscribe will show a warning and prompt you to swi
 ### Step 2: Enter Contract Details
 
 #### Contract Address
+
+![Contract Address L2](/img/guides/contract-address-l2.png)
+
 - Enter your contract's address (can be from L1 or L2)
 - Enscribe will detect contract compatibility automatically
 
 #### Choose ENS Name
+
+![Contract Name L2](/img/guides/contract-name-l2.png)
+
 - **Label**: Choose a descriptive name for your contract
 - **Parent Domain**: Must use your own ENS domain (not Enscribe-provided domains)
+
+![ENS Parent Domain L2](/img/guides/ens-parent-l2.png)
 
 The default Enscribe parent domain `deployd.eth` is not yet compatible with L2 primary names. You must use your own ENS domain as the parent.
 
 ### Step 3: Select L2 Networks
 
 Click **"Choose L2 Chains"** to see available options:
+
+![Choose L2 Chains L2](/img/guides/choose-l2-modal.png)
 
 Select which L2 networks you want to set up naming for:
 - Arbitrum (Mainnet/Sepolia)
@@ -122,6 +133,8 @@ Perfect for CREATE2 deployments or when you have the same address everywhere.
 #### Scenario 2: L2-Only Naming
 Skip L1 entirely and focus only on L2 networks.
 
+![Skip L1 Naming](/img/guides/skip-l1.png)
+
 **Process:**
 1. Enable "Skip L1 Naming"
 2. Set up only selected L2 networks
@@ -139,6 +152,8 @@ Use the same ENS name for contracts with different addresses across networks.
 
 The system will guide you through the required transactions:
 
+![L2 Naming steps](/img/guides/setl2-steps.png)
+
 **Typical flow for L1 + L2 naming:**
 1. **Create subname** on L1 ENS
 2. **Set forward resolution** on L1 (ENS name → address)
@@ -154,6 +169,17 @@ Enscribe automatically:
 - Executes transactions on each chain
 - Tracks progress across all networks
 - Handles failed transactions gracefully
+
+### Step 7: Verify Success
+
+After completion, you'll see a success modal with:
+
+![L2 Contract Naming Success](/img/guides/l2-name-success.png)
+
+- Contract address
+- Your new ENS name for the contract
+- Links to view txs for each L2 on respective block explorer
+- Share on X/Twitter and Farcaster
 
 ## Understanding the Technical Process
 
@@ -176,61 +202,6 @@ Each contract address is configured to resolve back to your ENS name when querie
 0x123... on Base → yourname.eth
 0x456... on Arbitrum → yourname.eth
 ```
-
-## Real-World Use Cases
-
-### Multi-Chain DeFi Protocol
-```
-protocol.mydefi.eth
-├── Ethereum: 0xabc...123
-├── Arbitrum: 0xabc...123 (same address)
-├── Base: 0xdef...456 (different address)
-└── Optimism: 0xabc...123 (same address)
-```
-
-### Cross-Chain NFT Collection
-```
-collection.mynfts.eth
-├── Ethereum: 0x111...aaa
-├── Base: 0x222...bbb
-└── Arbitrum: 0x333...ccc
-```
-
-### DAO Governance Across L2s
-```
-governance.mydao.eth
-├── Ethereum: 0xgov...001
-├── Arbitrum: 0xgov...002
-└── Optimism: 0xgov...003
-```
-
-## Advanced Features
-
-### Integration with dApps
-
-Once your contracts are named across L2s, dApps can:
-
-```javascript
-// Resolve contract address for specific network
-const arbitrumAddress = await provider.resolveName(
-  'protocol.mydefi.eth', 
-  { coinType: 2147483652 } // Arbitrum coin type
-);
-
-const baseAddress = await provider.resolveName(
-  'protocol.mydefi.eth',
-  { coinType: 2147483653 } // Base coin type
-);
-```
-
-### Cross-Chain User Experience
-
-Users benefit from:
-- **Consistent naming** across all networks
-- **Automatic resolution** in wallets and dApps
-- **Simplified bookmarking** with single names
-- **Reduced errors** from wrong addresses
-
 
 ## Getting Help
 

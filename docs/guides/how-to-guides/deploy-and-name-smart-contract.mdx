@@ -129,6 +129,8 @@ After compilation, you'll need two files:
 3. Connect your wallet
 4. Select your target network
 
+![Enscribe Deploy Contract Form](/img/guides/deploy-form.png)
+
 :::tip Navigation
 Look for the **"Deploy Contract"** button in the main navigation or on the homepage to access the deployment service.
 :::
@@ -142,10 +144,16 @@ The deployment form is organized into clear sections for easy completion. Each s
 :::
 
 #### Contract Bytecode
+
+![Contract Bytecode](/img/guides/contract-bytecode.png)
+
 - Paste the contents of your `.bin` file (hexadecimal format)
 - This is the compiled smart contract code that gets deployed
 
 #### Contract ABI (Optional but Recommended)
+
+![Contract ABI](/img/guides/contract-abi.png)
+
 - Paste the contents of your `.abi` file (JSON format)
 - Enables automatic constructor parameter detection
 - Reduces errors and manual work
@@ -170,13 +178,19 @@ Value: [
 ]
 ```
 
-#### Label Name
+#### Contract Name
+
+![Contract Name](/img/guides/contract-name.png)
+
 Choose your contract's subdomain name:
 - Must be unique under the parent domain
 - You can auto generate a label name using the "Generate Name" button
 - Use descriptive names: `defi-vault`, `nft-marketplace`, `dao-governance`
 
 #### ENS Parent Name
+
+![ENS Parent Name](/img/guides/ens-parent.png)
+
 Choose between two options:
 
 **Option 1: Enscribe-Hosted Parent** (Recommended for beginners)
@@ -185,6 +199,9 @@ Choose between two options:
 - Your contract gets: `your-label.deployd.eth`
 
 **Option 2: Your Own ENS Domain**
+
+![Your Own ENS Domain](/img/guides/choose-ens-modal.png)
+
 - Requires granting operator permissions to Enscribe
 - More control over branding
 - Your contract gets: `your-label.yourdomain.eth`
@@ -196,17 +213,7 @@ Choose between two options:
 3. **Sign Transactions**: Enscribe will open a modal with all the steps, sign each transaction in your wallet
 4. **Wait for Confirmation**: Monitor transaction status
 
-<div style={{position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden'}}>
-  <iframe
-    style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%'}}
-    src="https://www.youtube.com/embed/APqLhIJm5zs"
-    title="Deploy Contract with Enscribe"
-    frameBorder="0"
-    allowFullScreen
-  />
-</div>
-
-*Complete deployment walkthrough*
+![Transactions sent](/img/guides/transaction-sent.png)
 
 ### Step 4: Verify Deployment Success
 
@@ -222,6 +229,12 @@ Once you close the modal, you'll be redirected to the explore page for your new 
 - Forward resolution set (ENS name → contract address)
 - Primary name set (contract address → ENS name)
 - Contract appears in your "My Contracts" dashboard
+
+import ReactPlayer from 'react-player';
+
+<ReactPlayer controls url='https://www.youtube.com/watch?v=APqLhIJm5zs' />
+
+*Complete deployment walkthrough*
 
 ## What's Next?
 

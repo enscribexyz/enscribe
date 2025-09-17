@@ -36,10 +36,10 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Knowledge Guides',
+      label: 'Concepts',
       items: [
-        'knowledge-guides/ens-primary-names-explained',
-        'knowledge-guides/l2-primary-names-explained',
+        'concepts/ens-primary-names-explained',
+        'concepts/l2-primary-names-explained',
       ],
     },
   ],
