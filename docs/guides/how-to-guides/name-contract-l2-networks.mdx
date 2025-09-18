@@ -1,0 +1,222 @@
+---
+sidebar_position: 5
+sidebar_label: "Name Contract on L2 Networks"
+---
+
+# How to Name Your Smart Contract with ENS on an Ethereum Layer 2 Network
+
+Learn how to give your smart contracts deployed on Layer 2 networks human-readable ENS names using Enscribe, making them discoverable and trustworthy across the multi-chain ecosystem.
+
+## Why Name Contracts on Layer 2?
+
+Layer 2 networks like Arbitrum, Optimism, Base, Scroll, and Linea offer faster transactions and lower costs, but they also fragment the user experience. When your contracts exist across multiple L2s, users struggle with:
+
+- **Address Confusion**: Different addresses for the same protocol across chains
+- **Trust Verification**: Difficulty confirming legitimate contract addresses
+- **Poor Discovery**: Hard to find and remember contract addresses
+- **Manual Chain Management**: Constantly copying addresses between networks
+
+ENS naming on L2 networks solves these problems by providing consistent, human-readable identities.
+
+With L2 ENS naming, `app.enscribe.eth` can work consistently across Ethereum, Base, Arbitrum, and other supported networks.
+
+## What You'll Learn
+
+This comprehensive guide covers:
+
+1. **Understanding L2 ENS naming**
+2. **Supported Layer 2 networks**
+3. **Setting up L2 names** for existing contracts
+4. **Managing multi-chain contract identities**
+
+## Supported Layer 2 Networks
+
+Enscribe supports ENS naming on these Layer 2 networks:
+
+| Network | Mainnet | Testnet | Coin Type |
+|---------|---------|---------|-----------|
+| **Arbitrum** | Yes | Yes (Sepolia) | `2147483652` |
+| **Optimism** | Yes | Yes (Sepolia) | `2147483658` |
+| **Base** | Yes | Yes (Sepolia) | `2147483653` |
+| **Scroll** | Yes | Yes (Sepolia) | `2147483657` |
+| **Linea** | Yes | Yes (Sepolia) | `2147483656` |
+
+Each network uses a unique coin type identifier that enables the ENS system to resolve the correct contract address based on which network you're querying.
+
+## Types of L2 Naming
+
+### 1. Native L2 Domain Names
+
+Some L2 networks have their own ENS domain extensions:
+
+- **`.base.eth`** - Native Base network names
+- **`.linea.eth`** - Native Linea network names
+
+These work only on their respective networks and are separate from cross-chain L2 primary names.
+
+### 2. L2 Primary Names (ENSIP-19)
+
+L2 primary names follow the ENSIP-19 standard, enabling:
+- **One name, multiple networks** - Same ENS name works across all supported L2s
+- **Cross-chain resolution** - Resolves to correct address on each network
+- **Unified identity** - Consistent branding across the ecosystem
+
+## Prerequisites for L2 Naming
+
+Before you begin:
+
+- **Contract deployed** on one or more L2 networks
+- **L1 wallet connection** - Must connect to Ethereum mainnet or Sepolia
+- **Own ENS domain** - L2 primary names require your own parent domain
+- **Contract compatibility** - Ownable, ERC173, or ReverseClaimer interfaces for full functionality
+
+L2 primary names must be set up from L1 (Ethereum mainnet or Sepolia) because the core ENS infrastructure resides on L1. You cannot set up L2 primary names by connecting directly to an L2 network.
+
+## Step-by-Step L2 Naming Process
+
+### Step 1: Access Enscribe on L1
+
+![Name Contract L2](/img/guides/l2-contract-name.png)
+
+1. Go to [enscribe.xyz](https://app.enscribe.xyz)
+2. **Connect to Ethereum mainnet or Sepolia** (not L2)
+3. Navigate to **"Name Contract"**
+4. Ensure you're connected to L1 in your wallet
+
+If you're connected to an L2, Enscribe will show a warning and prompt you to switch to L1.
+
+### Step 2: Enter Contract Details
+
+#### Contract Address
+
+![Contract Address L2](/img/guides/contract-address-l2.png)
+
+- Enter your contract's address (can be from L1 or L2)
+- Enscribe will detect contract compatibility automatically
+
+#### Choose ENS Name
+
+![Contract Name L2](/img/guides/contract-name-l2.png)
+
+- **Label**: Choose a descriptive name for your contract
+- **Parent Domain**: Must use your own ENS domain (not Enscribe-provided domains)
+
+![ENS Parent Domain L2](/img/guides/ens-parent-l2.png)
+
+The default Enscribe parent domain `deployd.eth` is not yet compatible with L2 primary names. You must use your own ENS domain as the parent.
+
+### Step 3: Select L2 Networks
+
+Click **"Choose L2 Chains"** to see available options:
+
+![Choose L2 Chains L2](/img/guides/choose-l2-modal.png)
+
+Select which L2 networks you want to set up naming for:
+- Arbitrum (Mainnet/Sepolia)
+- Optimism (Mainnet/Sepolia)
+- Base (Mainnet/Sepolia)
+- Scroll (Mainnet/Sepolia)
+- Linea (Mainnet/Sepolia)
+
+### Step 4: Choose Naming Strategy
+
+Enscribe supports three main scenarios:
+
+#### Scenario 1: Same Address Across All Chains
+Perfect for CREATE2 deployments or when you have the same address everywhere.
+
+**Process:**
+1. Set up L1 naming (optional)
+2. Configure forward resolution on selected L2s
+3. Set primary names on each L2
+
+#### Scenario 2: L2-Only Naming
+Skip L1 entirely and focus only on L2 networks.
+
+![Skip L1 Naming](/img/guides/skip-l1.png)
+
+**Process:**
+1. Enable "Skip L1 Naming"
+2. Set up only selected L2 networks
+3. Configure L2 primary names
+
+#### Scenario 3: Different Addresses on Different L2s
+Use the same ENS name for contracts with different addresses across networks.
+
+**Process:**
+1. Set up first contract address on its L2
+2. Repeat process for other addresses on other L2s
+3. Same ENS name resolves to different addresses per network
+
+### Step 5: Execute Transaction Flow
+
+The system will guide you through the required transactions:
+
+![L2 Naming steps](/img/guides/setl2-steps.png)
+
+**Typical flow for L1 + L2 naming:**
+1. **Create subname** on L1 ENS
+2. **Set forward resolution** on L1 (ENS name → address)
+3. **Set reverse resolution** on L1 (address → ENS name)
+4. **Switch to each L2** automatically
+5. **Set forward resolution** on each selected L2
+6. **Set primary name** on each selected L2
+
+### Step 6: Automatic Chain Switching
+
+Enscribe automatically:
+- Prompts wallet to switch networks
+- Executes transactions on each chain
+- Tracks progress across all networks
+- Handles failed transactions gracefully
+
+### Step 7: Verify Success
+
+After completion, you'll see a success modal with:
+
+![L2 Contract Naming Success](/img/guides/l2-name-success.png)
+
+- Contract address
+- Your new ENS name for the contract
+- Links to view txs for each L2 on respective block explorer
+- Share on X/Twitter and Farcaster
+
+## Understanding the Technical Process
+
+### Forward Resolution Setup
+For each L2 network, the ENS resolver is configured to return your contract address when someone queries `yourname.eth` on that specific network using the network's coin type.
+
+**Example:**
+```
+yourname.eth on Ethereum → 0x123... (coin type 60)
+yourname.eth on Base → 0x123... (coin type 2147483653)
+yourname.eth on Arbitrum → 0x456... (coin type 2147483652)
+```
+
+### Reverse Resolution Setup
+Each contract address is configured to resolve back to your ENS name when queried on its respective network.
+
+**Example:**
+```
+0x123... on Ethereum → yourname.eth
+0x123... on Base → yourname.eth
+0x456... on Arbitrum → yourname.eth
+```
+
+## Getting Help
+
+### Community Support
+- [Discord](https://discord.gg/8QUMMdS5GY): Real-time community help
+- [Telegram](https://t.me/enscribers): Developer discussions
+- [X](https://x.com/enscribe_): Updates and announcements
+
+### Documentation Resources
+- [Complete Docs](/docs): Technical reference
+- [Blog](/blog): Updates and announcements
+- Check our [FAQ](/docs/faqs)
+
+---
+
+**Ready to name your L2 contracts?** Head to [Enscribe](https://app.enscribe.xyz), connect to Ethereum mainnet, and give your multi-chain contracts the unified identity they deserve.
+
+*Building a more connected and user-friendly multi-chain ecosystem, one name at a time.*

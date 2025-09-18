@@ -1,0 +1,204 @@
+{/* ---
+sidebar_position: 2
+sidebar_label: "Naming Best Practices"
+---
+
+# Smart Contract Naming Best Practices
+
+Discover practical use cases for naming smart contracts with Enscribe. Learn how different naming patterns serve specific purposes and build trust with your users.
+
+## Use Case 1: Version Management for Contract Upgrades
+
+When deploying multiple versions of your contracts, version-based naming helps users identify which version they're interacting with.
+
+**Pattern:**
+```
+<version-number>.myapp.eth
+```
+
+**Example Implementation:**
+```
+v1.uniswap-router.eth    // Original router
+v2.uniswap-router.eth    // Updated router with bug fixes
+v3.uniswap-router.eth    // Latest router with new features
+```
+
+**Naming Convention Tips:**
+- Always use semantic versioning (v1, v2, v3...)
+- Keep version numbers at the beginning for easy identification
+- Document breaking changes between versions
+- Consider using `latest.myapp.eth` as an alias to the current version
+
+## Use Case 2: Fixed Brand Names for Established Projects
+
+Large projects often want consistent, recognizable names that users can easily remember and trust.
+
+**Pattern:**
+```
+<app-name>.<org-name>.eth
+```
+
+**Example Implementation:**
+```
+defi.uniswap.eth         // Main DeFi protocol contract
+nft.opensea.eth          // NFT marketplace contract
+dao.maker.eth            // Governance contract
+```
+
+**Naming Convention Tips:**
+- Use clear, descriptive function names (defi, swap, governance)
+- Keep names short and memorable
+- Establish brand recognition through consistent naming
+- Leverage your established domain reputation
+
+## Use Case 3: Proxy and Implementation Contracts
+
+When using proxy patterns, clear naming helps distinguish between proxy contracts and their implementations.
+
+**Pattern and Example Implementation:**
+```
+app.lending-pool.eth     // Proxy contract users interact with
+v1.app.lending-pool.eth  // First implementation
+v2.app.lending-pool.eth  // Upgraded implementation
+v3.app.lending-pool.eth  // Latest implementation
+```
+
+**Naming Convention Tips:**
+- Use `app.` prefix for user-facing proxy contracts
+- Include version in implementation contract names
+- Keep proxy names stable while implementations can change
+- Document which implementation the proxy currently points to
+
+## Use Case 4: Multi-Chain Contract Deployment
+
+When deploying the same contract across different networks, network-specific naming helps users identify the correct version.
+
+**Pattern:**
+```
+<chain-name>.mytoken.eth
+```
+
+**Example Implementation:**
+```
+ethereum.defi-vault.eth
+polygon.defi-vault.eth
+arbitrum.defi-vault.eth
+optimism.defi-vault.eth
+```
+
+**Naming Convention Tips:**
+- L2 primary name enable naming contracts on L2 chains
+- Use clear network identifiers
+- Maintain consistent contract names across chains
+- Document which chains your contracts are deployed on
+
+Note: You can also use L2 primary names to name a contract with different addresses on L2 chains with same ENS name.
+
+## Use Case 5: DeFi Protocol Organization
+
+DeFi protocols need clear naming to help users understand different contract functions and build trust.
+
+**Pattern and Example Implementation:**
+```
+token.protocol.eth       // Token contract
+pool.protocol.eth        // Liquidity pool
+router.protocol.eth      // Swap router
+vault.protocol.eth      // Vault contract
+governance.protocol.eth  // Governance contract
+```
+
+**Naming Convention Tips:**
+- Include asset names for asset-specific contracts
+- Use clear function descriptors (pool, vault, router)
+- Group related contracts under the same parent domain
+- Consider gas efficiency vs. readability for frequently used contracts
+
+## Use Case 6: NFT Collections and Marketplaces
+
+NFT projects benefit from memorable names that collectors can easily recognize and trust.
+
+**Pattern and Example Implementation:**
+```
+collection.nftproject.eth
+marketplace.nftproject.eth
+staking.nftproject.eth
+rewards.nftproject.eth
+```
+
+**Naming Convention Tips:**
+- Use recognizable brand names for collections
+- Include collection series or generation info when relevant
+- Keep marketplace names simple and trustworthy
+- Consider seasonal or themed naming for limited releases
+
+## Use Case 7: DAO and Governance Structures
+
+DAOs need transparent naming that clearly indicates governance functions and voting mechanisms.
+
+**Pattern and Example Implementation:**
+```
+governor.mydao.eth      // Main governance contract
+treasury.mydao.eth      // Treasury management
+proposals.mydao.eth      // Proposal submission
+timelock.mydao.eth      // Time-based locking mechanism
+voting.compound.eth    // Voting mechanism
+```
+
+**Naming Convention Tips:**
+- Use governance terminology (governor, treasury, proposals)
+- Include voting period or quorum info in documentation
+- Consider security implications of publicly known governance contracts
+- Maintain consistency across all governance-related contracts
+
+## Use Case 8: Testing and Development Environments
+
+Separate naming for development, staging, and production environments helps prevent confusion and accidental interactions.
+
+**Pattern:**
+```
+dev.mycontract.eth       // Development version
+staging.mycontract.eth   // Staging version
+prod.mycontract.eth      // Production version
+```
+
+**Example Implementation:**
+```
+dev.lending-pool.eth     // Development testing
+testnet.defi-vault.eth   // Testnet deployment
+mainnet.defi-vault.eth   // Production mainnet
+sandbox.nft-market.eth   // Experimental features
+```
+
+**Naming Convention Tips:**
+- Use clear environment indicators (dev, staging, prod, testnet)
+- Keep contract names consistent across environments
+- Document which environment users should interact with
+- Consider using network names for clarity (sepolia, mainnet)
+
+## Use Case 9: Bookmarking Contracts (Just Forward Resolution)
+
+Individual users can set forward resolving names for contracts they interact with under their personal ENS domain for easy access and management. This is useful for bookmarking contracts that you interact with regularly.
+
+**Pattern and Example Implementation:**
+```
+uniswap.nischal.eth      // Personal reference to Uniswap
+compound.nischal.eth     // Personal reference to Compound
+myfavoritedefi.nischal.eth
+```
+
+**Naming Convention Tips:**
+- Use descriptive names that make sense to you
+- Group similar protocols with consistent naming
+- Consider adding purpose or network info if needed
+- Keep names short for easier typing
+
+## Choosing the Right Pattern for Your Project
+
+Good naming strategies deliver measurable benefits:
+
+- **User Trust**: Users feel more confident interacting with named contracts
+- **Better UX**: Easier integration in dApps and documentation
+- **Brand Recognition**: Consistent naming builds project identity
+- **Developer Experience**: Easier to remember and reference contracts
+
+The right naming pattern makes your contracts more professional, trustworthy, and user-friendly. Choose the use cases that fit your project and start building a recognizable smart contract identity. */}

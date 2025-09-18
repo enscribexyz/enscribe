@@ -1,0 +1,262 @@
+---
+sidebar_position: 3
+sidebar_label: "Deploy and Name Smart Contract"
+---
+
+# How to Deploy and Name Your Smart Contract with ENS on Ethereum
+
+Learn how to deploy a smart contract and give it a human-readable ENS name using Enscribe, making your contract more trustworthy and user-friendly.
+
+:::tip Visual Comparison
+**Before**: `0x742d35cc567890c000c000c07c81c25d7df34793` (confusing hex address)  
+**After**: `v0.app.enscribe.eth` (clear, trustworthy identity)
+:::
+
+## What You'll Learn
+
+This comprehensive guide will walk you through:
+
+1. **Preparing your smart contract** for deployment with ENS naming
+2. **Using Enscribe's Contract Deployment Service** to deploy with automatic ENS naming
+3. **Alternative: Deploying first, then naming** existing contracts
+4. **Verifying and managing** your named contracts
+5. **Best practices** for contract naming
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+- **Web3 Wallet**: MetaMask, WalletConnect, or similar
+- **ETH for Gas**: On your chosen network (mainnet, testnet, or L2)
+- **Compiled Smart Contract**: With bytecode and ABI
+- **Basic ENS Knowledge**: Understanding of domains and subdomains
+
+## Part 1: Prepare Your Smart Contract
+
+### Step 1: Choose Your Network
+
+Enscribe supports multiple networks to deploy your contract. Choose based on your needs:
+
+| Network | Use Case | Gas Costs | Best For |
+|---------|----------|-----------|----------|
+| **Ethereum Mainnet** | Production contracts | High | High-value, established projects |
+| **Base** | Production with lower costs | Low | DeFi, consumer apps |
+| **Linea** | Alternative L2 option | Low | DeFi, consumer apps |
+| **Testnets** | Testing and development | Free | Development, testing |
+
+:::note
+Other L2 networks like Arbitrum, Optimism and Scroll don't support contract deployment via Enscribe because ENS contracts aren't deployed on these networks. Linea and Base have support for `.linea.eth` and `.base.eth` ENS domains respectively, so you can use them to name your contract during deployment.
+:::
+
+### Step 2: Ensure Contract Compatibility
+
+For **setting primary name** (reverse resolution), your contract must implement one of these interfaces:
+
+**Supported Interfaces:**
+- **Ownable** (OpenZeppelin) - Most common
+- **ERC173** - Standard ownership interface  
+- **ReverseClaimer** - Custom ENS interface
+- **ReverseSetter** - Alternative ENS interface
+
+**Example: Ownable Contract**
+```solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MyDeFiVault is Ownable {
+    mapping(address => uint256) public balances;
+    
+    constructor(address initialOwner) Ownable(initialOwner) {
+        // Your constructor logic
+    }
+    
+    function deposit() external payable {
+        balances[msg.sender] += msg.value;
+    }
+    
+    function withdraw(uint256 amount) external {
+        require(balances[msg.sender] >= amount, "Insufficient balance");
+        balances[msg.sender] -= amount;
+        payable(msg.sender).transfer(amount);
+    }
+}
+```
+
+**What if my contract doesn't implement these?**
+- You can still get **forward resolution** (ENS name → contract address)
+- But not **reverse resolution** (contract address → ENS name)
+- Consider using compatible patterns for future deployments
+
+### Step 3: Compile Your Contract
+
+Compile your contract using your preferred tool:
+
+**Using Remix:**
+1. Go to [Remix IDE](https://remix.ethereum.org)
+2. Create your contract file
+3. Go to the "Solidity Compiler" tab
+4. Click "Compile"
+5. Copy the compilation artifacts:
+   - `YourContract.bin` (bytecode)
+   - `YourContract.abi` (ABI)
+
+**Using Hardhat:**
+```bash
+npx hardhat compile
+# Find artifacts in artifacts/contracts/YourContract.sol/
+```
+
+**Using Foundry:**
+```bash
+forge build
+# Find artifacts in out/YourContract.sol/
+```
+
+:::info Getting Your Artifacts
+After compilation, you'll need two files:
+- **Bytecode file** (`.bin`) - Contains the compiled contract code
+- **ABI file** (`.abi`) - Contains the contract interface definition
+:::
+
+## Part 2: Deploy with Enscribe Contract Deployment Service
+
+### Step 1: Access Enscribe
+
+1. Go to [enscribe.xyz](https://app.enscribe.xyz)
+2. Click **"Deploy Contract"** in the navigation
+3. Connect your wallet
+4. Select your target network
+
+![Enscribe Deploy Contract Form](/img/guides/deploy-form.png)
+
+:::tip Navigation
+Look for the **"Deploy Contract"** button in the main navigation or on the homepage to access the deployment service.
+:::
+
+### Step 2: Fill the Deployment Form
+
+The deployment form has five key sections:
+
+:::note Form Structure
+The deployment form is organized into clear sections for easy completion. Each section is explained in detail below.
+:::
+
+#### Contract Bytecode
+
+![Contract Bytecode](/img/guides/contract-bytecode.png)
+
+- Paste the contents of your `.bin` file (hexadecimal format)
+- This is the compiled smart contract code that gets deployed
+
+#### Contract ABI (Optional but Recommended)
+
+![Contract ABI](/img/guides/contract-ABI.png)
+
+- Paste the contents of your `.abi` file (JSON format)
+- Enables automatic constructor parameter detection
+- Reduces errors and manual work
+
+#### Constructor Arguments
+Enscribe will automatically detect constructor parameters if you provide the ABI:
+
+**Automatic Detection:**
+- Form fields appear based on your constructor
+- Select appropriate types from dropdowns
+- Enter values in the correct format
+
+**Manual Entry:**
+For complex types, use the "Custom Type" option:
+
+```javascript
+// For array of structs: Person[]
+Custom Type: tuple(string,uint256,address)[]
+Value: [
+  ["Alice", 25, "0x1bA43Becc3Ea96c37343b7CB18de7386bA29445B"],
+  ["Bob", 30, "0x7cF7816d45398A1b37bBE517ca24d8CdFb8D042D"]
+]
+```
+
+#### Contract Name
+
+![Contract Name](/img/guides/contract-name.png)
+
+Choose your contract's subdomain name:
+- Must be unique under the parent domain
+- You can auto generate a label name using the "Generate Name" button
+- Use descriptive names: `defi-vault`, `nft-marketplace`, `dao-governance`
+
+#### ENS Parent Name
+
+![ENS Parent Name](/img/guides/ens-parent.png)
+
+Choose between two options:
+
+**Option 1: Enscribe-Hosted Parent** (Recommended for beginners)
+- No additional permissions required
+- Instant deployment
+- Your contract gets: `your-label.deployd.eth`
+
+**Option 2: Your Own ENS Domain**
+
+![Your Own ENS Domain](/img/guides/choose-ens-modal.png)
+
+- Requires granting operator permissions to Enscribe
+- More control over branding
+- Your contract gets: `your-label.yourdomain.eth`
+
+### Step 3: Deploy Your Contract
+
+1. **Review Details**: Double-check all information
+2. **Deploy Contract**: Click "Deploy"
+3. **Sign Transactions**: Enscribe will open a modal with all the steps, sign each transaction in your wallet
+4. **Wait for Confirmation**: Monitor transaction status
+
+![Transactions sent](/img/guides/transaction-sent.png)
+
+### Step 4: Verify Deployment Success
+
+After deployment succeeds, you'll see:
+
+Enscribe provides a detailed message showing your contract address, ENS name, and transaction details.
+
+Once you close the modal, you'll be redirected to the explore page for your new contract. You can share this URL with your users to let them interact with your contract.
+
+**What Happens Automatically:**
+- Contract deployed to blockchain
+- ENS subname created (e.g., `my-vault.app.enscribe.eth`)
+- Forward resolution set (ENS name → contract address)
+- Primary name set (contract address → ENS name)
+- Contract appears in your "My Contracts" dashboard
+
+import ReactPlayer from 'react-player';
+
+<ReactPlayer controls url='https://www.youtube.com/watch?v=APqLhIJm5zs' />
+
+*Complete deployment walkthrough*
+
+## What's Next?
+
+You've deployed and named your smart contract with ENS. Here are your next steps:
+
+1. **Share Your Contract**: Use the ENS name in documentation and interfaces
+2. **Build Trust**: Let users know they're interacting with a named, verified contract  
+3. **Explore Advanced Features**: Set up subdomain hierarchies and manage multiple contracts
+4. **Join the Community**: Share your experience and get support
+
+## Getting Help
+
+### Community Support
+- [Discord](https://discord.gg/8QUMMdS5GY): Real-time community help
+- [Telegram](https://t.me/enscribers): Developer discussions
+- [X](https://x.com/enscribe_): Updates and announcements
+
+### Documentation Resources
+- [Complete Docs](/docs): Technical reference
+- [Blog](/blog): Updates and announcements
+- Check our [FAQ](/docs/faqs)
+
+---
+
+**Ready to deploy and name your contract?** Head to [Enscribe](https://app.enscribe.xyz/deploy) and give your smart contract the human-readable identity it deserves.
