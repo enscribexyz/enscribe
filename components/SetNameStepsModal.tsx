@@ -524,7 +524,7 @@ export default function SetNameStepsModal({
                   >
                     <a
                       href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                        `I named my contract ${ensName} with @enscribe_, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
+                        `I named my contract ${ensName} with @enscribe_, check it out https://app.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -547,7 +547,7 @@ export default function SetNameStepsModal({
                   >
                     <a
                       href={`https://warpcast.com/~/compose?text=${encodeURIComponent(
-                        `I named my contract ${ensName} with @enscribe, check it out https://www.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
+                        `I named my contract ${ensName} with @enscribe, check it out https://app.enscribe.xyz/explore/${chain?.id}/${internalContractAddress || contractAddress}`,
                       )}`}
                       target="_blank"
                       rel="noopener noreferrer"
