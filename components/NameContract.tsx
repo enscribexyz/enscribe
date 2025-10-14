@@ -72,8 +72,6 @@ export default function NameContract() {
   const { data: walletClient } = useWalletClient()
   const { switchChain } = useSwitchChain()
 
-  console.log(`connector?.type == walletConnect.type: ${connector?.type}`)
-  // console.log(`connector id is: ${connector!.id}`)
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
   const enscribeDomain = config?.ENSCRIBE_DOMAIN!
 

@@ -71,9 +71,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
       // Create Safe connector
       const safeConnector = safe({
-        allowedDomains: [/app.safe.global$/, /safe.global$/],
+        allowedDomains: [/app.safe.global$/, /safe.global$/, /enscribe.xyz$/, /app.enscribe.xyz$/],
         debug: false,
-        shimDisconnect: false,
+        shimDisconnect: true,
       })
 
       // Get RainbowKit wallets for creating connectors
