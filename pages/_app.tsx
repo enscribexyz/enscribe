@@ -71,7 +71,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
       // Create Safe connector
       const safeConnector = safe({
-        allowedDomains: [/app.safe.global$/, /safe.global$/, /enscribe.xyz$/, /app.enscribe.xyz$/],
+        allowedDomains: [/app.safe.global$/, /safe.global$/],
         debug: false,
         shimDisconnect: true,
       })
