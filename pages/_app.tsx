@@ -8,6 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TransactionProvider } from 'ethereum-identity-kit'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { ThemeAwareRainbowKit } from '@/components/ThemeAwareRainbowKit'
+import { SafeAutoConnect } from '@/components/SafeAutoConnect'
 import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
@@ -43,25 +44,48 @@ const serverWagmiConfig = createConfig({
   ssr: true,
 })
 
-// RainbowKitProvider is safe to render during SSR; we keep connectors client-only
 
 export default function MyApp({ Component, pageProps }: AppProps) {
-  const [clientWagmiConfig, setClientWagmiConfig] = React.useState<any>(null)
+  const [clientWagmiConfig, setClientWagmiConfig] = React.useState<ReturnType<typeof createConfig> | null>(null)
 
   React.useEffect(() => {
     let isMounted = true
     ;(async () => {
       const rainbowkit = await import('@rainbow-me/rainbowkit')
-      const config = rainbowkit.getDefaultConfig({
+      const { safe } = await import('@wagmi/connectors')
+      const { createConfig, http } = await import('wagmi')
+
+      // Create Safe connector first
+      const safeConnector = safe({
+        allowedDomains: [/app.safe.global$/, /safe.global$/],
+        debug: true,
+      })
+
+      // Get RainbowKit wallets for creating connectors
+      const { connectors: rainbowKitConnectors } = rainbowkit.getDefaultWallets({
         appName: 'enscribe',
         projectId: '6dfc28e3bd034be8e0d5ceaf0ee5c224',
         chains,
+      })
+
+      // Create wagmi config with RainbowKit connectors + Safe
+      const config = createConfig({
+        chains,
+        connectors: [...rainbowKitConnectors, safeConnector],
+        transports: chains.reduce(
+          (acc, chain) => {
+            acc[chain.id] = http()
+            return acc
+          },
+          {} as Record<number, ReturnType<typeof http>>,
+        ),
         ssr: false,
       })
+
       if (isMounted) {
         setClientWagmiConfig(config)
         if (typeof window !== 'undefined') {
-          ;(window as any).__clientWagmiReady = true
+          ;(window as typeof window & { __clientWagmiReady?: boolean }).__clientWagmiReady = true
         }
       }
     })()
@@ -78,6 +102,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           config={clientWagmiConfig ?? serverWagmiConfig}
         >
           <ThemeAwareRainbowKit>
+            <SafeAutoConnect />
             <TransactionProvider>
               <Component {...pageProps} />
             </TransactionProvider>
