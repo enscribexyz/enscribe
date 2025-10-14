@@ -95,9 +95,7 @@ export default function ExploreAddressPage() {
               { internalType: 'address', name: 'addr', type: 'address' },
             ],
             name: 'nameForAddr',
-            outputs: [
-              { internalType: 'string', name: 'name', type: 'string' },
-            ],
+            outputs: [{ internalType: 'string', name: 'name', type: 'string' }],
             stateMutability: 'view',
             type: 'function',
           },
@@ -202,11 +200,14 @@ export default function ExploreAddressPage() {
           return ''
         }
       } catch (error) {
-        console.error('[address] Error in Base/Linea fallback reverse lookup:', error)
+        console.error(
+          '[address] Error in Base/Linea fallback reverse lookup:',
+          error,
+        )
         return ''
       }
     }
-    
+
     // Default fallback
     return ''
   }
@@ -241,25 +242,29 @@ export default function ExploreAddressPage() {
     }
   }
 
-    const fetchContractCreator = async (
+  const fetchContractCreator = async (
     contractAddress: string,
     chainId: number,
   ): Promise<string | null> => {
     const etherscanApi = `${ETHERSCAN_API}&chainid=${chainId}&module=contract&action=getcontractcreation&contractaddresses=${contractAddress}`
     const response = await fetch(etherscanApi)
     const data = await response.json()
-    if (data.result !== undefined && data.result !== null && data.result.length > 0) {
+    if (
+      data.result !== undefined &&
+      data.result !== null &&
+      data.result.length > 0
+    ) {
       console.log(`cont creator ${data.result[0].contractCreator}`)
       return data.result[0].contractCreator
     } else {
       return null
-      }
+    }
   }
 
   const resolveENSName = async (ensName: string): Promise<string | null> => {
     try {
       console.log(`[address] Resolving ENS name: ${ensName}`)
-      
+
       // Validate ENS name format
       let normalizedName: string
       try {
@@ -284,13 +289,13 @@ export default function ExploreAddressPage() {
       // Create the appropriate client based on the current chain
       let chainClient: any = null
       let reqObject
-      
+
       if (
         chainIdNumber === CHAINS.MAINNET ||
         chainIdNumber === CHAINS.BASE ||
         chainIdNumber === CHAINS.LINEA ||
-        chainIdNumber === CHAINS.ARBITRUM||
-        chainIdNumber === CHAINS.OPTIMISM||
+        chainIdNumber === CHAINS.ARBITRUM ||
+        chainIdNumber === CHAINS.OPTIMISM ||
         chainIdNumber === CHAINS.SCROLL
       ) {
         chainClient = createPublicClient({
@@ -309,35 +314,53 @@ export default function ExploreAddressPage() {
         })
         // for sepolia, coinType doesn't work according to gregskril
         reqObject = {
-          name: normalizedName
+          name: normalizedName,
         }
         console.log('[address] Using sepolia client for ENS resolution')
-      } 
+      }
 
       // Try to resolve the ENS name on the current chain
       let resolvedAddress: string | null = null
-      
+
       try {
         resolvedAddress = await chainClient.getEnsAddress(reqObject)
-        console.log(`[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber} with cointype: ${toCoinType(chainIdNumber)}`)
+        console.log(
+          `[address] Resolved ${normalizedName} to ${resolvedAddress} on chain ${chainIdNumber} with cointype: ${toCoinType(chainIdNumber)}`,
+        )
       } catch (error) {
-        console.log(`[address] Failed to resolve ${normalizedName} on chain ${chainIdNumber}:`, error)
-        
+        console.log(
+          `[address] Failed to resolve ${normalizedName} on chain ${chainIdNumber}:`,
+          error,
+        )
+
         // Handle L2-specific errors
-        if (chainIdNumber !== CHAINS.MAINNET && chainIdNumber !== CHAINS.SEPOLIA) {
-          console.log(`[address] L2 chain resolution failed - this is expected behavior`)
-          console.log(`[address] Most L2 chains don't support forward ENS resolution`)
-          console.log(`[address] You can try the same name on mainnet or use an address directly`)
-          
+        if (
+          chainIdNumber !== CHAINS.MAINNET &&
+          chainIdNumber !== CHAINS.SEPOLIA
+        ) {
+          console.log(
+            `[address] L2 chain resolution failed - this is expected behavior`,
+          )
+          console.log(
+            `[address] Most L2 chains don't support forward ENS resolution`,
+          )
+          console.log(
+            `[address] You can try the same name on mainnet or use an address directly`,
+          )
+
           // Check if this is a "no data" error (name doesn't exist)
-          if (error instanceof Error && 
-              (error.message.includes('returned no data') || 
-               error.message.includes('0x') ||
-               error.message.includes('resolve'))) {
-            console.log(`[address] ENS name ${normalizedName} does not exist on this L2 chain`)
+          if (
+            error instanceof Error &&
+            (error.message.includes('returned no data') ||
+              error.message.includes('0x') ||
+              error.message.includes('resolve'))
+          ) {
+            console.log(
+              `[address] ENS name ${normalizedName} does not exist on this L2 chain`,
+            )
           }
         }
-        
+
         return null
       }
 
@@ -434,12 +457,7 @@ export default function ExploreAddressPage() {
 
     // Set loading state at the beginning of the effect
     setIsLoading(true)
-    console.log(
-      'Starting validation for:',
-      address,
-      'on chain:',
-      chainId,
-    )
+    console.log('Starting validation for:', address, 'on chain:', chainId)
 
     // Function to validate the input (address or ENS name)
     const validateInput = async () => {
@@ -453,15 +471,21 @@ export default function ExploreAddressPage() {
 
         if (!addressIsValid) {
           // If it's not a valid address, try to resolve it as an ENS name
-          console.log('Not a valid address, trying to resolve as ENS name:', address)
-          
+          console.log(
+            'Not a valid address, trying to resolve as ENS name:',
+            address,
+          )
+
           const resolvedAddr = await resolveENSName(address)
           if (resolvedAddr) {
             targetAddress = resolvedAddr
             isInputENSName = true
             setResolvedAddress(resolvedAddr)
             setIsENSName(true)
-            console.log('Successfully resolved ENS name to address:', resolvedAddr)
+            console.log(
+              'Successfully resolved ENS name to address:',
+              resolvedAddr,
+            )
           } else {
             console.log('Failed to resolve as ENS name:', address)
             setIsValidAddress(false)

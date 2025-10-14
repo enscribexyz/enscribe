@@ -2,7 +2,20 @@ import React from 'react'
 import type { AppProps } from 'next/app'
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import type { Chain } from 'wagmi/chains'
-import { sepolia, lineaSepolia, baseSepolia, mainnet, base, linea, optimism, optimismSepolia, arbitrum, arbitrumSepolia, scroll, scrollSepolia } from 'wagmi/chains'
+import {
+  sepolia,
+  lineaSepolia,
+  baseSepolia,
+  mainnet,
+  base,
+  linea,
+  optimism,
+  optimismSepolia,
+  arbitrum,
+  arbitrumSepolia,
+  scroll,
+  scrollSepolia,
+} from 'wagmi/chains'
 // getDefaultConfig is dynamically imported on the client to avoid SSR importing WalletConnect/AppKit
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { TransactionProvider } from 'ethereum-identity-kit'
@@ -44,9 +57,10 @@ const serverWagmiConfig = createConfig({
   ssr: true,
 })
 
-
 export default function MyApp({ Component, pageProps }: AppProps) {
-  const [clientWagmiConfig, setClientWagmiConfig] = React.useState<ReturnType<typeof createConfig> | null>(null)
+  const [clientWagmiConfig, setClientWagmiConfig] = React.useState<ReturnType<
+    typeof createConfig
+  > | null>(null)
 
   React.useEffect(() => {
     let isMounted = true
@@ -55,18 +69,20 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       const { safe } = await import('@wagmi/connectors')
       const { createConfig, http } = await import('wagmi')
 
-      // Create Safe connector first
+      // Create Safe connector
       const safeConnector = safe({
         allowedDomains: [/app.safe.global$/, /safe.global$/],
-        debug: true,
+        debug: false,
+        shimDisconnect: false,
       })
 
       // Get RainbowKit wallets for creating connectors
-      const { connectors: rainbowKitConnectors } = rainbowkit.getDefaultWallets({
-        appName: 'enscribe',
-        projectId: '6dfc28e3bd034be8e0d5ceaf0ee5c224',
-        chains,
-      })
+      const { connectors: rainbowKitConnectors } = rainbowkit.getDefaultWallets(
+        {
+          appName: 'enscribe',
+          projectId: '6dfc28e3bd034be8e0d5ceaf0ee5c224',
+        },
+      )
 
       // Create wagmi config with RainbowKit connectors + Safe
       const config = createConfig({
@@ -85,7 +101,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
       if (isMounted) {
         setClientWagmiConfig(config)
         if (typeof window !== 'undefined') {
-          ;(window as typeof window & { __clientWagmiReady?: boolean }).__clientWagmiReady = true
+          ;(
+            window as typeof window & { __clientWagmiReady?: boolean }
+          ).__clientWagmiReady = true
         }
       }
     })()

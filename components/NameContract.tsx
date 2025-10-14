@@ -6,7 +6,18 @@ import nameWrapperABI from '../contracts/NameWrapper'
 import publicResolverABI from '../contracts/PublicResolver'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import { useAccount, useWalletClient, useSwitchChain, useBalance } from 'wagmi'
-import { optimism, optimismSepolia, arbitrum, arbitrumSepolia, scroll, scrollSepolia, base, baseSepolia, linea, lineaSepolia } from 'wagmi/chains'
+import {
+  optimism,
+  optimismSepolia,
+  arbitrum,
+  arbitrumSepolia,
+  scroll,
+  scrollSepolia,
+  base,
+  baseSepolia,
+  linea,
+  lineaSepolia,
+} from 'wagmi/chains'
 import {
   Dialog,
   DialogContent,
@@ -23,7 +34,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import { useToast } from '@/hooks/use-toast'
 import { CONTRACTS, CHAINS } from '../utils/constants'
 import Link from 'next/link'
@@ -32,8 +48,17 @@ import SetNameStepsModal, { Step } from './SetNameStepsModal'
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
 import { Checkbox } from '@/components/ui/checkbox'
 import { v4 as uuid } from 'uuid'
-import { fetchGeneratedName, logMetric, checkIfSafe } from '@/components/componentUtils'
-import { getEnsAddress, readContract, writeContract, getBytecode } from 'viem/actions'
+import {
+  fetchGeneratedName,
+  logMetric,
+  checkIfSafe,
+} from '@/components/componentUtils'
+import {
+  getEnsAddress,
+  readContract,
+  writeContract,
+  getBytecode,
+} from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
 import { isAddress, keccak256, toBytes, toHex, getAddress } from 'viem'
 import { createPublicClient, http } from 'viem'
@@ -56,7 +81,9 @@ export default function NameContract() {
 
   const [existingContractAddress, setExistingContractAddress] = useState('')
   const [label, setLabel] = useState('')
-  const [parentType, setParentType] = useState<'web3labs' | 'own' | 'register'>('web3labs')
+  const [parentType, setParentType] = useState<'web3labs' | 'own' | 'register'>(
+    'web3labs',
+  )
   const [showRegisterDialog, setShowRegisterDialog] = useState(false)
   const [parentName, setParentName] = useState(enscribeDomain)
   const [fetchingENS, setFetchingENS] = useState(false)
@@ -73,10 +100,14 @@ export default function NameContract() {
     false,
   )
   const [isPrimaryNameSet, setIsPrimaryNameSet] = useState(false)
-  
+
   // L2 Ownable state variables
-  const [isOwnableOptimism, setIsOwnableOptimism] = useState<boolean | null>(null)
-  const [isOwnableArbitrum, setIsOwnableArbitrum] = useState<boolean | null>(null)
+  const [isOwnableOptimism, setIsOwnableOptimism] = useState<boolean | null>(
+    null,
+  )
+  const [isOwnableArbitrum, setIsOwnableArbitrum] = useState<boolean | null>(
+    null,
+  )
   const [isOwnableScroll, setIsOwnableScroll] = useState<boolean | null>(null)
   const [isOwnableBase, setIsOwnableBase] = useState<boolean | null>(null)
   const [isOwnableLinea, setIsOwnableLinea] = useState<boolean | null>(null)
@@ -93,7 +124,9 @@ export default function NameContract() {
   const [sldAsPrimary, setSldAsPrimary] = useState<boolean>(true)
   const [ensModalFromPicker, setEnsModalFromPicker] = useState<boolean>(false)
   const [ensNameChosen, setEnsNameChosen] = useState<boolean>(false)
-  const [selectedAction, setSelectedAction] = useState<'subname' | 'pick' | null>(null)
+  const [selectedAction, setSelectedAction] = useState<
+    'subname' | 'pick' | null
+  >(null)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -138,7 +171,7 @@ export default function NameContract() {
       console.log('Modal is open, skipping form reset to prevent interruption')
       return
     }
-    
+
     setLabel('')
     setParentType('web3labs')
     setParentName(enscribeDomain)
@@ -159,7 +192,7 @@ export default function NameContract() {
     setSelectedL2ChainNames([])
     setDropdownValue('')
     setSkipL1Naming(false)
-    
+
     // Reset L2 ownable states
     setIsOwnableOptimism(null)
     setIsOwnableArbitrum(null)
@@ -170,7 +203,9 @@ export default function NameContract() {
 
   useEffect(() => {
     // If user has selected all L2 chains, clear the dropdown value and effectively hide the dropdown
-    const allSelected = L2_CHAIN_OPTIONS.every((c) => selectedL2ChainNames.includes(c))
+    const allSelected = L2_CHAIN_OPTIONS.every((c) =>
+      selectedL2ChainNames.includes(c),
+    )
     if (allSelected && dropdownValue !== '') {
       setDropdownValue('')
     }
@@ -201,7 +236,7 @@ export default function NameContract() {
   useEffect(() => {
     if (parentType === 'web3labs' && config?.ENSCRIBE_DOMAIN) {
       setParentName(config.ENSCRIBE_DOMAIN)
-    } 
+    }
   }, [config, parentType])
 
   const populateName = async () => {
@@ -419,7 +454,12 @@ export default function NameContract() {
 
     // Validate label and parent name before checking
     // Only require parentName for "Create New Name" flow
-    console.log('checkENSReverseResolution - selectedAction:', selectedAction, 'parentName:', parentName)
+    console.log(
+      'checkENSReverseResolution - selectedAction:',
+      selectedAction,
+      'parentName:',
+      parentName,
+    )
     if (selectedAction !== 'pick' && !parentName.trim()) {
       setError('Parent name cannot be empty')
       return
@@ -484,7 +524,7 @@ export default function NameContract() {
     try {
       // Try to get the contract code to check if it exists
       const code = await getBytecode(walletClient, {
-        address: address as `0x${string}`
+        address: address as `0x${string}`,
       })
 
       if (code && code !== '0x') {
@@ -604,18 +644,43 @@ export default function NameContract() {
 
     // Determine if we're on L1 mainnet or sepolia to check appropriate L2 networks
     const isL1Mainnet = chain?.id === CHAINS.MAINNET
-    
+
     // Check ownable on each L2 chain in parallel (mainnet or testnet based on current L1)
     const l2Chains = [
-      { name: 'Optimism', chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, setter: setIsOwnableOptimism },
-      { name: 'Arbitrum', chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, setter: setIsOwnableArbitrum },
-      { name: 'Scroll', chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, setter: setIsOwnableScroll },
-      { name: 'Base', chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, setter: setIsOwnableBase },
-      { name: 'Linea', chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, setter: setIsOwnableLinea }
+      {
+        name: 'Optimism',
+        chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA,
+        setter: setIsOwnableOptimism,
+      },
+      {
+        name: 'Arbitrum',
+        chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA,
+        setter: setIsOwnableArbitrum,
+      },
+      {
+        name: 'Scroll',
+        chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA,
+        setter: setIsOwnableScroll,
+      },
+      {
+        name: 'Base',
+        chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA,
+        setter: setIsOwnableBase,
+      },
+      {
+        name: 'Linea',
+        chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA,
+        setter: setIsOwnableLinea,
+      },
     ]
 
-    console.log(`Checking ownable status on all L2 ${isL1Mainnet ? 'mainnet' : 'testnet'} chains in parallel...`)
-    console.log('L2 chains to check:', l2Chains.map(c => `${c.name} (${c.chainId})`))
+    console.log(
+      `Checking ownable status on all L2 ${isL1Mainnet ? 'mainnet' : 'testnet'} chains in parallel...`,
+    )
+    console.log(
+      'L2 chains to check:',
+      l2Chains.map((c) => `${c.name} (${c.chainId})`),
+    )
 
     type OwnableResult = { name: string; isOwnable: boolean; error?: string }
 
@@ -627,7 +692,7 @@ export default function NameContract() {
             return {
               name: l2Chain.name,
               isOwnable: false,
-              error: `No RPC endpoint configured for ${l2Chain.name}`
+              error: `No RPC endpoint configured for ${l2Chain.name}`,
             }
           }
 
@@ -639,16 +704,16 @@ export default function NameContract() {
               name: l2Chain.name,
               network: l2Chain.name.toLowerCase(),
               nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-              rpcUrls: { default: { http: [l2Config.RPC_ENDPOINT] } }
-            }
+              rpcUrls: { default: { http: [l2Config.RPC_ENDPOINT] } },
+            },
           })
 
-          const ownerAddress = await readContract(l2Client, {
+          const ownerAddress = (await readContract(l2Client, {
             address: address as `0x${string}`,
             abi: ownableContractABI,
             functionName: 'owner',
             args: [],
-          }) as `0x${string}`
+          })) as `0x${string}`
 
           console.log(`${l2Chain.name} contract ownable`)
           return { name: l2Chain.name, isOwnable: true }
@@ -656,12 +721,12 @@ export default function NameContract() {
           console.log(`${l2Chain.name} contract not ownable: ${err}`)
           return { name: l2Chain.name, isOwnable: false }
         }
-      })
+      }),
     )
 
     // Update state based on results
     results.forEach((result) => {
-      const l2Chain = l2Chains.find(chain => chain.name === result.name)
+      const l2Chain = l2Chains.find((chain) => chain.name === result.name)
       if (l2Chain) {
         l2Chain.setter(result.isOwnable)
       }
@@ -733,7 +798,9 @@ export default function NameContract() {
 
     // Force clear error for "Use Existing Name" flow
     if (selectedAction === 'pick') {
-      console.log('setPrimaryName - Use Existing Name flow detected, clearing any existing errors')
+      console.log(
+        'setPrimaryName - Use Existing Name flow detected, clearing any existing errors',
+      )
       setError('')
     }
 
@@ -765,10 +832,21 @@ export default function NameContract() {
     }
 
     // Only require parentName for "Create New Name" flow
-    console.log('setPrimaryName - selectedAction:', selectedAction, 'parentName:', parentName)
-    console.log('setPrimaryName - selectedAction !== "pick":', selectedAction !== 'pick')
+    console.log(
+      'setPrimaryName - selectedAction:',
+      selectedAction,
+      'parentName:',
+      parentName,
+    )
+    console.log(
+      'setPrimaryName - selectedAction !== "pick":',
+      selectedAction !== 'pick',
+    )
     console.log('setPrimaryName - !parentName.trim():', !parentName.trim())
-    console.log('setPrimaryName - condition result:', selectedAction !== 'pick' && !parentName.trim())
+    console.log(
+      'setPrimaryName - condition result:',
+      selectedAction !== 'pick' && !parentName.trim(),
+    )
     if (selectedAction !== 'pick' && !parentName.trim()) {
       console.log('setPrimaryName - Setting error: Parent name cannot be empty')
       setError('Parent name cannot be empty')
@@ -795,7 +873,7 @@ export default function NameContract() {
       let labelNormalized: string
       let parentNameNormalized: string
       let name: string
-      
+
       if (selectedAction === 'pick') {
         // Use Existing Name flow: label contains the full ENS name
         labelNormalized = normalize(label)
@@ -803,29 +881,56 @@ export default function NameContract() {
         // Remove any trailing dots before normalizing
         const cleanedLabel = label.replace(/\.$/, '')
         name = normalize(cleanedLabel)
-        console.log('Use Existing Name flow - label:', label, 'cleanedLabel:', cleanedLabel, 'labelNormalized:', labelNormalized, 'name:', name)
+        console.log(
+          'Use Existing Name flow - label:',
+          label,
+          'cleanedLabel:',
+          cleanedLabel,
+          'labelNormalized:',
+          labelNormalized,
+          'name:',
+          name,
+        )
       } else {
         // Create New Name flow: construct from label and parent
         labelNormalized = normalize(label)
         parentNameNormalized = normalize(parentName)
         // Remove any trailing dots before constructing the name
-        const constructedName = `${labelNormalized}.${parentNameNormalized}`.replace(/\.$/, '')
+        const constructedName =
+          `${labelNormalized}.${parentNameNormalized}`.replace(/\.$/, '')
         name = normalize(constructedName)
-        console.log('Create New Name flow - label:', label, 'parentName:', parentName, 'labelNormalized:', labelNormalized, 'parentNameNormalized:', parentNameNormalized, 'constructedName:', constructedName, 'name:', name)
+        console.log(
+          'Create New Name flow - label:',
+          label,
+          'parentName:',
+          parentName,
+          'labelNormalized:',
+          labelNormalized,
+          'parentNameNormalized:',
+          parentNameNormalized,
+          'constructedName:',
+          constructedName,
+          'name:',
+          name,
+        )
       }
       const chainId = chain?.id!
 
       // Skip subname creation only when not in Create New Name flow
       const skipSubnameCreation = selectedAction !== 'subname'
 
-      const parentNode = selectedAction === 'pick' ? getParentNode(name) : getParentNode(parentNameNormalized)
+      const parentNode =
+        selectedAction === 'pick'
+          ? getParentNode(name)
+          : getParentNode(parentNameNormalized)
       // When a name is selected from dialog, use the full name directly
-      const node = skipSubnameCreation 
+      const node = skipSubnameCreation
         ? namehash(label) // Use the full selected name
         : namehash(name) // Use the constructed name
-      const labelHash = selectedAction === 'pick' 
-        ? keccak256(toBytes(name.split('.')[0])) // Extract label part from full name
-        : keccak256(toBytes(labelNormalized))
+      const labelHash =
+        selectedAction === 'pick'
+          ? keccak256(toBytes(name.split('.')[0])) // Extract label part from full name
+          : keccak256(toBytes(labelNormalized))
 
       const nameExist = (await readContract(walletClient, {
         address: config.ENS_REGISTRY as `0x${string}`,
@@ -835,23 +940,46 @@ export default function NameContract() {
       })) as boolean
 
       // Internal balance check for all selected L2 chains before creating any steps
-      const l2ChainsForBalanceCheck: Array<{ name: string; chainId: number; chain: any }> = []
-      
+      const l2ChainsForBalanceCheck: Array<{
+        name: string
+        chainId: number
+        chain: any
+      }> = []
+
       // Map selected chain names to their configurations
       const isL1Mainnet = chain?.id === CHAINS.MAINNET
       const chainConfigs = {
-        'Optimism': { chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: isL1Mainnet ? optimism : optimismSepolia },
-        'Arbitrum': { chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: isL1Mainnet ? arbitrum : arbitrumSepolia },
-        'Scroll': { chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: isL1Mainnet ? scroll : scrollSepolia },
-        'Base': { chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: isL1Mainnet ? base : baseSepolia },
-        'Linea': { chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: isL1Mainnet ? linea : lineaSepolia }
+        Optimism: {
+          chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA,
+          chain: isL1Mainnet ? optimism : optimismSepolia,
+        },
+        Arbitrum: {
+          chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA,
+          chain: isL1Mainnet ? arbitrum : arbitrumSepolia,
+        },
+        Scroll: {
+          chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA,
+          chain: isL1Mainnet ? scroll : scrollSepolia,
+        },
+        Base: {
+          chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA,
+          chain: isL1Mainnet ? base : baseSepolia,
+        },
+        Linea: {
+          chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA,
+          chain: isL1Mainnet ? linea : lineaSepolia,
+        },
       }
-      
+
       // Add selected chains to balance check
       for (const selectedChain of selectedL2ChainNames) {
         const config = chainConfigs[selectedChain as keyof typeof chainConfigs]
         if (config) {
-          l2ChainsForBalanceCheck.push({ name: selectedChain, chainId: config.chainId, chain: config.chain })
+          l2ChainsForBalanceCheck.push({
+            name: selectedChain,
+            chainId: config.chainId,
+            chain: config.chain,
+          })
         }
       }
 
@@ -914,9 +1042,7 @@ export default function NameContract() {
         }>
 
         if (failures.length > 0) {
-          const msg = failures
-            .map((f) => `${f.name}: ${f.error}`)
-            .join(' | ')
+          const msg = failures.map((f) => `${f.name}: ${f.error}`).join(' | ')
           setError(`Balance check failed for some chains: ${msg}`)
           setLoading(false)
           return
@@ -966,244 +1092,257 @@ export default function NameContract() {
 
       console.log('txCost - ', txCost)
 
-      const titleFirst = parentType === 'web3labs' ? (skipL1Naming ? 'Create subname' : 'Set forward resolution') : 'Create subname'
+      const titleFirst =
+        parentType === 'web3labs'
+          ? skipL1Naming
+            ? 'Create subname'
+            : 'Set forward resolution'
+          : 'Create subname'
 
       // Step 1: Create Subname (skip if using existing name)
       if (!skipSubnameCreation) {
         steps.push({
-        title: titleFirst,
-        chainId: chainId, // Add chainId for L1 transaction
-        action: async () => {
-          console.log(`nameExist is ${nameExist} parentType is ${parentType}`)
-          if (parentType === 'web3labs') {
-            const currentAddr = (await readContract(walletClient, {
-              address: publicResolverAddress,
-              abi: publicResolverABI,
-              functionName: 'addr',
-              args: [node],
-            })) as `0x${string}`
+          title: titleFirst,
+          chainId: chainId, // Add chainId for L1 transaction
+          action: async () => {
+            console.log(`nameExist is ${nameExist} parentType is ${parentType}`)
+            if (parentType === 'web3labs') {
+              const currentAddr = (await readContract(walletClient, {
+                address: publicResolverAddress,
+                abi: publicResolverABI,
+                functionName: 'addr',
+                args: [node],
+              })) as `0x${string}`
 
-            if (
-              currentAddr.toLowerCase() !==
-              existingContractAddress.toLowerCase()
+              if (
+                currentAddr.toLowerCase() !==
+                existingContractAddress.toLowerCase()
+              ) {
+                console.log(
+                  'create subname::writeContract calling setName on ENSCRIBE_CONTRACT',
+                )
+                let txn
+
+                if (isSafeWallet) {
+                  writeContract(walletClient, {
+                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                    abi: contractABI,
+                    functionName: 'setName',
+                    args: [
+                      existingContractAddress,
+                      labelNormalized,
+                      parentNameNormalized,
+                      parentNode,
+                    ],
+                    value: txCost,
+                    account: walletAddress,
+                  })
+                  txn = 'safe wallet'
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                    abi: contractABI,
+                    functionName: 'setName',
+                    args: [
+                      existingContractAddress,
+                      labelNormalized,
+                      parentNameNormalized,
+                      parentNode,
+                    ],
+                    value: txCost,
+                    account: walletAddress,
+                  })
+                }
+
+                await logMetric(
+                  corelationId,
+                  Date.now(),
+                  chainId,
+                  existingContractAddress,
+                  walletAddress,
+                  name,
+                  'subname::setName',
+                  txn,
+                  isOwnable ? 'Ownable' : 'ReverseClaimer',
+                  opType,
+                )
+                return txn
+              } else {
+                setError('Forward resolution already set')
+                console.log('Forward resolution already set')
+              }
+            } else if (
+              chain?.id == CHAINS.BASE ||
+              chain?.id == CHAINS.BASE_SEPOLIA
             ) {
-              console.log('create subname::writeContract calling setName on ENSCRIBE_CONTRACT')
-              let txn
-              
-              if (isSafeWallet) {
-                writeContract(walletClient, {
-                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                  abi: contractABI,
-                  functionName: 'setName',
-                  args: [
-                    existingContractAddress,
-                    labelNormalized,
-                    parentNameNormalized,
-                    parentNode,
-                  ],
-                  value: txCost,
-                  account: walletAddress,
-                })
-                txn = 'safe wallet'
-              } else {
-                txn = await writeContract(walletClient, {
-                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                  abi: contractABI,
-                  functionName: 'setName',
-                  args: [
-                    existingContractAddress,
-                    labelNormalized,
-                    parentNameNormalized,
-                    parentNode,
-                  ],
-                  value: txCost,
-                  account: walletAddress,
-                })
-              }
+              if (!nameExist) {
+                console.log(
+                  'create subname::writeContract calling setSubnodeRecord on ENSCRIBE_CONTRACT',
+                )
+                let txn
 
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'subname::setName',
-                txn,
-                isOwnable ? 'Ownable' : 'ReverseClaimer',
-                opType,
-              )
-              return txn
+                if (isSafeWallet) {
+                  writeContract(walletClient, {
+                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelHash,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                  txn = 'safe wallet'
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                    abi: ensRegistryABI,
+                    functionName: 'setSubnodeRecord',
+                    args: [
+                      parentNode,
+                      labelHash,
+                      walletAddress,
+                      publicResolverAddress,
+                      0,
+                    ],
+                    account: walletAddress,
+                  })
+                }
+
+                await logMetric(
+                  corelationId,
+                  Date.now(),
+                  chainId,
+                  existingContractAddress,
+                  walletAddress,
+                  name,
+                  'subname::setSubnodeRecord',
+                  txn,
+                  isOwnable ? 'Ownable' : 'ReverseClaimer',
+                  opType,
+                )
+                return txn
+              }
             } else {
-              setError('Forward resolution already set')
-              console.log('Forward resolution already set')
-            }
-          } else if (
-            chain?.id == CHAINS.BASE ||
-            chain?.id == CHAINS.BASE_SEPOLIA
-          ) {
-            if (!nameExist) {
-              console.log('create subname::writeContract calling setSubnodeRecord on ENSCRIBE_CONTRACT')
-              let txn
-              
-              if (isSafeWallet) {
-                writeContract(walletClient, {
-                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                  abi: ensRegistryABI,
-                  functionName: 'setSubnodeRecord',
-                  args: [
-                    parentNode,
-                    labelHash,
+              const isWrapped = await readContract(walletClient, {
+                address: config.NAME_WRAPPER as `0x${string}`,
+                abi: nameWrapperABI,
+                functionName: 'isWrapped',
+                args: [parentNode],
+              })
+              console.log(`nameExist is ${nameExist}`)
+              if (!nameExist) {
+                if (isWrapped) {
+                  console.log(
+                    'create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER',
+                  )
+                  let txn
+
+                  if (isSafeWallet) {
+                    writeContract(walletClient, {
+                      address: config.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setSubnodeRecord',
+                      args: [
+                        parentNode,
+                        labelNormalized,
+                        walletAddress,
+                        publicResolverAddress,
+                        0,
+                        0,
+                        0,
+                      ],
+                      account: walletAddress,
+                    })
+                    txn = 'safe wallet'
+                  } else {
+                    txn = await writeContract(walletClient, {
+                      address: config.NAME_WRAPPER as `0x${string}`,
+                      abi: nameWrapperABI,
+                      functionName: 'setSubnodeRecord',
+                      args: [
+                        parentNode,
+                        labelNormalized,
+                        walletAddress,
+                        publicResolverAddress,
+                        0,
+                        0,
+                        0,
+                      ],
+                      account: walletAddress,
+                    })
+                  }
+
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
                     walletAddress,
-                    publicResolverAddress,
-                    0,
-                  ],
-                  account: walletAddress,
-                })
-                txn = 'safe wallet'
-              } else {
-                txn = await writeContract(walletClient, {
-                  address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                  abi: ensRegistryABI,
-                  functionName: 'setSubnodeRecord',
-                  args: [
-                    parentNode,
-                    labelHash,
+                    name,
+                    'subname::setSubnodeRecord',
+                    txn,
+                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                    opType,
+                  )
+                  return txn
+                } else {
+                  console.log(
+                    'create subname::writeContract calling setSubnodeRecord on ENS_REGISTRY',
+                  )
+                  let txn
+
+                  if (isSafeWallet) {
+                    writeContract(walletClient, {
+                      address: config.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setSubnodeRecord',
+                      args: [
+                        parentNode,
+                        labelHash,
+                        walletAddress,
+                        publicResolverAddress,
+                        0,
+                      ],
+                      account: walletAddress,
+                    })
+                    txn = 'safe wallet'
+                  } else {
+                    txn = await writeContract(walletClient, {
+                      address: config.ENS_REGISTRY as `0x${string}`,
+                      abi: ensRegistryABI,
+                      functionName: 'setSubnodeRecord',
+                      args: [
+                        parentNode,
+                        labelHash,
+                        walletAddress,
+                        publicResolverAddress,
+                        0,
+                      ],
+                      account: walletAddress,
+                    })
+                  }
+
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
                     walletAddress,
-                    publicResolverAddress,
-                    0,
-                  ],
-                  account: walletAddress,
-                })
-              }
-              
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'subname::setSubnodeRecord',
-                txn,
-                isOwnable ? 'Ownable' : 'ReverseClaimer',
-                opType,
-              )
-              return txn
-            }
-          } else {
-            const isWrapped = await readContract(walletClient, {
-              address: config.NAME_WRAPPER as `0x${string}`,
-              abi: nameWrapperABI,
-              functionName: 'isWrapped',
-              args: [parentNode],
-            })
-            console.log(`nameExist is ${nameExist}`)
-            if (!nameExist) {
-              if (isWrapped) {
-                console.log('create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER')
-                let txn
-                
-                if (isSafeWallet) {
-                  writeContract(walletClient, {
-                    address: config.NAME_WRAPPER as `0x${string}`,
-                    abi: nameWrapperABI,
-                    functionName: 'setSubnodeRecord',
-                    args: [
-                      parentNode,
-                      labelNormalized,
-                      walletAddress,
-                      publicResolverAddress,
-                      0,
-                      0,
-                      0,
-                    ],
-                    account: walletAddress,
-                  })
-                  txn = 'safe wallet'
-                } else {
-                  txn = await writeContract(walletClient, {
-                    address: config.NAME_WRAPPER as `0x${string}`,
-                    abi: nameWrapperABI,
-                    functionName: 'setSubnodeRecord',
-                    args: [
-                      parentNode,
-                      labelNormalized,
-                      walletAddress,
-                      publicResolverAddress,
-                      0,
-                      0,
-                      0,
-                    ],
-                    account: walletAddress,
-                  })
+                    name,
+                    'subname::setSubnodeRecord',
+                    txn,
+                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                    opType,
+                  )
+                  return txn
                 }
-                
-                await logMetric(
-                  corelationId,
-                  Date.now(),
-                  chainId,
-                  existingContractAddress,
-                  walletAddress,
-                  name,
-                  'subname::setSubnodeRecord',
-                  txn,
-                  isOwnable ? 'Ownable' : 'ReverseClaimer',
-                  opType,
-                )
-                return txn
-              } else {
-                console.log('create subname::writeContract calling setSubnodeRecord on ENS_REGISTRY')
-                let txn
-                
-                if (isSafeWallet) {
-                  writeContract(walletClient, {
-                    address: config.ENS_REGISTRY as `0x${string}`,
-                    abi: ensRegistryABI,
-                    functionName: 'setSubnodeRecord',
-                    args: [
-                      parentNode,
-                      labelHash,
-                      walletAddress,
-                      publicResolverAddress,
-                      0,
-                    ],
-                    account: walletAddress,
-                  })
-                  txn = 'safe wallet'
-                } else {
-                  txn = await writeContract(walletClient, {
-                    address: config.ENS_REGISTRY as `0x${string}`,
-                    abi: ensRegistryABI,
-                    functionName: 'setSubnodeRecord',
-                    args: [
-                      parentNode,
-                      labelHash,
-                      walletAddress,
-                      publicResolverAddress,
-                      0,
-                    ],
-                    account: walletAddress,
-                  })
-                }
-                
-                await logMetric(
-                  corelationId,
-                  Date.now(),
-                  chainId,
-                  existingContractAddress,
-                  walletAddress,
-                  name,
-                  'subname::setSubnodeRecord',
-                  txn,
-                  isOwnable ? 'Ownable' : 'ReverseClaimer',
-                  opType,
-                )
-                return txn
               }
             }
-          }
-        },
+          },
         })
       }
 
@@ -1226,9 +1365,11 @@ export default function NameContract() {
               currentAddr.toLowerCase() !==
               existingContractAddress.toLowerCase()
             ) {
-              console.log('set fwdres::writeContract calling setAddr on PUBLIC_RESOLVER')
+              console.log(
+                'set fwdres::writeContract calling setAddr on PUBLIC_RESOLVER',
+              )
               let txn
-              
+
               if (isSafeWallet) {
                 writeContract(walletClient, {
                   address: publicResolverAddress,
@@ -1247,7 +1388,7 @@ export default function NameContract() {
                   account: walletAddress,
                 })
               }
-              
+
               await logMetric(
                 corelationId,
                 Date.now(),
@@ -1278,18 +1419,17 @@ export default function NameContract() {
           title: 'Set reverse resolution',
           chainId: chainId, // Add chainId for L1 transaction
           action: async () => {
-            console.log('set revres::writeContract calling setName on PUBLIC_RESOLVER')
+            console.log(
+              'set revres::writeContract calling setName on PUBLIC_RESOLVER',
+            )
             let txn
-            
+
             if (isSafeWallet) {
               writeContract(walletClient, {
                 address: publicResolverAddress,
                 abi: publicResolverABI,
                 functionName: 'setName',
-                args: [
-                  reversedNode,
-                  name,
-                ],
+                args: [reversedNode, name],
                 account: walletAddress,
               })
               txn = 'safe wallet'
@@ -1298,14 +1438,11 @@ export default function NameContract() {
                 address: publicResolverAddress,
                 abi: publicResolverABI,
                 functionName: 'setName',
-                args: [
-                  reversedNode,
-                  name,
-                ],
+                args: [reversedNode, name],
                 account: walletAddress,
               })
             }
-            
+
             await logMetric(
               corelationId,
               Date.now(),
@@ -1327,9 +1464,11 @@ export default function NameContract() {
           title: 'Set reverse resolution',
           chainId: chainId, // Add chainId for L1 transaction
           action: async () => {
-            console.log('set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR')
+            console.log(
+              'set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR',
+            )
             let txn
-            
+
             if (isSafeWallet) {
               writeContract(walletClient, {
                 address: config.REVERSE_REGISTRAR as `0x${string}`,
@@ -1358,7 +1497,7 @@ export default function NameContract() {
                 account: walletAddress,
               })
             }
-            
+
             await logMetric(
               corelationId,
               Date.now(),
@@ -1379,20 +1518,40 @@ export default function NameContract() {
       }
 
       // Add L2 primary name steps for all selected chains
-      const selectedL2Chains: Array<{ name: string; chainId: number; chain: any }> = []
-      
+      const selectedL2Chains: Array<{
+        name: string
+        chainId: number
+        chain: any
+      }> = []
+
       // Map selected chain names to their configurations for steps
       const stepChainConfigs = {
-        'Optimism': { chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA, chain: isL1Mainnet ? optimism : optimismSepolia },
-        'Arbitrum': { chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA, chain: isL1Mainnet ? arbitrum : arbitrumSepolia },
-        'Scroll': { chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA, chain: isL1Mainnet ? scroll : scrollSepolia },
-        'Base': { chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA, chain: isL1Mainnet ? base : baseSepolia },
-        'Linea': { chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA, chain: isL1Mainnet ? linea : lineaSepolia }
+        Optimism: {
+          chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA,
+          chain: isL1Mainnet ? optimism : optimismSepolia,
+        },
+        Arbitrum: {
+          chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA,
+          chain: isL1Mainnet ? arbitrum : arbitrumSepolia,
+        },
+        Scroll: {
+          chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA,
+          chain: isL1Mainnet ? scroll : scrollSepolia,
+        },
+        Base: {
+          chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA,
+          chain: isL1Mainnet ? base : baseSepolia,
+        },
+        Linea: {
+          chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA,
+          chain: isL1Mainnet ? linea : lineaSepolia,
+        },
       }
-      
+
       // Add selected chains to steps
       for (const selectedChain of selectedL2ChainNames) {
-        const config = stepChainConfigs[selectedChain as keyof typeof stepChainConfigs]
+        const config =
+          stepChainConfigs[selectedChain as keyof typeof stepChainConfigs]
         if (config) {
           selectedL2Chains.push({ name: selectedChain, ...config })
         }
@@ -1401,15 +1560,14 @@ export default function NameContract() {
       // Second: Add all L2 forward resolution steps (on current chain)
       for (const l2Chain of selectedL2Chains) {
         const l2Config = CONTRACTS[l2Chain.chainId]
-        const coinType = Number((l2Config.COIN_TYPE) || '60')
-        
+        const coinType = Number(l2Config.COIN_TYPE || '60')
+
         if (l2Config && coinType) {
           // Add forward resolution step for this L2 chain
           steps.push({
             title: `Set forward resolution for ${l2Chain.name}`,
             chainId: chainId, // Add chainId for L1 transaction (forward resolution happens on L1)
             action: async () => {
-
               const currentAddr = (await readContract(walletClient, {
                 address: publicResolverAddress,
                 abi: publicResolverABI,
@@ -1417,39 +1575,41 @@ export default function NameContract() {
                 args: [node, coinType],
               })) as `0x${string}`
 
-
-              if (currentAddr.toLowerCase() !== existingContractAddress.toLowerCase()) {
-              let txn
-              if (isSafeWallet) {
-                writeContract(walletClient, {
-                  address: publicResolverAddress,
-                  abi: publicResolverABI,
-                  functionName: 'setAddr',
-                  args: [node, coinType, existingContractAddress],
-                  account: walletAddress,
-                })
-                txn = 'safe wallet'
-              } else {
-              txn = await writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setAddr',
-                args: [node, coinType, existingContractAddress],
-                account: walletAddress,
-              })
-            }
-              await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'fwdres::setAddr',
-                txn,
-                isOwnable ? 'Ownable' : 'ReverseClaimer',
-                opType,
-              )
+              if (
+                currentAddr.toLowerCase() !==
+                existingContractAddress.toLowerCase()
+              ) {
+                let txn
+                if (isSafeWallet) {
+                  writeContract(walletClient, {
+                    address: publicResolverAddress,
+                    abi: publicResolverABI,
+                    functionName: 'setAddr',
+                    args: [node, coinType, existingContractAddress],
+                    account: walletAddress,
+                  })
+                  txn = 'safe wallet'
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: publicResolverAddress,
+                    abi: publicResolverABI,
+                    functionName: 'setAddr',
+                    args: [node, coinType, existingContractAddress],
+                    account: walletAddress,
+                  })
+                }
+                await logMetric(
+                  corelationId,
+                  Date.now(),
+                  chainId,
+                  existingContractAddress,
+                  walletAddress,
+                  name,
+                  'fwdres::setAddr',
+                  txn,
+                  isOwnable ? 'Ownable' : 'ReverseClaimer',
+                  opType,
+                )
                 return txn
               } else {
                 setError('Forward resolution already set on this chain')
@@ -1460,7 +1620,7 @@ export default function NameContract() {
         } else {
           console.error(`${l2Chain.name} configuration missing:`, {
             hasConfig: !!l2Config,
-            config: l2Config
+            config: l2Config,
           })
         }
       }
@@ -1468,7 +1628,7 @@ export default function NameContract() {
       // Then: Add L2 primary naming steps (switch to each chain, then proceed)
       for (const l2Chain of selectedL2Chains) {
         const l2Config = CONTRACTS[l2Chain.chainId]
-        
+
         // Check if contract is ownable on this specific L2 chain
         let isOwnableOnThisL2Chain = false
         switch (l2Chain.name) {
@@ -1490,9 +1650,13 @@ export default function NameContract() {
           default:
             isOwnableOnThisL2Chain = false
         }
-        
+
         // Only add L2 primary name step if contract is ownable on this L2 chain
-        if (l2Config && l2Config.L2_REVERSE_REGISTRAR && isOwnableOnThisL2Chain) {
+        if (
+          l2Config &&
+          l2Config.L2_REVERSE_REGISTRAR &&
+          isOwnableOnThisL2Chain
+        ) {
           setIsPrimaryNameSet(true)
           // Add reverse resolution step for this L2 chain
           steps.push({
@@ -1500,40 +1664,49 @@ export default function NameContract() {
             chainId: l2Chain.chainId, // Add chainId for L2 transaction
             action: async () => {
               console.log(`Starting ${l2Chain.name} L2 primary name step...`)
-              
-              console.log(`Switching to ${l2Chain.name} (chain ID: ${l2Chain.chainId})...`)
-              
+
+              console.log(
+                `Switching to ${l2Chain.name} (chain ID: ${l2Chain.chainId})...`,
+              )
+
               // Switch to L2 chain
               await switchChain({ chainId: l2Chain.chainId })
-              
+
               // Wait a moment for the chain switch to complete
               console.log('Waiting for chain switch to complete...')
-              await new Promise(resolve => setTimeout(resolve, 3000))
-              
+              await new Promise((resolve) => setTimeout(resolve, 3000))
+
               // Wait for the chain to actually change
               console.log('Waiting for chain to actually change...')
               let attempts = 0
               while (attempts < 10) {
                 const currentChain = await walletClient.getChainId()
-                console.log(`Current chain ID: ${currentChain}, Target: ${l2Chain.chainId}`)
+                console.log(
+                  `Current chain ID: ${currentChain}, Target: ${l2Chain.chainId}`,
+                )
                 if (currentChain === l2Chain.chainId) {
                   console.log('Chain switch confirmed!')
                   break
                 }
-                await new Promise(resolve => setTimeout(resolve, 1000))
+                await new Promise((resolve) => setTimeout(resolve, 1000))
                 attempts++
               }
-              
+
               if (attempts >= 10) {
-                throw new Error(`Chain switch timeout - chain did not change to ${l2Chain.name}`)
+                throw new Error(
+                  `Chain switch timeout - chain did not change to ${l2Chain.name}`,
+                )
               }
-              
+
               // Now execute the reverse resolution transaction on L2
               console.log(`Executing reverse resolution on ${l2Chain.name}...`)
-              console.log('L2 Reverse Registrar:', l2Config.L2_REVERSE_REGISTRAR)
+              console.log(
+                'L2 Reverse Registrar:',
+                l2Config.L2_REVERSE_REGISTRAR,
+              )
               console.log('Contract Address:', existingContractAddress)
               console.log('ENS Name:', skipSubnameCreation ? label : name)
-              
+
               // Perform reverse resolution on L2
               let txn
               if (isSafeWallet) {
@@ -1545,19 +1718,19 @@ export default function NameContract() {
                         {
                           internalType: 'address',
                           name: 'addr',
-                          type: 'address'
+                          type: 'address',
                         },
                         {
                           internalType: 'string',
                           name: 'name',
-                          type: 'string'
-                        }
+                          type: 'string',
+                        },
                       ],
                       name: 'setNameForAddr',
                       outputs: [],
                       stateMutability: 'nonpayable',
-                      type: 'function'
-                    }
+                      type: 'function',
+                    },
                   ],
                   functionName: 'setNameForAddr',
                   args: [
@@ -1565,44 +1738,41 @@ export default function NameContract() {
                     skipSubnameCreation ? label : name,
                   ],
                   account: walletAddress,
-                  chain: l2Chain.chain
+                  chain: l2Chain.chain,
                 })
                 txn = 'safe wallet'
               } else {
-              txn = await writeContract(walletClient, {
-                address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
-                abi: [
-                  {
-                    inputs: [
-                      {
-                        internalType: 'address',
-                        name: 'addr',
-                        type: 'address'
-                      },
-                      {
-                        internalType: 'string',
-                        name: 'name',
-                        type: 'string'
-                      }
-                    ],
-                    name: 'setNameForAddr',
-                    outputs: [],
-                    stateMutability: 'nonpayable',
-                    type: 'function'
-                  }
-                ],
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress as `0x${string}`,
-                  name,
-                ],
-                account: walletAddress,
-                chain: l2Chain.chain
-              })
-            }
-              
+                txn = await writeContract(walletClient, {
+                  address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
+                  abi: [
+                    {
+                      inputs: [
+                        {
+                          internalType: 'address',
+                          name: 'addr',
+                          type: 'address',
+                        },
+                        {
+                          internalType: 'string',
+                          name: 'name',
+                          type: 'string',
+                        },
+                      ],
+                      name: 'setNameForAddr',
+                      outputs: [],
+                      stateMutability: 'nonpayable',
+                      type: 'function',
+                    },
+                  ],
+                  functionName: 'setNameForAddr',
+                  args: [existingContractAddress as `0x${string}`, name],
+                  account: walletAddress,
+                  chain: l2Chain.chain,
+                })
+              }
+
               console.log(`${l2Chain.name} transaction submitted:`, txn)
-              
+
               // Log the L2 transaction
               await logMetric(
                 `${l2Chain.name.toLowerCase()}-l2-primary`, // correlationId
@@ -1614,18 +1784,21 @@ export default function NameContract() {
                 'revres::setNameForAddr',
                 txn,
                 'L2Primary',
-                opType
+                opType,
               )
-              
+
               return txn
             },
           })
         } else {
-          console.error(`${l2Chain.name} configuration missing or contract not ownable:`, {
-            hasConfig: !!l2Config,
-            hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
-            config: l2Config
-          })
+          console.error(
+            `${l2Chain.name} configuration missing or contract not ownable:`,
+            {
+              hasConfig: !!l2Config,
+              hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
+              config: l2Config,
+            },
+          )
         }
       }
 
@@ -1639,9 +1812,9 @@ export default function NameContract() {
           : 'Set Forward Resolution',
       )
       setModalSubtitle(
-        safeCheck 
+        safeCheck
           ? 'Transactions will be executed in your Safe wallet app'
-          : 'Running each step to finish naming this contract'
+          : 'Running each step to finish naming this contract',
       )
       setModalSteps(steps)
       setModalOpen(true)
@@ -1666,7 +1839,9 @@ export default function NameContract() {
         </p>
       )}
 
-      <div className={`space-y-6 mt-6 ${!isConnected || isUnsupportedL2Chain ? 'pointer-events-none opacity-50' : ''}`}>
+      <div
+        className={`space-y-6 mt-6 ${!isConnected || isUnsupportedL2Chain ? 'pointer-events-none opacity-50' : ''}`}
+      >
         <label className="block text-gray-700 dark:text-gray-300">
           Contract Address
         </label>
@@ -1696,7 +1871,8 @@ export default function NameContract() {
               <div className="flex items-center">
                 <XCircleIcon className="w-5 h-5 inline text-red-500 cursor-pointer" />
                 <p className="text-gray-600 inline ml-1 dark:text-gray-300">
-                {chain?.name}: You are not the contract owner and cannot set its primary name
+                  {chain?.name}: You are not the contract owner and cannot set
+                  its primary name
                 </p>
               </div>
             )}
@@ -1706,7 +1882,7 @@ export default function NameContract() {
                   <div className="flex items-center">
                     <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
                     <p className="text-gray-700 dark:text-gray-200">
-                    {chain?.name}: Contract implements{' '}
+                      {chain?.name}: Contract implements{' '}
                       <Link
                         href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                         className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1720,7 +1896,7 @@ export default function NameContract() {
                   <div className="flex items-center">
                     <CheckCircleIcon className="w-5 h-5 text-green-500 mr-1" />
                     <p className="text-gray-700 dark:text-gray-200">
-                    {chain?.name}: Contract is{' '}
+                      {chain?.name}: Contract is{' '}
                       <Link
                         href="https://docs.ens.domains/web/naming-contracts#reverseclaimersol"
                         className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1732,7 +1908,7 @@ export default function NameContract() {
                 )}
               </div>
             )}
-            
+
             {/* L2 Ownable Information */}
             {!isAddressEmpty && (
               <div className="space-y-1">
@@ -1868,9 +2044,7 @@ export default function NameContract() {
         </div>
 
         {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
-        {!isAddressEmpty &&
-          !isAddressInvalid &&
-          isContractExists === false && (
+        {!isAddressEmpty && !isAddressInvalid && isContractExists === false && (
           <p className="text-red-600 dark:text-red-300">
             {chain?.name}: Contract doesn't exist
           </p>
@@ -1880,8 +2054,8 @@ export default function NameContract() {
           isContractExists === true &&
           !isOwnable &&
           !isReverseClaimable && (
-          <p className="text-yellow-600 dark:text-yellow-300">
-            {chain?.name}: Contract address does not extend{' '}
+            <p className="text-yellow-600 dark:text-yellow-300">
+              {chain?.name}: Contract address does not extend{' '}
               <Link
                 href="https://docs.openzeppelin.com/contracts/access-control#ownership-and-ownable"
                 className="text-blue-600 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
@@ -1986,7 +2160,9 @@ export default function NameContract() {
                   value={parentName}
                   onChange={(e) => {
                     setParentName(e.target.value)
-                    setParentType(e.target.value === enscribeDomain ? 'web3labs' : 'own')
+                    setParentType(
+                      e.target.value === enscribeDomain ? 'web3labs' : 'own',
+                    )
                   }}
                   onBlur={async () => {
                     await recordExist()
@@ -2011,7 +2187,9 @@ export default function NameContract() {
         )}
 
         {/* Full Contract Name Preview */}
-        {((selectedAction === 'subname' && !isEmpty(label) && !isEmpty(parentName)) || 
+        {((selectedAction === 'subname' &&
+          !isEmpty(label) &&
+          !isEmpty(parentName)) ||
           (selectedAction === 'pick' && !isEmpty(label))) && (
           <div className="mt-4 mb-4">
             <label className="block text-gray-700 dark:text-gray-300 mb-5">
@@ -2033,31 +2211,42 @@ export default function NameContract() {
                 <label className="block text-gray-700 dark:text-gray-300">
                   Naming on L2 Chains
                 </label>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">i</span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    <p>
-                      Select which L2 chains to set names on. This will add additional steps to switch to each selected chain and set the primary name there as well.
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">
+                        i
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>
+                        Select which L2 chains to set names on. This will add
+                        additional steps to switch to each selected chain and
+                        set the primary name there as well.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               {selectedL2ChainNames.length > 0 && (
                 <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
-                  <span className="text-gray-700 dark:text-gray-300">Skip L1 Naming</span>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Skip L1 Naming
+                  </span>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">i</span>
+                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">
+                          i
+                        </span>
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          Select this if you want to name only on the selected L2 chains and skip L1 naming (forward and reverse resolution). The subname will still be created on L1 if needed.
+                          Select this if you want to name only on the selected
+                          L2 chains and skip L1 naming (forward and reverse
+                          resolution). The subname will still be created on L1
+                          if needed.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -2070,7 +2259,7 @@ export default function NameContract() {
                 </div>
               )}
             </div>
-            
+
             {/* Selected L2 Chains Display */}
             {selectedL2ChainNames.length > 0 && (
               <div className="mb-4">
@@ -2091,10 +2280,19 @@ export default function NameContract() {
                         key={index}
                         className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
                       >
-                        <Image src={logoSrc} alt={`${chainName} logo`} width={14} height={14} />
+                        <Image
+                          src={logoSrc}
+                          alt={`${chainName} logo`}
+                          width={14}
+                          height={14}
+                        />
                         <span>{chainName}</span>
                         <button
-                          onClick={() => setSelectedL2ChainNames((prev) => prev.filter((name) => name !== chainName))}
+                          onClick={() =>
+                            setSelectedL2ChainNames((prev) =>
+                              prev.filter((name) => name !== chainName),
+                            )
+                          }
                           className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
                         >
                           ×
@@ -2105,14 +2303,18 @@ export default function NameContract() {
                 </div>
               </div>
             )}
-            
+
             {/* L2 Chain chooser button instead of dropdown */}
             <div>
               <Button
                 type="button"
                 className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
                 onClick={() => setShowL2Modal(true)}
-                disabled={L2_CHAIN_OPTIONS.filter((c) => !selectedL2ChainNames.includes(c)).length === 0}
+                disabled={
+                  L2_CHAIN_OPTIONS.filter(
+                    (c) => !selectedL2ChainNames.includes(c),
+                  ).length === 0
+                }
               >
                 Choose L2 Chains
               </Button>
@@ -2126,7 +2328,9 @@ export default function NameContract() {
         <DialogContent className="max-w-3xl bg-white dark:bg-gray-900 shadow-lg rounded-lg">
           <DialogHeader className="mb-4">
             <DialogTitle className="text-xl font-semibold text-gray-900 dark:text-white">
-              {selectedAction === 'pick' ? 'Choose Your ENS Name' : 'Choose Domain'}
+              {selectedAction === 'pick'
+                ? 'Choose Your ENS Name'
+                : 'Choose Domain'}
             </DialogTitle>
           </DialogHeader>
 
@@ -2149,7 +2353,8 @@ export default function NameContract() {
 
                       // Separate domains with labelhashes
                       const domainsWithLabelhash = userOwnedDomains.filter(
-                        (domain) => domain.includes('[') && domain.includes(']'),
+                        (domain) =>
+                          domain.includes('[') && domain.includes(']'),
                       )
                       const regularDomains = userOwnedDomains.filter(
                         (domain) =>
@@ -2179,22 +2384,28 @@ export default function NameContract() {
                               className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
                             >
                               <div className="flex flex-wrap gap-2">
-                                {domainGroups[parent2LD].map((domain, index) => (
-                                  <div
-                                    key={domain}
-                                    className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                                    onClick={() => {
-                                      setParentName(domain)
-                                      setParentType(domain === enscribeDomain ? 'web3labs' : 'own')
-                                      setEnsNameChosen(true)
-                                      setShowENSModal(false)
-                                    }}
-                                  >
-                                    <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                                      {domain}
-                                    </span>
-                                  </div>
-                                ))}
+                                {domainGroups[parent2LD].map(
+                                  (domain, index) => (
+                                    <div
+                                      key={domain}
+                                      className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                      onClick={() => {
+                                        setParentName(domain)
+                                        setParentType(
+                                          domain === enscribeDomain
+                                            ? 'web3labs'
+                                            : 'own',
+                                        )
+                                        setEnsNameChosen(true)
+                                        setShowENSModal(false)
+                                      }}
+                                    >
+                                      <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                        {domain}
+                                      </span>
+                                    </div>
+                                  ),
+                                )}
                               </div>
                             </div>
                           ))}
@@ -2209,7 +2420,11 @@ export default function NameContract() {
                                     className="px-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors inline-flex items-center"
                                     onClick={() => {
                                       setParentName(domain)
-                                      setParentType(domain === enscribeDomain ? 'web3labs' : 'own')
+                                      setParentType(
+                                        domain === enscribeDomain
+                                          ? 'web3labs'
+                                          : 'own',
+                                      )
                                       setEnsNameChosen(true)
                                       setShowENSModal(false)
                                     }}
@@ -2222,7 +2437,6 @@ export default function NameContract() {
                               </div>
                             </div>
                           )}
-
                         </div>
                       )
                     })()}
@@ -2254,7 +2468,7 @@ export default function NameContract() {
                     {enscribeDomain}
                   </span>
                 </div>
-                
+
                 {/* Purchase New Domain button */}
                 <div className="pt-4">
                   <Button
@@ -2314,7 +2528,8 @@ export default function NameContract() {
 
                         // Separate domains with labelhashes
                         const domainsWithLabelhash = userOwnedDomains.filter(
-                          (domain) => domain.includes('[') && domain.includes(']'),
+                          (domain) =>
+                            domain.includes('[') && domain.includes(']'),
                         )
                         const regularDomains = userOwnedDomains.filter(
                           (domain) =>
@@ -2344,34 +2559,40 @@ export default function NameContract() {
                                 className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-0"
                               >
                                 <div className="flex flex-wrap gap-2">
-                                  {domainGroups[parent2LD].map((domain, index) => (
-                                    <div
-                                      key={domain}
-                                      className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
-                                      onClick={() => {
-                                        // Auto-detect if selected domain has dots and enable SLD mode
-                                        const parts = domain.split('.')
-                                        if (ensModalFromPicker) {
-                                          // In Create Subname flow, selected domain should be the parent
-                                          setParentName(domain)
-                                        } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
-                                          // In Use Existing Name flow, full domain goes to label
-                                          setSldAsPrimary(true)
-                                          setLabel(domain)
-                                        } else if (sldAsPrimary) {
-                                          setLabel(domain)
-                                        } else {
-                                          setParentName(domain)
-                                        }
-                                        setEnsNameChosen(true)
-                                        setShowENSModal(false)
-                                      }}
-                                    >
-                                      <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
-                                        {domain}
-                                      </span>
-                                    </div>
-                                  ))}
+                                  {domainGroups[parent2LD].map(
+                                    (domain, index) => (
+                                      <div
+                                        key={domain}
+                                        className={`px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-full cursor-pointer transition-colors inline-flex items-center ${index === 0 ? 'bg-gray-100 hover:bg-gray-200 dark:bg-gray-800' : 'bg-white dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800'}`}
+                                        onClick={() => {
+                                          // Auto-detect if selected domain has dots and enable SLD mode
+                                          const parts = domain.split('.')
+                                          if (ensModalFromPicker) {
+                                            // In Create Subname flow, selected domain should be the parent
+                                            setParentName(domain)
+                                          } else if (
+                                            parts.length >= 2 &&
+                                            parts[0] &&
+                                            parts[parts.length - 1]
+                                          ) {
+                                            // In Use Existing Name flow, full domain goes to label
+                                            setSldAsPrimary(true)
+                                            setLabel(domain)
+                                          } else if (sldAsPrimary) {
+                                            setLabel(domain)
+                                          } else {
+                                            setParentName(domain)
+                                          }
+                                          setEnsNameChosen(true)
+                                          setShowENSModal(false)
+                                        }}
+                                      >
+                                        <span className="text-gray-800 dark:text-gray-200 font-medium whitespace-nowrap">
+                                          {domain}
+                                        </span>
+                                      </div>
+                                    ),
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -2390,7 +2611,11 @@ export default function NameContract() {
                                         if (ensModalFromPicker) {
                                           // In Create Subname flow, selected domain should be the parent
                                           setParentName(domain)
-                                        } else if (parts.length >= 2 && parts[0] && parts[parts.length - 1]) {
+                                        } else if (
+                                          parts.length >= 2 &&
+                                          parts[0] &&
+                                          parts[parts.length - 1]
+                                        ) {
                                           // In Use Existing Name flow, full domain goes to label
                                           setSldAsPrimary(true)
                                           setLabel(domain)
@@ -2462,7 +2687,9 @@ export default function NameContract() {
                   disabled={disabled}
                   onClick={() => {
                     if (isSelected) {
-                      setSelectedL2ChainNames((prev) => prev.filter((n) => n !== chainName))
+                      setSelectedL2ChainNames((prev) =>
+                        prev.filter((n) => n !== chainName),
+                      )
                     } else {
                       setSelectedL2ChainNames((prev) => [...prev, chainName])
                     }
@@ -2473,10 +2700,19 @@ export default function NameContract() {
                       : 'border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800'
                   }`}
                 >
-                  <Image src={logoSrc} alt={`${chainName} logo`} width={24} height={24} />
-                  <span className="text-gray-800 dark:text-gray-200">{chainName}</span>
+                  <Image
+                    src={logoSrc}
+                    alt={`${chainName} logo`}
+                    width={24}
+                    height={24}
+                  />
+                  <span className="text-gray-800 dark:text-gray-200">
+                    {chainName}
+                  </span>
                   {isSelected && (
-                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white">Selected</span>
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-blue-600 text-white">
+                      Selected
+                    </span>
                   )}
                 </button>
               )
@@ -2502,10 +2738,11 @@ export default function NameContract() {
               Register New Domain
             </DialogTitle>
             <DialogDescription className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              Visit the ENS app to register a new domain. Once you are done, come back to Enscribe to name your contract.
+              Visit the ENS app to register a new domain. Once you are done,
+              come back to Enscribe to name your contract.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex justify-end gap-3 mt-6 text-gray-900 dark:text-gray-300">
             <Button
               variant="outline"
@@ -2518,9 +2755,10 @@ export default function NameContract() {
             </Button>
             <Button
               onClick={() => {
-                const ensAppUrl = chain?.id === CHAINS.SEPOLIA 
-                  ? 'https://sepolia.app.ens.domains/' 
-                  : 'https://app.ens.domains/'
+                const ensAppUrl =
+                  chain?.id === CHAINS.SEPOLIA
+                    ? 'https://sepolia.app.ens.domains/'
+                    : 'https://app.ens.domains/'
                 window.open(ensAppUrl, '_blank')
                 setShowRegisterDialog(false)
                 setParentType('web3labs')

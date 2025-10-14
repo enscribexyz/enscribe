@@ -266,8 +266,8 @@ export default function ContractHistory() {
    * @param addr
    */
   const getENS = async (addr: string): Promise<string> => {
-    const provider = new ethers.BrowserProvider(walletClient!.transport, 'any');
-    const signer = provider.getSigner(walletAddress);
+    const provider = new ethers.BrowserProvider(walletClient!.transport, 'any')
+    const signer = provider.getSigner(walletAddress)
 
     if (chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) {
       try {
