@@ -9,7 +9,7 @@ sidebar_label: "Consumer Apps"
 
 **Consumer Apps Main Category, sub category → user facing, protocols, utilities, tokens**
 
-Consumer apps are consumer-facing contracts or projects that users directly interact with, typically visible in wallets during dApp interactions. Base Ecosystem accurately categorizes these projects—see their consumer apps category. Examples include gaming, social, NFT, music, messaging, and creator applications.
+Consumer apps are consumer-facing contracts or projects that users directly interact with, typically visible in wallets during dApp interactions. Base Ecosystem accurately categorizes these projects—see their [consumer apps category](https://www.base.org/ecosystem?category=consumer&subcategory=creator%2Ccrypto+taxes%2Cdao%2Cgaming%2Cmessaging%2Cmusic%2Cnft%2Cpayments%2Creal+world%2Csocial). Examples include gaming, social, NFT, music, messaging, and creator applications.
 
 Consumer projects typically lack a unified structure as they span a wide variety of web3 app categories and can contain a large number of contracts. Therefore, we can divide a Consumer project into subcategories based on their contract types:
 
@@ -18,15 +18,15 @@ Consumer projects typically lack a unified structure as they span a wide variety
 - **Protocol contracts:** Backend smart contracts that work behind the scenes and contain business logic, typically visible only in blockchain explorers. Sometimes they are included inside user facing contracts only.
 - **Utility contracts (optional):** Supporting contracts used indirectly by protocol or user-facing contracts
 
-Note that many user-facing contracts are deployed as upgradeable contracts or proxies.
+**Note** that many user-facing contracts are deployed as upgradeable contracts or proxies.
 
 ## Consumer Contracts Naming and ENS Onboarding Process
 
-### Step 1: Register new ENS Domain on [ENS Manager app](https://app.ens.domains/)
+### Step 1: Register new ENS Domain on [ENS App](https://app.ens.domains/)
 
 Ideally you already have registered or can register `<yourapp>.eth`. If not available you'll need to get creative.
 
-**Example:** 0xppl.eth, cryptokitties.eth, basepaint-app.eth, sandboxgame.eth
+**Example:** `0xppl.eth`, `cryptokitties.eth`, `basepaint-app.eth`, `sandboxgame.eth`
 
 ### Step 2: Create subcategory Subdomain
 
@@ -37,7 +37,7 @@ Since Ecosystem projects have many subcategories, we can create subdomains for t
 - **Protocol** - `protocol.<yourapp>.eth`
 - **Utilities (optional)** - `utils.<yourapp>.eth`
 
-**Example:** protocol.0xppl.eth, utils.basepain-app.eth
+**Example:** `protocol.0xppl.eth`, `utils.basepain-app.eth`
 
 ### Step 3: Name contracts
 
@@ -47,11 +47,11 @@ Please refer to the Appendix for examples on how to recognize the subcategory.
 
 | Subcategory | Description | Naming convention | Where to name |
 |-------------|-------------|------------------|---------------|
-| User-facing | Simple contract<br/>Proxy contracts<br/>Implementation contracts | 1,2 → `<contract-name>.<yourapp>.eth`<br/>3 → `<version>.<contract-name>.<yourapp>.eth` | Enscribe |
-| Protocol (if not included within user-facing contract) | Protocol contracts | `<contract-name>.protocol.<yourapp>.eth` | Enscribe |
-| Token | Single token<br/>Multiple tokens | 1 → `<token-symbol>.<youorg>.eth`<br/>`token.<yourapp.eth>`<br/>2 → `<token1>.token.<yourapp.eth>` | Enscribe |
-| Utilities (optional) | Utility contracts like factory, registry, oracle, escrow, etc contracts | `<util-name>.utils.<yourapp>.eth` | Enscribe |
-| Other wallets/operations/misc contracts | Wallet<br/>Admin<br/>Operations<br/>Multisig | `wallet.<yourapp>.eth`<br/>Or<br/>`<role>.<yourapp>.eth` | ENS manager app |
+| User-facing | Simple contract<br/>Proxy contracts<br/>Implementation contracts | Simple and Proxy - `<contract-name>.<yourapp>.eth`<br/> Implementation - `<version>.<contract-name>.<yourapp>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Protocol (if not included within user-facing contract) | Protocol contracts | `<contract-name>.protocol.<yourapp>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Token | Single token<br/>Multiple tokens | Single token - `<token-symbol>.<youorg>.eth` or `token.<yourapp.eth>`<br/> Multiple tokens - `<token1>.token.<yourapp.eth>` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Utilities (optional) | Utility contracts like factory, registry, oracle, escrow, etc contracts | `<util-name>.utils.<yourapp>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Other wallets/operations/misc contracts | Wallet<br/>Admin<br/>Operations<br/>Multisig | `wallet.<yourapp>.eth`<br/>Or<br/>`<role>.<yourapp>.eth` | **[ENS App](https://app.ens.domains/)** |
 
 **Note:** There might be some Ecosystem projects with DAOs or governance contracts, please refer to DAO best practices for those contract naming
 
@@ -71,7 +71,7 @@ Avatar: ipfs://qwerty…
 url: https://sandboxgame.gitbook.io/the-sandbox/land/what-is-land
 category: game
 license: MIT
-docs: sandbox-smart-contracts
+docs: https://github.com/thesandboxgame/sandbox-smart-contracts
 audits: [{"certik":"https://skynet.certik.com/projects/sandbox.game"}]
 proxy (optional):
 ```
@@ -90,68 +90,68 @@ For detailed instructions, refer to the [official DNS on ENS documentation](http
 
 ## Appendix
 
-### Consumer contracts naming example - Decentraland
+### Consumer contracts naming example - [Decentraland](https://decentraland.org/)
 
-**All Decentraland contracts** - https://github.com/decentraland/contracts/blob/gh-pages/addresses.json
+**All Decentraland contracts** - [contracts.json](https://github.com/decentraland/contracts/blob/gh-pages/addresses.json)
 
-We will be picking the important one and categorizing and naming these contracts according to our best practice standard from the below contracts list
+We will be picking the important one and categorizing and naming these contracts according to our best practice standard from the above contracts list
 
 #### User Facing
 These are typically core contracts or proxy contracts that users directly interact with through the frontend application. Contracts that handle primary user actions like buying, selling, or managing assets. These contracts are what users see in their wallets during transactions.
 
 **Example Contracts:**
-- LANDProxy: 0x42f4ba48791e2de32f5fbf553441c2672864bb33
-- MarketplaceProxy: 0xccf0c17da6cd68041b1bf0f7e015767242077d8c
-- EstateProxy: 0x369a7fbe718c870c79f99fb423882e8dd8b20486
-- RentalsProxy: 0xe70db6319e9cee3f604909bdade58d1f5c1cf702
+- `LANDProxy`: `0x42f4ba48791e2de32f5fbf553441c2672864bb33`
+- `MarketplaceProxy`: `0xccf0c17da6cd68041b1bf0f7e015767242077d8c`
+- `EstateProxy`: `0x369a7fbe718c870c79f99fb423882e8dd8b20486`
+- `RentalsProxy`: `0xe70db6319e9cee3f604909bdade58d1f5c1cf702`
 
 **Naming Convention:**
-- land.decentraland.eth
-- marketplace.decentraland.eth
-- estate.decentraland.eth
-- rentals.decentraland.eth
+- `land.decentraland.eth`
+- `marketplace.decentraland.eth`
+- `estate.decentraland.eth`
+- `rentals.decentraland.eth`
 
 #### Token
 These are ERC-20, ERC-721, or ERC-1155 token contracts that represent the protocol's native currency, governance tokens, or NFT assets. Tokens are the economic backbone of the ecosystem.
 
 **Example Contracts:**
-- MANAToken: 0xfa04d2e2ba9aec166c93dfeeba7427b2303befa9
+- `MANAToken`: `0xfa04d2e2ba9aec166c93dfeeba7427b2303befa9`
 
 **Naming Convention:**
-- mana.decentraland.eth
-- Alternatively: token.decentraland.eth
+- `mana.decentraland.eth`
+- Alternatively: `token.decentraland.eth`
 
 #### Protocol
 These are the implementation contracts or core business logic contracts that work behind the scenes. They're often the actual logic behind proxy contracts or standalone contracts that handle complex protocol operations.
 
 **Example Contracts:**
-- Marketplace: 0x5e1870e444e4a25333494c3cfda0609f13fd806a
-- RentalsImplementation: 0xa77aef8c75a6ad9b84c6dd8b9d148f2a9accfaf5
-- VestingImpl: 0x6ad9fb3f07a6013e6db2327e27ad0a38e858d88d
+- `Marketplace`: `0x5e1870e444e4a25333494c3cfda0609f13fd806a`
+- `RentalsImplementation`: `0xa77aef8c75a6ad9b84c6dd8b9d148f2a9accfaf5`
+- `VestingImpl`: `0x6ad9fb3f07a6013e6db2327e27ad0a38e858d88d`
 
 **Naming Convention:**
-- marketplace.protocol.decentraland.eth
-- rentals-impl.protocol.decentraland.eth
-- vesting.protocol.decentraland.eth
+- `marketplace.protocol.decentraland.eth`
+- `rentals-impl.protocol.decentraland.eth`
+- `vesting.protocol.decentraland.eth`
 
 #### Utilities
 These are supporting contracts that provide auxiliary functions like registries, storage, factories, or helpers. They're used indirectly by both user-facing and protocol contracts.
 
 **Example Contracts:**
-- LANDRegistry: 0xe8737b4d17df2f54fff5193a225561a9ff99b11f
-- EstateRegistry: 0xe69dd486ac000186af573361fb454bbbb85add85
-- VestingFactory: 0x71c84760df0537f7db286274817462dc2e6c1366
+- `LANDRegistry`: `0xe8737b4d17df2f54fff5193a225561a9ff99b11f`
+- `EstateRegistry`: `0xe69dd486ac000186af573361fb454bbbb85add85`
+- `VestingFactory`: `0x71c84760df0537f7db286274817462dc2e6c1366`
 
 **Naming Convention:**
-- land-registry.utils.decentraland.eth
-- estate-registry.utils.decentraland.eth
-- vesting-factory.utils.decentraland.eth
+- `land-registry.utils.decentraland.eth`
+- `estate-registry.utils.decentraland.eth`
+- `vesting-factory.utils.decentraland.eth`
 
 #### Miscellaneous
 These are administrative, governance, smart wallets, or special-purpose contracts that don't fit neatly into the above categories. They handle specific operational or governance functions.
 
 **Example Contracts:**
-- RentalsProxyAdmin: 0x9d6e8912b8192d5e2f2c9ab1ba62fdfd0488fc5a
+- `RentalsProxyAdmin`: `0x9d6e8912b8192d5e2f2c9ab1ba62fdfd0488fc5a`
 
 **Naming Convention:**
-- rentals-admin.decentraland.eth
+- `rentals-admin.decentraland.eth`
