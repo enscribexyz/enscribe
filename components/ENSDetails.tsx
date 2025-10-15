@@ -15,7 +15,7 @@ import {
   ExternalLink,
   ShieldCheck,
   XCircle,
-  TriangleAlert
+  TriangleAlert,
 } from 'lucide-react'
 import {
   CHAINS,
@@ -119,7 +119,9 @@ export default function ENSDetails({
   const [primaryNameExpiryDate, setPrimaryNameExpiryDate] = useState<
     number | null
   >(null)
-  const [selectedForwardName, setSelectedForwardName] = useState<string | null>(null)
+  const [selectedForwardName, setSelectedForwardName] = useState<string | null>(
+    null,
+  )
   const [verificationStatus, setVerificationStatus] =
     useState<VerificationStatus | null>(null)
   const [hasAttestations, setHasAttestations] = useState<boolean>(false)
@@ -409,7 +411,7 @@ export default function ENSDetails({
     try {
       const attestations = await response.json()
       setHasAttestations(attestations.data.attestations.length === 0)
-    } catch(err) {
+    } catch (err) {
       setHasAttestations(false)
     }
   }, [address])
@@ -635,32 +637,36 @@ export default function ENSDetails({
           '[ENSDetails] Set associated ENS names with expiry dates:',
           sortedDomains,
         )
-       
-       // Also set forward resolution names for contracts without primary names
-       if (isContract && !primaryName && sortedDomains.length > 0) {
-         // Sort domains: deployer's names first, then by expiry date (newest first)
-         const forwardSortedDomains = sortedDomains.sort((a: any, b: any) => {
-           // First priority: names owned by the contract deployer
-           const aIsDeployer = a.owner?.id?.toLowerCase() === contractDeployerAddress?.toLowerCase()
-           const bIsDeployer = b.owner?.id?.toLowerCase() === contractDeployerAddress?.toLowerCase()
-           
-           if (aIsDeployer && !bIsDeployer) return -1
-           if (!aIsDeployer && bIsDeployer) return 1
-           
-           // Second priority: by expiry date (newest first)
-           const aExpiry = a.expiryDate || 0
-           const bExpiry = b.expiryDate || 0
-           return bExpiry - aExpiry
-         })
 
-         const names = forwardSortedDomains.map((domain: any) => domain.name)
-         
-         // Select the first name (either deployer's or highest priority)
-         setSelectedForwardName(names[0])
-         
-         console.log(`[ENSDetails] Set forward resolution names:`, names)
-         console.log(`[ENSDetails] Selected forward name: ${names[0]}`)
-       }
+        // Also set forward resolution names for contracts without primary names
+        if (isContract && !primaryName && sortedDomains.length > 0) {
+          // Sort domains: deployer's names first, then by expiry date (newest first)
+          const forwardSortedDomains = sortedDomains.sort((a: any, b: any) => {
+            // First priority: names owned by the contract deployer
+            const aIsDeployer =
+              a.owner?.id?.toLowerCase() ===
+              contractDeployerAddress?.toLowerCase()
+            const bIsDeployer =
+              b.owner?.id?.toLowerCase() ===
+              contractDeployerAddress?.toLowerCase()
+
+            if (aIsDeployer && !bIsDeployer) return -1
+            if (!aIsDeployer && bIsDeployer) return 1
+
+            // Second priority: by expiry date (newest first)
+            const aExpiry = a.expiryDate || 0
+            const bExpiry = b.expiryDate || 0
+            return bExpiry - aExpiry
+          })
+
+          const names = forwardSortedDomains.map((domain: any) => domain.name)
+
+          // Select the first name (either deployer's or highest priority)
+          setSelectedForwardName(names[0])
+
+          console.log(`[ENSDetails] Set forward resolution names:`, names)
+          console.log(`[ENSDetails] Selected forward name: ${names[0]}`)
+        }
       }
     } catch (error) {
       console.error('[ENSDetails] Error fetching associated ENS names:', error)
@@ -713,7 +719,7 @@ export default function ENSDetails({
           fetchAssociatedNames(),
           isContract ? fetchVerificationStatus() : Promise.resolve(),
           fetchUserOwnedDomains(),
-          fetchAttestationData()
+          fetchAttestationData(),
         ])
       } catch (err) {
         console.error('[ENSDetails] Error fetching data:', err)
@@ -733,7 +739,7 @@ export default function ENSDetails({
     fetchPrimaryName,
     fetchAssociatedNames,
     fetchVerificationStatus,
-    fetchUserOwnedDomains
+    fetchUserOwnedDomains,
   ])
 
   const getENS = async (
@@ -795,9 +801,7 @@ export default function ENSDetails({
               { internalType: 'address', name: 'addr', type: 'address' },
             ],
             name: 'nameForAddr',
-            outputs: [
-              { internalType: 'string', name: 'name', type: 'string' },
-            ],
+            outputs: [{ internalType: 'string', name: 'name', type: 'string' }],
             stateMutability: 'view',
             type: 'function',
           },
@@ -910,7 +914,7 @@ export default function ENSDetails({
         return ''
       }
     }
-    
+
     // Default fallback
     return ''
   }
@@ -1035,7 +1039,9 @@ export default function ENSDetails({
                       variant="ghost"
                       size="sm"
                       className="ml-0"
-                      onClick={() => copyToClipboard(primaryName, 'primary-name')}
+                      onClick={() =>
+                        copyToClipboard(primaryName, 'primary-name')
+                      }
                     >
                       {copied['primary-name'] ? (
                         <Check className="h-4 w-4 text-green-500" />
@@ -1161,7 +1167,10 @@ export default function ENSDetails({
                       </span>
                     </TooltipTrigger>
                     <TooltipContent side="top" align="center">
-                      <p>Warning, name only forward resolves to this address, no reverse record is set</p>
+                      <p>
+                        Warning, name only forward resolves to this address, no
+                        reverse record is set
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -1169,7 +1178,9 @@ export default function ENSDetails({
                   variant="ghost"
                   size="sm"
                   className="ml-0"
-                  onClick={() => copyToClipboard(selectedForwardName, 'forward-name')}
+                  onClick={() =>
+                    copyToClipboard(selectedForwardName, 'forward-name')
+                  }
                 >
                   {copied['forward-name'] ? (
                     <Check className="h-4 w-4 text-green-500" />

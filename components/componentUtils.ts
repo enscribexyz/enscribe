@@ -138,13 +138,13 @@ export function isTestNet(chainId: number): boolean {
 export const checkIfSafe = async (connector: any): Promise<boolean> => {
   try {
     if (!connector) return false
-    
+
     const connectorProvider: any = await connector?.getProvider()
     if (!connectorProvider) {
       console.log('No connector provider available')
       return false
     }
-    
+
     const session = connectorProvider?.session
     if (!session) {
       console.log('No session available')
@@ -152,7 +152,9 @@ export const checkIfSafe = async (connector: any): Promise<boolean> => {
     }
 
     const { name: peerName } = session.peer.metadata
-    console.log(`peerName.startsWith('Safe'): ${peerName.startsWith('Safe')} ${peerName}`)
+    console.log(
+      `peerName.startsWith('Safe'): ${peerName.startsWith('Safe')} ${peerName}`,
+    )
     return peerName.startsWith('Safe')
   } catch (error) {
     console.error('Error detecting Safe wallet:', error)

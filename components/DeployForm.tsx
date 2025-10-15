@@ -667,12 +667,12 @@ export default function DeployForm() {
             })
           } else {
             writeContract(walletClient, {
-                          address: config.ENS_REGISTRY as `0x${string}`,
-            abi: ensRegistryABI,
-            functionName: 'setApprovalForAll',
-            args: [config.ENSCRIBE_CONTRACT, false],
-            account: walletAddress,
-          })
+              address: config.ENS_REGISTRY as `0x${string}`,
+              abi: ensRegistryABI,
+              functionName: 'setApprovalForAll',
+              args: [config.ENSCRIBE_CONTRACT, false],
+              account: walletAddress,
+            })
           }
           tx = 'safe wallet'
         } else {
@@ -1005,9 +1005,12 @@ export default function DeployForm() {
                   account: walletAddress,
                 })
 
-                const txReceipt = await waitForTransactionReceipt(walletClient, {
-                  hash: txn,
-                })
+                const txReceipt = await waitForTransactionReceipt(
+                  walletClient,
+                  {
+                    hash: txn,
+                  },
+                )
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
@@ -1142,9 +1145,12 @@ export default function DeployForm() {
                   value: txCost,
                   account: walletAddress,
                 })
-                const txReceipt = await waitForTransactionReceipt(walletClient, {
-                  hash: txn,
-                })
+                const txReceipt = await waitForTransactionReceipt(
+                  walletClient,
+                  {
+                    hash: txn,
+                  },
+                )
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
@@ -1355,9 +1361,12 @@ export default function DeployForm() {
                   value: txCost,
                   account: walletAddress,
                 })
-                const txReceipt = await waitForTransactionReceipt(walletClient, {
-                  hash: txn,
-                })
+                const txReceipt = await waitForTransactionReceipt(
+                  walletClient,
+                  {
+                    hash: txn,
+                  },
+                )
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
@@ -1382,9 +1391,9 @@ export default function DeployForm() {
 
         setModalTitle('Deploy Contract and set Primary Name')
         setModalSubtitle(
-          safeCheck 
+          safeCheck
             ? 'Transactions will be executed in your Safe wallet app'
-            : 'Running each step to finish naming this contract'
+            : 'Running each step to finish naming this contract',
         )
         setModalSteps(steps)
         setModalOpen(true)
@@ -1583,9 +1592,12 @@ export default function DeployForm() {
                 })
                 setTxHash(txn)
 
-                const txReceipt = await waitForTransactionReceipt(walletClient, {
-                  hash: txn,
-                })
+                const txReceipt = await waitForTransactionReceipt(
+                  walletClient,
+                  {
+                    hash: txn,
+                  },
+                )
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
@@ -1802,9 +1814,12 @@ export default function DeployForm() {
                 })
                 setTxHash(txn)
 
-                const txReceipt = await waitForTransactionReceipt(walletClient, {
-                  hash: txn as `0x${string}`,
-                })
+                const txReceipt = await waitForTransactionReceipt(
+                  walletClient,
+                  {
+                    hash: txn as `0x${string}`,
+                  },
+                )
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
@@ -1830,9 +1845,9 @@ export default function DeployForm() {
 
         setModalTitle('Deploy Contract and set Primary Name')
         setModalSubtitle(
-          safeCheck 
+          safeCheck
             ? 'Transactions will be executed in your Safe wallet app'
-            : 'Complete each step to finish naming this contract'
+            : 'Complete each step to finish naming this contract',
         )
         setModalSteps(steps)
         setModalOpen(true)
@@ -1862,7 +1877,9 @@ export default function DeployForm() {
         </p>
       )}
 
-        <div className={`space-y-6 mt-6 ${!isConnected || isUnsupportedL2Chain ? 'pointer-events-none opacity-50' : ''}`}>
+      <div
+        className={`space-y-6 mt-6 ${!isConnected || isUnsupportedL2Chain ? 'pointer-events-none opacity-50' : ''}`}
+      >
         <label className="block text-gray-700 dark:text-gray-300">
           Bytecode
         </label>
@@ -2360,7 +2377,9 @@ export default function DeployForm() {
 
       <Button
         onClick={deployContract}
-        disabled={!isConnected || loading || !isValidBytecode || isUnsupportedL2Chain}
+        disabled={
+          !isConnected || loading || !isValidBytecode || isUnsupportedL2Chain
+        }
         className="w-full mt-6 dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white font-medium py-3"
       >
         {loading ? (

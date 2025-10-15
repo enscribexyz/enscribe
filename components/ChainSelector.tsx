@@ -13,8 +13,16 @@ const CHAIN_OPTIONS = [
   { id: CHAINS.MAINNET, name: 'Ethereum', logo: '/images/ethereum.svg' },
   { id: CHAINS.LINEA, name: 'Linea Mainnet', logo: '/images/linea.svg' },
   { id: CHAINS.BASE, name: 'Base Mainnet', logo: '/images/base.svg' },
-  { id: CHAINS.OPTIMISM, name: 'Optimism Mainnet', logo: '/images/optimism.svg' },
-  { id: CHAINS.ARBITRUM, name: 'Arbitrum Mainnet', logo: '/images/arbitrum.svg' },
+  {
+    id: CHAINS.OPTIMISM,
+    name: 'Optimism Mainnet',
+    logo: '/images/optimism.svg',
+  },
+  {
+    id: CHAINS.ARBITRUM,
+    name: 'Arbitrum Mainnet',
+    logo: '/images/arbitrum.svg',
+  },
   { id: CHAINS.SCROLL, name: 'Scroll Mainnet', logo: '/images/scroll.svg' },
   { id: CHAINS.SEPOLIA, name: 'Sepolia Testnet', logo: '/images/ethereum.svg' },
   {
@@ -23,9 +31,21 @@ const CHAIN_OPTIONS = [
     logo: '/images/linea.svg',
   },
   { id: CHAINS.BASE_SEPOLIA, name: 'Base Sepolia', logo: '/images/base.svg' },
-  { id: CHAINS.OPTIMISM_SEPOLIA, name: 'Optimism Sepolia', logo: '/images/optimism.svg' },
-  { id: CHAINS.ARBITRUM_SEPOLIA, name: 'Arbitrum Sepolia', logo: '/images/arbitrum.svg' },
-  { id: CHAINS.SCROLL_SEPOLIA, name: 'Scroll Sepolia', logo: '/images/scroll.svg' },
+  {
+    id: CHAINS.OPTIMISM_SEPOLIA,
+    name: 'Optimism Sepolia',
+    logo: '/images/optimism.svg',
+  },
+  {
+    id: CHAINS.ARBITRUM_SEPOLIA,
+    name: 'Arbitrum Sepolia',
+    logo: '/images/arbitrum.svg',
+  },
+  {
+    id: CHAINS.SCROLL_SEPOLIA,
+    name: 'Scroll Sepolia',
+    logo: '/images/scroll.svg',
+  },
 ]
 
 interface ChainSelectorProps {

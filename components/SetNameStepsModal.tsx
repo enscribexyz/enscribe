@@ -179,7 +179,7 @@ export default function SetNameStepsModal({
     let errorMain = null
     setExecuting(true)
     console.log(`executing ${steps[index].title}`)
-    
+
     tx = await steps[index].action().catch((error) => {
       console.log('error', error)
       updateStepStatus(index, 'error')
@@ -199,7 +199,9 @@ export default function SetNameStepsModal({
           // For Safe wallets, don't wait for transaction receipt
           // The transaction will be executed in the Safe app
           txHash = tx as string
-          console.log('Safe wallet detected - skipping transaction receipt wait')
+          console.log(
+            'Safe wallet detected - skipping transaction receipt wait',
+          )
         } else {
           // For regular wallets, wait for transaction receipt
           txReceipt = await waitForTransactionReceipt(walletClient, {
@@ -391,7 +393,8 @@ export default function SetNameStepsModal({
                   Looks like you are using a Safe Wallet
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  As you are using a Safe Wallet, a batch of transactions has been submitted to your Safe wallet for approval.
+                  As you are using a Safe Wallet, a batch of transactions has
+                  been submitted to your Safe wallet for approval.
                 </p>
               </div>
 
