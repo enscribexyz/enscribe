@@ -570,7 +570,7 @@ export default function SetNameStepsModal({
                 </div>
 
                 {/* Claim POAP Button */}
-                {poapMintLink != null &&
+                {!errorMessage && poapMintLink != null &&
                   chain != undefined &&
                   !isTestNet(chain.id) && (
                     <div className="mt-4">
