@@ -1,5 +1,6 @@
 import React from 'react'
 import type { AppProps } from 'next/app'
+import Head from 'next/head'
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import type { Chain } from 'wagmi/chains'
 import {
@@ -114,6 +115,10 @@ export default function MyApp({ Component, pageProps }: AppProps) {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="enscribe-theme">
+      <Head>
+        <title>Give your smart contracts on Ethereum an identity with Enscribe. Powered by ENS.</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
       <QueryClientProvider client={queryClient}>
         <WagmiProvider
           key={clientWagmiConfig ? 'client' : 'server'}

@@ -1,0 +1,183 @@
+---
+sidebar_position: 4
+sidebar_label: "DeFi and Protocols"
+---
+
+# DeFi and Protocols Best Practices
+
+## DeFi/Protocols Categories and Subcategories
+
+**DeFi/Protocols Main Category, subcategories → user facing, protocols, utilities, tokens**
+
+**Note: For DeFi DAO and governance related contracts please check Main Category - DAO**
+
+DeFi (Decentralized Finance) protocols are financial applications built on blockchain that enable permissionless lending, borrowing, trading, and yield generation. DeFi protocols range from simple single-contract systems to complex multi-layered architectures with multiple versions.
+
+Examples of major DeFi protocols include Uniswap, Aave, Curve, MakerDAO, Balancer, Sushi, Compound, Lido, Rocket Pool, Pendle, EtherFi, 1inch, dYdX, and others.
+
+DeFi protocols are among the most complex categories due to:
+- **Multiple versions:** Protocols often have v2, v3, v4 deployments running simultaneously (e.g., Uniswap v2/v3/v4, Aave v2/v3)
+- **Multi-chain deployments:** Same protocol deployed across multiple chains
+- **Diverse contract types:** Core protocol logic, periphery contracts, routers, factories, pools, vaults
+- **Varied architectures:** AMMs, lending protocols, liquid staking, aggregators each have unique structures
+
+DeFi projects can be divided into subcategories based on their contract types:
+
+- **User-facing contracts:** The most important category, these are contracts users directly interact with or see in their wallets.
+- **Protocol contracts:** Backend smart contracts that work behind the scenes and contain business logic, typically visible only in blockchain explorers.
+- **Token contracts:** Protocol tokens, LP tokens, receipt tokens (e.g., aTokens, stETH), and governance tokens
+- **Utility contracts:** Supporting contracts used indirectly by protocol or user-facing contracts.
+
+## DeFi Contracts Naming and ENS Onboarding Process
+
+### Step 1: Register New ENS Domain on [ENS App](https://app.ens.domains/)
+
+Ideally you already have registered or can register `<yourprotocol>.eth`. If not available, you'll need to get creative.
+
+**Example:** `uniswap.eth`, `aave.eth`, `curve.eth`, `maker.eth`, `compound.eth`
+
+### Step 2: Create Version and Subcategory Subdomains
+
+Since DeFi protocols often have multiple versions and different contract types, create subdomains to organize contracts:
+
+**For protocols with multiple versions:**
+Some DeFi protocols have multiple versions released and working, those protocols should create versioned subdomains: `<version>.<yourprotocol>.eth`
+- `v2.<yourprotocol>.eth`, `v3.<yourprotocol>.eth`, `v4.<yourprotocol>.eth`
+
+If single version: contracts can be named directly under main domain
+
+**For subcategories:**
+- **User-facing:** No subdomain needed (named directly under version subdomain as they represent the protocol's primary interface)
+  - Router contracts, periphery contracts, and interfaces that users directly interact with for swaps, deposits, and withdrawals
+
+- **Protocol:** `protocol.<yourprotocol>.eth`
+  - Core protocol logic including pool factories, lending pools, vault implementations, and AMM cores
+  - If versioned - `protocol.<version>.<yourprotocol>.eth`
+
+- **Token:** No subdomain for a single native token. But if multiple token types then create subdomain - `token.<yourprotocol>.eth`
+  - `lp.token.<yourprotocol>.eth` for LP tokens (optional)
+
+- **Utilities:** `utils.<yourprotocol>.eth`
+  - Supporting infrastructure like price oracles, libraries, quoters, multicall contracts, and position managers
+  - If versioned - `utils.<version>.<yourprotocol>.eth`
+
+**For multi-chain deployments:**
+- Use ENS multichain support via cointype instead of creating chain-specific subdomains
+- Set different addresses for different chains using the chain's cointype address record
+- For example: `router.v3.uniswap.eth` can have different addresses for Ethereum (cointype 60), Base (cointype 2147492101), Arbitrum (cointype 2147525809), etc.
+- For L2 chains supporting [ENSIP-19](https://docs.ens.domains/ensip/19), leverage L2 primary naming for these chains
+
+### Step 3: Name Contracts
+
+Name each contract under your domain with descriptive subnames following the patterns below.
+
+**Naming Principles for DeFi Contracts:**
+- **User-Facing contracts** - Use simple, easy-to-understand names that clearly describe functionality (e.g., `router`, `swap`, `deposit`)
+- **Protocol contracts** - Use descriptive technical names or direct contract name that indicate the contract's role (e.g., `factory`, `pool`, `vault-implementation`)
+- **Token contracts** - Use `<token-symbol>.<yourprotocol>.eth` or descriptive names for receipt/LP tokens under `token.<yourprotocol>.eth`
+- **Versioning** - Always include version in the subdomain structure when multiple versions exist
+
+Please refer to the Appendix for examples on how to recognize and categorize DeFi contracts.
+
+| Subcategory | Description | Naming Convention | Where to Name |
+|-------------|-------------|------------------|---------------|
+| User-facing | Router contracts<br/>Swap interfaces<br/>Periphery contracts<br/>Proxy contracts<br/>Other User facing contracts | `router.<yourprotocol>.eth`<br/>`swap.<yourprotocol>.eth`<br/>Or<br/>`router.<version>.<yourprotocol>.eth`<br/>`swap.<version>.<yourprotocol>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Protocol | Pool implementations<br/>Vault cores<br/>Lending pools<br/>AMM cores | `<contract-name>.protocol.<yourprotocol>.eth`<br/>Or<br/>`<contract-name>.<version>.protocol.<yourprotocol>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Token | Native tokens<br/>LP tokens<br/>Receipt tokens | `<token-symbol>.<yourprotocol>.eth`<br/>or<br/>`<token-name>.token.<yourprotocol>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Utilities | Oracle contracts<br/>Quoter contracts<br/>Factories<br/>Libraries<br/>Multicall | `<contract-name>.utils.<yourprotocol>.eth`<br/>Or<br/>`<contract-name>.<version>.utils.<yourprotocol>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** |
+| Other wallets/operations | Treasury<br/>Multisig wallets<br/>Admins | `<role>.<yourprotocol>.eth` | **[ENS App](https://app.ens.domains/)** |
+
+**Note:** If your DeFi protocol has governance/DAO contracts, please refer to DAO best practices for those contract naming.
+
+### Step 4: Add Contract Metadata
+
+Add detailed metadata to each contract name according to [ENSIP: Contract Metadata Standard and Text Records](https://github.com/ensdomains/ensips/pull/50) (draft standard).
+
+**Recommended for:** User-facing and token contracts
+**Optional for:** Protocol and utility contracts
+
+**Example - `swap-router.v3.uniswap.eth` metadata**
+
+```
+name: Uniswap V3 SwapRouter
+description: Main router contract for executing swaps on Uniswap V3
+Avatar: ipfs://qwerty…
+url: https://uniswap.org
+category: defi
+license: MIT
+docs: https://docs.uniswap.org/contracts/v3/reference/periphery/SwapRouter
+audits: [{"ABDK":"https://abdk.consulting/ABDK_UniswapV3_v1.pdf"}]
+proxy (optional):
+```
+
+### Step 5: Claim DNS Domain (Optional but Recommended)
+
+Claiming your DNS domain on ENS establishes trust and verifies that the ENS name belongs to the legitimate organization by creating a verifiable link between your traditional web presence and your Project's ENS identity.
+
+This process involves visiting the [ENS Manager App](https://app.ens.domains/), searching for your DNS domain (e.g., `<yourprotocol>.com`), and following the verification process.
+
+For detailed instructions, refer to the [official DNS on ENS documentation](https://docs.ens.domains/learn/dns) which provides step-by-step guidance on the claiming process.
+
+**Real-world example** - Base ([base.org](https://app.ens.domains/base.org) linked to [base.eth](https://app.ens.domains/base.eth) as manager) demonstrates how an organization should link their traditional domain with their ENS presence for enhanced credibility and trust within the web3 ecosystem.
+
+![Base linked to base.eth](/img/guides/base-org-linked.png)
+
+## Appendix
+
+### DeFi Contracts Naming Example - Uniswap V3
+
+**All Uniswap V3 contracts** can be found in their [official deployments documentation](https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments).
+
+We will be categorizing key contracts according to our best practice standards.
+
+#### User Facing
+These are the primary contracts users interact with to swap tokens, manage liquidity positions, and add/remove liquidity on Uniswap V3.
+
+**Example Contracts:**
+- `universalRouter`: `0x66a9893cc07d91d95644aedd05d03f95e1dba8af`
+- `UniswapV3Staker`: `0xe34139463bA50bD61336E0c446Bd8C0867c6fE65`
+
+**Naming Convention:**
+- `router.v3.uniswap.eth` (with multi-chain addresses via cointypes)
+- `staker.v3.uniswap.eth`
+
+#### Protocol
+Core Uniswap V3 protocol contracts that handle pool creation, AMM logic, and core swap functionality.
+
+**Example Contracts:**
+- `UniswapV3Factory`: `0x1F98431c8aD98523631AE4a59f267346ea31F984`
+- Individual pool contracts (created by factory)
+
+**Naming Convention:**
+- `factory.protocol.v3.uniswap.eth`
+- `pool-implementation.protocol.v3.uniswap.eth` (for a specific pool implementation, if needed)
+
+#### Token
+Uniswap's native token.
+
+**Example Contracts:**
+- `UNI Token`: `0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984`
+
+**Naming Convention:**
+- `uni.uniswap.eth`
+
+#### Utilities
+Supporting contracts that provide quotes, multicall functionality, position metadata, and helper functions.
+
+**Example Contracts:**
+- `Multicall`: `0x1F98415757620B543A52E61c46B32eB19261F984`
+- `TickLens`: `0xbfd8137f7d1516D3ea5cA83523914859ec47F573`
+
+**Naming Convention:**
+- `multicall.utils.v3.uniswap.eth`
+- `tick-lens.utils.v3.uniswap.eth`
+
+#### Misc (Wallets, Admin, etc)
+Administrative contracts, multisigs, and treasury-related contracts.
+
+**Example:**
+- `ProxyAdmin`: `0xB753548F6E010e7e680BA186F9Ca1BdAB2E90cf2`
+
+**Naming Convention:**
+- `proxy-admin.uniswap.eth`
+

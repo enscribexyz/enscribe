@@ -1,0 +1,155 @@
+---
+sidebar_position: 3
+sidebar_label: "L2 Chains"
+---
+
+# L2 Chains Best Practices
+
+## L2 Categories and Subcategories
+
+**L2 Main category, subcategories → user facing, protocols, tokens**
+
+**Note: For L2 DAO and governance related contract please check Main Category - DAO**
+
+Layer 2 (L2) solutions are scaling solutions built on top of Ethereum to improve transaction throughput and reduce costs while maintaining the security of the underlying blockchain. Examples of major L2s include Base, Arbitrum, Optimism, zkSync, Polygon, Scroll, Linea, Starknet, and others.
+
+L2 projects typically have a complex architecture with multiple contract types across both the L1 (Ethereum mainnet) and L2 (their own chain). These contracts handle critical functions like bridging, sequencing, proving, and governance.
+
+L2 projects can be divided into subcategories based on their contract types:
+
+- **User-facing contracts:** Bridge interfaces, gateway contracts, and portals that users directly interact with
+- **Protocol/Util contracts:** Core L2 infrastructure and Utilities including rollup contracts, state root validators, fraud/validity provers, sequencers, Oracles, Factories and registries.
+- **Token contracts:** Native L2 tokens, governance tokens, and bridged token representations
+
+## L2 Contracts Naming and ENS Onboarding Process
+
+### Step 1: Register New ENS Domain on [ENS App](https://app.ens.domains/)
+
+Ideally you already have registered or can register `<yourl2>.eth`. If not available, you'll need to get creative but it should sound legit too.
+
+**Example:** `base.eth`, `arbitrum.eth`, `linea.eth`, `scroll.eth`
+
+### Step 2: Create Chain-Specific Subdomains
+
+Since L2 projects deploy contracts across multiple chains (typically L1 and L2), create subdomains to organize contracts by deployment location:
+
+**Chain-specific subdomains:**
+- `l1.<yourl2>.eth` (for L1/Ethereum contracts)
+- `l2.<yourl2>.eth` (for L2-deployed contracts)
+
+**Note:** No need to create subdomain for subcategories like protocol, token, user-facing, util etc. Contracts will be named directly under the `l1.<yourl2>.eth` or `l2.<yourl2>.eth`
+
+**Example:** `bridge.l1.base.eth` and `bridge.l2.base.eth`
+
+### Step 3: Name Contracts
+
+Name each contract under your domain with descriptive subnames following the patterns below.
+
+- **User-Facing L1/L2 contracts** - Use simple, easy-to-understand names that clearly describe functionality (e.g., bridge, portal, gateway)
+- **Protocol or Utility L1/L2 contracts** - Since these are not user-facing, exact or complex technical names are acceptable (e.g., `preimage-oracle.l1.<yourl2>.eth`)
+- **Token contracts** - Use `<token-symbol>.<yourl2>.eth` or `token.<yourl2>.eth` for native tokens
+
+| Subcategory | Description | Naming Convention | Where to Name |
+|-------------|-------------|------------------|---------------|
+| User-facing (L1) | Bridge/Portal contracts<br/>Gateway contracts<br/>Messenger<br/>User-facing proxy contracts | `bridge.l1.<yourl2>.eth`<br/>`portal.l1.<yourl2>.eth`<br/>`messenger.l1.<yourl2>.eth`<br/>`gateway.l1.<yourl2>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| User-facing (L2) | L2 bridge contracts<br/>L2 Gateway contracts<br/>L2 messengers | `bridge.l2.<yourl2>.eth`<br/>`messenger.l2.<yourl2>.eth`<br/>`gateway.l2.<yourl2>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Protocol/Util (L1) | Rollup contract<br/>Fraud/validity prover<br/>Sequencer/Proposer | `<contract-name>.l1.<yourl2>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Protocol/Util (L2) | L2 system contracts<br/>Cross-domain messenger<br/>Oracles<br/>Predeploys | `<contract-name>.l2.<yourl2>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Token | Native token | `<token-symbol>.<yourl2>.eth`<br/>or<br/>`token.<yourl2>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Other wallets/operations | Multisig wallets<br/>Admins<br/>Security Council<br/>Guardian | `wallet.<yourl2>.eth`<br/>Or<br/>`<role>.<yourl2>.eth` | **[ENS App](https://app.ens.domains/)** |
+
+**Note:** If your L2 has governance/DAO contracts, please refer to DAO best practices for those contract naming.
+
+### Step 4: Add Contract Metadata
+
+Add detailed metadata to each contract name according to [ENSIP: Contract Metadata Standard and Text Records](https://github.com/ensdomains/ensips/pull/50) (draft standard).
+
+**Recommended for:** User-facing and token contracts
+**Optional for:** Protocol and utility contracts
+
+**Example - `bridge.l1.base.eth` metadata**
+
+```
+name: Base L1 Standard Bridge
+description: Official bridge contract for depositing assets from Ethereum to Base L2
+Avatar: ipfs://qwerty…
+url: http://base.org
+category: L2
+license: MIT
+docs: https://docs.base.org/base-chain/network-information/bridges-mainnet
+audits: [{"Cantina":"https://github.com/coinbase/smart-wallet/blob/main/audits/Cantina-December-2023.pdf"}]
+proxy (optional):
+```
+
+### Step 5: Claim DNS Domain (Optional but Recommended)
+
+Claiming your DNS domain on ENS establishes trust and verifies that the ENS name belongs to the legitimate organization by creating a verifiable link between your traditional web presence and your Project's ENS identity.
+
+This process involves visiting the [ENS Manager App](https://app.ens.domains/), searching for your DNS domain (e.g., `<yourl2>.com`), and following the verification process.
+
+For detailed instructions, refer to the [official DNS on ENS documentation](https://docs.ens.domains/learn/dns) which provides step-by-step guidance on the claiming process.
+
+**Real-world example** - Base ([base.org](https://app.ens.domains/base.org) linked to [base.eth](https://app.ens.domains/base.eth) as manager) demonstrates how an organization should link their traditional domain with their ENS presence for enhanced credibility and trust within the web3 ecosystem.
+
+![Base linked to base.eth](/img/guides/base-org-linked.png)
+
+## Appendix
+
+### L2 contracts naming example - Base
+
+**All Base L1 contracts** can be found [here](https://docs.base.org/base-chain/network-information/base-contracts#l1-contract-addresses) and **L2 contracts** [here](https://docs.base.org/base-chain/network-information/base-contracts#l2-contract-addresses). We will be categorizing key contracts according to our best practice standards.
+
+#### User Facing
+These are the primary contracts users interact with to bridge assets between Ethereum and Base L2, handle cross-domain messaging, and manage withdrawals.
+
+**L1 (Ethereum Mainnet) Example Contracts:**
+- `L1StandardBridge`: `0x3154Cf16ccdb4C6d922629664174b904d80F2C35`
+- `OptimismPortal`: `0x49048044D57e1C92A77f79988d21Fa8fAF74E97e`
+- `L1CrossDomainMessenger`: `0x866E82a600A1414e583f7F13623F1aC5d58b0Afa`
+
+**Naming Convention:**
+- `bridge.l1.base.eth`
+- `portal.l1.base.eth`
+- `messenger.l1.base.eth`
+
+**L2 (Base Mainnet) Example Contracts:**
+- `L2StandardBridge`: `0x4200000000000000000000000000000000000010`
+- `L2CrossDomainMessenger`: `0x4200000000000000000000000000000000000007`
+
+**Naming Convention:**
+- `bridge.l2.base.eth`
+- `messenger.l2.base.eth`
+
+#### Protocol/Util
+Core L2 infrastructure contracts that handle rollup operations, state commitments, fraud/validity proofs, fee management, oracles, and system-level operations running behind the scenes.
+
+**L1 (Ethereum Mainnet) Example Contracts:**
+- `SystemConfig`: `0x73a79Fab69143498Ed3712e519A88a918e1f4072`
+- `FaultDisputeGame`: `0xAB91FB6cef84199145133f75cBD96B8a31F184ED`
+- `PreimageOracle`: `0x1fb8cdFc6831fc866Ed9C51aF8817Da5c287aDD3`
+
+**Naming Convention:**
+- `system-config.l1.base.eth`
+- `fault-dispute-game.l1.base.eth`
+- `preimage-oracle.l1.base.eth`
+
+**L2 (Base Mainnet) Example Contracts:**
+- `GasPriceOracle`: `0x420000000000000000000000000000000000000F`
+- `SequencerFeeVault`: `0x4200000000000000000000000000000000000011`
+
+**Naming Convention:**
+- `gas-price-oracle.l2.base.eth`
+- `sequencer-fee-vault.l2.base.eth`
+
+#### Token
+If Base had a native token, it would be named: `token.base.eth`
+
+#### Misc (Wallets, Admin, etc)
+Administrative contracts, multisigs, and special governance-related contracts that handle protocol administration and security.
+
+**Example Contracts:**
+- `ProxyAdmin` (L1 & L2)
+
+**Naming Convention:**
+- `proxy-admin.l1.base.eth`
+- `proxy-admin.l2.base.eth`

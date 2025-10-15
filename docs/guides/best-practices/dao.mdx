@@ -1,0 +1,151 @@
+---
+sidebar_position: 1
+sidebar_label: "DAO"
+---
+
+# DAO/Governance Best Practices
+
+## DAO Categories and Subcategories
+
+**DAO Main category, subcategories → dao/governance, user facing, tokens**
+
+DAOs are an essential part of web3 infrastructure. DAO governance contracts can range from simple standalone Governor/DAO contracts to complex multi-layered architectures like [Lido's dual governance system](https://docs.lido.fi/deployed-contracts/#dao-contracts) or unique implementations like [MakerDAO's governance module](https://docs.makerdao.com/smart-contract-modules/governance-module).
+
+Most DAOs are built upon either OpenZeppelin's Governance framework or Aragon's DAO framework:
+
+**OpenZeppelin-based DAOs:** Uniswap, ENS, The Graph, Gitcoin, Nouns, etc.
+**Aragon-based DAOs:** Lido, Polygon, Taiko, Puffer, Boundless, Curve Finance, etc.
+
+The majority of DAOs follow a governance model similar to Uniswap's architecture (based on OpenZeppelin framework):
+- **Token** - [UNI Address](https://docs.uniswap.org/concepts/governance/overview#uni-address)
+- **Governor** - [GovernorBravo](https://docs.uniswap.org/concepts/governance/overview#governorbravo-current)
+- **Timelock** - [Timelock Controller](https://docs.uniswap.org/concepts/governance/overview#timelock)
+
+## DAO Contract Naming and ENS Onboarding Process
+
+### Step 1: Register new ENS Domain on [ENS App](https://app.ens.domains/)
+
+Choose one of these naming patterns:
+- `<org>.eth` (if available)
+- `<org>dao.eth`
+- `<org>-dao.eth`
+
+**Example:** uniswap.eth, ensdao.eth, nouns-dao.eth
+
+### Step 2: Create DAO Subdomain (if needed)
+
+If "dao" is not included in your 2LD name, create a subdomain that will act as the parent domain for DAO contracts:
+- `dao.<org>.eth`
+
+**Example:** dao.uniswap.eth
+
+### Step 3: Add DAO Metadata
+
+Add DAO metadata to your main DAO ENS name/subname according to [EIP-4824 standard](https://eips.ethereum.org/EIPS/eip-4824).
+
+- If your DAO's ENS name is `<org>dao.eth` or `<org>-dao.eth` then directly store DAO metadata under the main name's text records. Example: [ENS DAO metadata](https://app.ens.domains/ensdao.eth)
+- If your DAO's ENS name is `<org>.eth` and you created a subname `dao.<org>.eth` then store DAO metadata under subname's text records.
+
+### Step 4: Create Contract Subdomains
+
+Name each contract under your DAO domain with descriptive subnames following the patterns below.
+
+Wherever `<yourdao>` is mentioned, treat it as `<org>dao`, `<org>-dao` or `dao.<org>`
+
+Please refer to the Appendix for additional information on these contracts.
+
+| Contract name | Description | Naming convention | Where to name |
+|---------------|-------------|------------------|---------------|
+| Governor (core) | Based on Openzepplin Governance framework or Aargon's DAO framework | `governor.<yourdao>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Governance Token | Token for voting purpose | `<token-symbol>.<youdao>.eth` or `token.<yourdao>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Timelock controller | Contract that may hold assets and enforce a delay before executing | `timelock.<yourdao>.eth`, `executor.<yourdao>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Main Wallet | DAO treasury / operations multisig | `wallet.<yourdao>.eth`, `operations.<yourdao>.eth` | **[ENS App](https://app.ens.domains/)** |
+| Treasury | DAO treasury where funds are stored | `treasury.<yourdao>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Voting Contract | Based on Aargon's voting plugins or OZ's Voting Modules | `voting.<yourdao>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / Raw Tx builder |
+| Other wallets (smart wallets/EOAs) | Guardians, Endowment, Admin, Emergency, Veto, Security council | `<role>.<yourdao>.eth` | **[ENS App](https://app.ens.domains/)** |
+| Other access/permission/controller/misc Contracts | Delegation contract, Access/permission manager, Controllers, Other Aragon or OZ based contracts | `<contract-name>.<yourdao>.eth` | **[Enscribe](https://app.enscribe.xyz/nameContract)** / **[ENS App](https://app.ens.domains/)**  / Raw Tx builder |
+
+### Step 5: Add Contract Metadata
+
+Add detailed metadata to each contract name according to [ENSIP: Contract Metadata Standard and Text Records](https://github.com/ensdomains/ensips/pull/50) (draft standard).
+
+**Example - `governor.ensdao.eth` metadata →**
+
+```
+name: ENS DAO Governor
+description: ENS DAO's Governance contract to create and execute proposals
+Avatar: ipfs://qwerty…
+url: https://ensdao.org/
+category: governance
+license: MIT
+docs: https://docs.ens.domains/dao/
+audits: []
+proxy (optional):
+```
+
+### Step 6: Claim DNS Domain (Optional but Recommended)
+
+Claiming your DNS domain on ENS establishes trust and verifies that the ENS name belongs to the legitimate organization by creating a verifiable link between your traditional web presence and your DAO's ENS identity.
+
+This process involves visiting the [ENS Manager App](https://app.ens.domains/), searching for your DNS domain (e.g., `<yourorg>.com`), and following the verification process.
+
+For detailed instructions, refer to the [official DNS on ENS documentation](https://docs.ens.domains/learn/dns) which provides step-by-step guidance on the claiming process.
+
+**Real-world example** - Base ([base.org](https://app.ens.domains/base.org) linked to [base.eth](https://app.ens.domains/base.eth) as manager) demonstrates how an organization should link their traditional domain with their ENS presence for enhanced credibility and trust within the web3 ecosystem.
+
+![Base linked to base.eth](/img/guides/base-org-linked.png)
+
+## Appendix
+
+### Major DAO Contract Types and Examples
+
+#### 1. Core Governor/DAO Contract
+**Description:** The primary governance contract that handles proposal creation, voting, and execution. This is the heart of the DAO's decision-making process.
+
+**Naming Convention:**
+- `governor.<yourdao>.eth`
+
+**Example DAOs:** Uniswap, ENS
+
+#### 2. Governance Token
+**Description:** The ERC-20 token that represents voting power in the DAO. Token holders use these tokens to participate in governance decisions.
+
+**Naming Convention:**
+- `token.<yourdao>.eth`
+- `<token-symbol>.<yourdao>.eth`
+
+**Example DAOs:** Uniswap, ENS
+
+#### 3. Timelock Controller
+**Description:** A contract that introduces a delay between proposal approval and execution, providing security by allowing token holders time to react to malicious proposals.
+
+**Naming Convention:**
+- `timelock.<yourdao>.eth`
+- `executor.<yourdao>.eth`
+
+**Example DAOs:** Uniswap, Arbitrum
+
+#### 4. Treasury
+**Description:** The contract or multi-signature wallet that holds and manages the DAO's funds. May include multiple treasuries for different purposes (grants, operations, etc.).
+
+**Naming Convention:**
+- `treasury.<yourdao>.eth`
+
+**Example DAOs:** Arbitrum, Gitcoin
+
+#### 5. Voting Contract
+**Description:** Specialized contracts that handle the voting mechanism, vote counting, and delegation. In OpenZeppelin Governor, this is often integrated into the main Governor contract as voting modules. In Aragon this may be based on voting plugins.
+
+**Naming Convention:**
+- `voting.<yourdao>.eth`
+
+**Example DAOs:** Lido
+
+#### 6. Main DAO Wallet/Multisig
+**Description:** The primary operational wallet used for DAOs operational activities. Often a multi-signature wallet controlled by core team members or elected delegates.
+
+**Naming Convention:**
+- `operations.<yourdao>.eth`
+- `wallet.<yourdao>.eth`
+
+**Example DAOs:** ENS, zk-nation
