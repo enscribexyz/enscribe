@@ -12,12 +12,12 @@ export default function Document() {
         {/* Twitter Card meta tags */}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:image" content="https://www.enscribe.xyz/img/social-card.png" />
-        <meta name="twitter:title" content="Enscribe – Name your smart contracts" />
+        <meta name="twitter:title" content="Enscribe - Name your smart contracts" />
         <meta name="twitter:description" content="Easily name your Ethereum smart contracts with ENS names using Enscribe. Live on Ethereum, Base, and Linea networks." />
 
         {/* Open Graph meta tags */}
         <meta property="og:image" content="https://www.enscribe.xyz/img/social-card.png" />
-        <meta property="og:title" content="Enscribe – Name your smart contracts" />
+        <meta property="og:title" content="Enscribe - Name your smart contracts" />
         <meta property="og:description" content="Easily name your Ethereum smart contracts with ENS names using Enscribe. Live on Ethereum, Base, and Linea networks." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.enscribe.xyz" />
