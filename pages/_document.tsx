@@ -4,10 +4,8 @@ export default function Document() {
   return (
     <Html lang="en">
       <Head>
-        <title>Give your smart contracts on Ethereum an identity with Enscribe. Powered by ENS.</title>
         <meta name="description" content="Easily name your Ethereum smart contracts with ENS names using Enscribe. Live on Ethereum, Base, and Linea networks." />
         <meta name="keywords" content="smart, contract, naming, naming smart contracts, web3, blockchain, ens, Ethereum Name Service, Ethereum, smart contracts, Enscribe, UX, smart contract deployment" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
 
         {/* Twitter Card meta tags */}
         <meta name="twitter:card" content="summary_large_image" />
