@@ -42,6 +42,16 @@ const sidebars: SidebarsConfig = {
         'concepts/l2-primary-names-explained',
       ],
     },
+    {
+      type: 'category',
+      label: 'Best Practices',
+      items: [
+        'best-practices/dao',
+        'best-practices/l2',
+        'best-practices/consumer-apps',
+        'best-practices/defi-protocols',
+      ],
+    },
   ],
 };
 
