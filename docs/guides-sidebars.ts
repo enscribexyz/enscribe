@@ -47,8 +47,8 @@ const sidebars: SidebarsConfig = {
       label: 'Best Practices',
       items: [
         'best-practices/dao',
-        'best-practices/l2',
         'best-practices/consumer-apps',
+        'best-practices/l2',
         'best-practices/defi-protocols',
       ],
     },
