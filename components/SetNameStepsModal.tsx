@@ -572,7 +572,7 @@ export default function SetNameStepsModal({
                 {/* Claim POAP Button */}
                 {!errorMessage && poapMintLink != null &&
                   chain != undefined &&
-                  !isTestNet(chain.id) && (
+                  !isTestNet(chain.id) && stepTxHashes.some(Boolean) && (
                     <div className="mt-4">
                       <Button
                         className="w-full py-6 text-lg font-medium relative overflow-hidden shadow-lg hover:shadow-indigo-500/30"
