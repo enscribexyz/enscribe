@@ -45,7 +45,7 @@ import { CONTRACTS, CHAINS } from '../utils/constants'
 import Link from 'next/link'
 import Image from 'next/image'
 import SetNameStepsModal, { Step } from './SetNameStepsModal'
-import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, XCircleIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { Checkbox } from '@/components/ui/checkbox'
 import { v4 as uuid } from 'uuid'
 import {
@@ -125,6 +125,7 @@ export default function NameContract() {
   const [selectedAction, setSelectedAction] = useState<
     'subname' | 'pick' | null
   >(null)
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(false)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -190,6 +191,7 @@ export default function NameContract() {
     setSelectedL2ChainNames([])
     setDropdownValue('')
     setSkipL1Naming(false)
+    setIsAdvancedOpen(false)
 
     // Reset L2 ownable states
     setIsOwnableOptimism(null)
@@ -2201,122 +2203,139 @@ export default function NameContract() {
           </div>
         )}
 
-        {/* L2 Primary Name Options - Only show on mainnet or sepolia */}
+        {/* Advanced Options - Only show on mainnet or sepolia */}
         {(chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA) && (
           <div className="mt-4 mb-4">
-            <div className="flex items-center justify-between gap-3 mb-5">
-              <div className="flex items-center gap-2">
-                <label className="block text-gray-700 dark:text-gray-300">
-                  Naming on L2 Chains
-                </label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">
-                        i
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>
-                        Select which L2 chains to set names on. This will add
-                        additional steps to switch to each selected chain and
-                        set the primary name there as well.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-
-              {selectedL2ChainNames.length > 0 && (
-                <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
-                  <span className="text-gray-700 dark:text-gray-300">
-                    Skip L1 Naming
-                  </span>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">
-                          i
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>
-                          Select this if you want to name only on the selected
-                          L2 chains and skip L1 naming (forward and reverse
-                          resolution). The subname will still be created on L1
-                          if needed.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  <Checkbox
-                    checked={skipL1Naming}
-                    onCheckedChange={(val) => setSkipL1Naming(Boolean(val))}
-                    aria-label="Skip L1 Naming"
-                  />
-                </div>
+            <button
+              type="button"
+              onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+              className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              {isAdvancedOpen ? (
+                <ChevronDownIcon className="w-5 h-5" />
+              ) : (
+                <ChevronRightIcon className="w-5 h-5" />
               )}
-            </div>
+              <span className="text-lg font-medium">Advanced Options</span>
+            </button>
 
-            {/* Selected L2 Chains Display */}
-            {selectedL2ChainNames.length > 0 && (
-              <div className="mb-4">
-                <div className="flex flex-wrap gap-2">
-                  {selectedL2ChainNames.map((chainName, index) => {
-                    const logoSrc =
-                      chainName === 'Optimism'
-                        ? '/images/optimism.svg'
-                        : chainName === 'Arbitrum'
-                          ? '/images/arbitrum.svg'
-                          : chainName === 'Scroll'
-                            ? '/images/scroll.svg'
-                            : chainName === 'Base'
-                              ? '/images/base.svg'
-                              : '/images/linea.svg'
-                    return (
-                      <div
-                        key={index}
-                        className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
-                      >
-                        <Image
-                          src={logoSrc}
-                          alt={`${chainName} logo`}
-                          width={14}
-                          height={14}
-                        />
-                        <span>{chainName}</span>
-                        <button
-                          onClick={() =>
-                            setSelectedL2ChainNames((prev) =>
-                              prev.filter((name) => name !== chainName),
-                            )
-                          }
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )
-                  })}
+            {isAdvancedOpen && (
+              <div className="mt-4 space-y-4 border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-800">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="block text-gray-700 dark:text-gray-300">
+                      Naming on L2 Chains
+                    </label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">
+                            i
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>
+                            Select which L2 chains to set names on. This will add
+                            additional steps to switch to each selected chain and
+                            set the primary name there as well.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+
+                  {selectedL2ChainNames.length > 0 && (
+                    <div className="flex items-center gap-2 shrink-0 whitespace-nowrap">
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Skip L1 Naming
+                      </span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-gray-400 text-gray-600 dark:text-gray-300 text-xs select-none">
+                              i
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <p>
+                              Select this if you want to name only on the selected
+                              L2 chains and skip L1 naming (forward and reverse
+                              resolution). The subname will still be created on L1
+                              if needed.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <Checkbox
+                        checked={skipL1Naming}
+                        onCheckedChange={(val) => setSkipL1Naming(Boolean(val))}
+                        aria-label="Skip L1 Naming"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected L2 Chains Display */}
+                {selectedL2ChainNames.length > 0 && (
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedL2ChainNames.map((chainName, index) => {
+                        const logoSrc =
+                          chainName === 'Optimism'
+                            ? '/images/optimism.svg'
+                            : chainName === 'Arbitrum'
+                              ? '/images/arbitrum.svg'
+                              : chainName === 'Scroll'
+                                ? '/images/scroll.svg'
+                                : chainName === 'Base'
+                                  ? '/images/base.svg'
+                                  : '/images/linea.svg'
+                        return (
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+                          >
+                            <Image
+                              src={logoSrc}
+                              alt={`${chainName} logo`}
+                              width={14}
+                              height={14}
+                            />
+                            <span>{chainName}</span>
+                            <button
+                              onClick={() =>
+                                setSelectedL2ChainNames((prev) =>
+                                  prev.filter((name) => name !== chainName),
+                                )
+                              }
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* L2 Chain chooser button */}
+                <div>
+                  <Button
+                    type="button"
+                    className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
+                    onClick={() => setShowL2Modal(true)}
+                    disabled={
+                      L2_CHAIN_OPTIONS.filter(
+                        (c) => !selectedL2ChainNames.includes(c),
+                      ).length === 0
+                    }
+                  >
+                    Choose L2 Chains
+                  </Button>
                 </div>
               </div>
             )}
-
-            {/* L2 Chain chooser button instead of dropdown */}
-            <div>
-              <Button
-                type="button"
-                className="bg-gray-900 text-white dark:bg-blue-700 dark:hover:bg-gray-800 dark:text-white"
-                onClick={() => setShowL2Modal(true)}
-                disabled={
-                  L2_CHAIN_OPTIONS.filter(
-                    (c) => !selectedL2ChainNames.includes(c),
-                  ).length === 0
-                }
-              >
-                Choose L2 Chains
-              </Button>
-            </div>
           </div>
         )}
       </div>
@@ -2863,6 +2882,7 @@ export default function NameContract() {
             setSelectedL2ChainNames([])
             setDropdownValue('')
             setSkipL1Naming(false)
+            setIsAdvancedOpen(false)
           }
         }}
         title={modalTitle}
