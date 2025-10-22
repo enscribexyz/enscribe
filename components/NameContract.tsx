@@ -2869,7 +2869,11 @@ export default function NameContract() {
         subtitle={modalSubtitle}
         steps={modalSteps}
         contractAddress={existingContractAddress}
-        ensName={`${label}.${parentName}`}
+        ensName={
+          selectedAction === 'pick' 
+            ? label 
+            : `${label}.${parentName}`
+        }
         isPrimaryNameSet={isPrimaryNameSet}
         isSafeWallet={isSafeWallet}
       />
