@@ -228,8 +228,6 @@ Sets **reverse resolution** for the **address**: address → `name`. The caller 
 - `txHash: string` — Transaction hash for the reverse set‑name call (or `undefined` if no change).
 - `didChange: boolean`
 
-> Reverse safety: You typically need to control the contract (Ownable), the proxy admin (Transparent proxy), or the implementation (UUPS). Use `isOwnable`, `isReverseClaimable`, or your own checks before calling.
-
 #### Example
 ```ts
 import { setReverseResolution } from "@enscribe/enscribe";
