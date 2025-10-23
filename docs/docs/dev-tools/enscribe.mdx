@@ -1,17 +1,29 @@
 ---
 sidebar_position: 2
 ---
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
 
 # `@enscribe/enscribe` — Public API Reference
 
-> Lightweight TypeScript helpers to give contracts real ENS names. Works with **viem**, supports L1 + popular L2s, and handles forward/reverse resolution and common proxy setups.
+> Lightweight TypeScript helpers to give contracts real ENS names. Works with **viem**/**wagmi**, supports L1 + popular L2s, and handles forward/reverse resolution.
 
 ## Installation
 
-```bash
-pnpm add @enscribe/enscribe viem
-# or: npm i @enscribe/enscribe viem
-```
+<Tabs>
+  <TabItem value="pnpm" label="pnpm" default>
+    ```bash
+    pnpm add @enscribe/enscribe viem
+    # or: npm i @enscribe/enscribe viem
+    ```
+  </TabItem>
+  <TabItem value="npm" label="npm">
+    ```bash
+    npm i @enscribe/enscribe viem
+    ```
+  </TabItem>
+</Tabs>
 
 ---
 
@@ -21,7 +33,7 @@ pnpm add @enscribe/enscribe viem
 
 Names a contract with ENS: creates a subname (if needed), sets **forward** (name → address) and, when authorized, **reverse** (address → name) records. On L2s, may also perform L2 forwards/reverses.
 
-```ts
+```typescript
 import { nameContract } from "@enscribe/enscribe";
 import { createWalletClient, http } from "viem";
 import { base } from "viem/chains";
