@@ -1,0 +1,79 @@
+---
+slug: enscribe-library
+title: Name Your Contracts with the Enscribe Library
+authors: [abhi]
+tags: [enscribe, ens, hardhat]
+keywords: [ENS, smart contract naming, hardhat, hardhat-enscribe, hardhat plugin, hardhat v3, ENS naming, ENS contracts, enscribe library]
+---
+
+# Name Your Contracts with the Enscribe Library
+
+Last week, we announced the hardhat-enscribe plugin for smart contract developers to name their contracts. We showed how smart contract developers can name their contracts with hardhat:
+
+- Using a CLI command, powered by the hardhat-enscribe plugin, that can be executed after the deployment command
+- Using the enscribe library in the hardhat deployment script
+
+Under the hood, the hardhat-enscribe plugin uses the same `@enscribe/enscribe` library. It is a small TypeScript library you can use in any app or tool.
+
+In this post, we will take a look at how to use the library to name your smart contracts in your apps.
+
+It is very simple to use. From its public API, a single abstraction function creates the subname, sets forward and reverse records, and returns useful metadata (tx hashes, detected contract type, explorer link). 
+
+## Using the Library
+Start by installing the library:
+
+```bash
+pnpm install @enscribe/enscribe  
+```
+
+Once installed, import the nameContract function:
+
+```typescript
+import { nameContract } from "@enscribe/enscribe";
+```
+
+The nameContract function itself has a simple interface. It accepts the following parameters:
+
+- Contract name
+- Contract address
+- Wallet client (from viem or wagmi)
+- Name of the chain on which the contract address is
+- Optional flag for logging naming metrics
+
+We now create a wallet client object with wagmi:
+```typescript
+import useWalletClient from ‘wagmi’
+…
+const { data: walletClient } = useWalletClient()
+```
+
+Once we have the wallet client created, we are ready to name our contract with nameContract:
+
+```typescript
+const res = await nameContract({
+  name: "vault.myapp.eth",
+  contractAddress: "0x…",
+  walletClient,
+  chainName: "sepolia",
+  enableMetrics: true
+});
+```
+
+That’s it! With this single function, developers can easily set a name to their contracts without having to worry about sending individual transactions like creation of subname and setting resolutions. 
+
+
+However, the library is also flexible in leaking this abstraction (which isn’t a bad thing always 🙂) by exposing the following functions and use them however you want:
+- createSubname
+- setForwardResolution
+- setReverseResolution
+
+We want to make it easier for developers to name their contracts during contract deployment time and this is where the library comes in – they can integrate it in their Hardhat scripts. But they can also name their contracts after the contract is deployed with the hardhat-enscribe plugin. You can head over to the library documentation to explore the API.
+
+## Get started
+
+- Hardhat plugin: install, configure, and run `npm hardhat enscribe name ...` to label new or existing deployments. ([GitHub](https://github.com/enscribexyz/hardhat-enscribe))
+- Core library: import @enscribe/enscribe and call `nameContract()` wherever you manage contracts ([GitHub](https://github.com/enscribexyz/enscribe-core))
+- Docs & guides: quick starts, concepts, and best practices for contract naming and multi-chain resolution. ([enscribe.xyz](https://www.enscribe.xyz))
+
+
+Happy naming! 🚀
