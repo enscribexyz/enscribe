@@ -28,9 +28,46 @@ import TabItem from '@theme/TabItem';
 
 ## High-level API
 
-#### `async nameContract(options: NameContractOptions): Promise<NameContractResult>`
+```typescript
+async nameContract(options: NameContractOptions): Promise<NameContractResult>
+```
 
 Names a contract with ENS: creates a subname (if needed), sets **forward** (name → address) and, when authorized, **reverse** (address → name) records. On L2s, may also perform L2 forwards/reverses.
+
+#### Parameters - `NameContractOptions`
+
+```typescript
+interface NameContractOptions {
+  name: string;                          // Fully normalized ENS name (e.g., "vault.myapp.eth")
+  contractAddress: string;               // Checksummed target address
+  walletClient: WalletClient;            // viem wallet client for the target chain
+  l2WalletClient?: WalletClient | null;  // Optional second client for L2 flows
+  chainName: NetworkName | string;       // Network key (e.g., "mainnet", "sepolia", "base", etc.)
+  opType?: string;                       // Optional operation label for telemetry
+  enableMetrics?: boolean;               // Enable lightweight metrics (default false)
+}
+```
+
+#### Returns - `NameContractResult`
+
+```typescript
+interface NameContractResult {
+  success: boolean;                // true if the naming operation was successful
+  name: string;                    // The fully normalized ENS name
+  contractAddress: string;         // The contract being named
+  transactions: {                  // Object containing transaction hashes for each step
+    subname?: string;              // Transaction hash for subname creation if created
+    forwardResolution?: string;    // Transaction hash for forward resolution if set
+    reverseResolution?: string;    // Transaction hash for reverse resolution if set
+    l2ForwardResolution?: string;  // Transaction hash for L2 forward resolution if set
+    l2ReverseResolution?: string;  // Transaction hash for L2 reverse resolution if set
+  };
+  contractType: ContractType;      // The type of contract: "Ownable", "ReverseClaimer", "Unknown"
+  explorerUrl: string;             // The explorer URL for the contract
+}
+```
+
+#### Example
 
 ```typescript
 import { nameContract } from "@enscribe/enscribe";
@@ -52,44 +89,10 @@ console.log(res.success, res.contractType, res.explorerUrl);
 console.log(res.transactions);
 ```
 
-##### `NameContractOptions`
-
-```typescript
-interface NameContractOptions {
-  name: string;                    // Fully normalized ENS name (e.g., "vault.myapp.eth")
-  contractAddress: string;         // Checksummed target address
-  walletClient: WalletClient;      // viem wallet client for the target chain
-  l2WalletClient?: WalletClient | null;  // Optional second client for L2 flows
-  chainName: NetworkName | string; // Network key (e.g., "mainnet", "sepolia", "base", etc.)
-  opType?: string;                 // Optional operation label for telemetry
-  enableMetrics?: boolean;         // Enable lightweight metrics (default false)
-}
-```
-
-##### `NameContractResult`
-
-```typescript
-interface NameContractResult {
-  success: boolean;                // true if the naming operation was successful
-  name: string;                    // The fully normalized ENS name
-  contractAddress: string;         // The contract being named
-  transactions: {                  // Object containing transaction hashes for each step
-    subname?: string;              // Transaction hash for subname creation if created
-    forwardResolution?: string;    // Transaction hash for forward resolution if set
-    reverseResolution?: string;    // Transaction hash for reverse resolution if set
-    l2ForwardResolution?: string;  // Transaction hash for L2 forward resolution if set
-    l2ReverseResolution?: string;  // Transaction hash for L2 reverse resolution if set
-  };
-  contractType: ContractType;      // The type of contract: "Ownable", "ReverseClaimer", "Unknown"
-  explorerUrl: string;             // The explorer URL for the contract
-}
-```
-
 ---
 
 ## Utilities
 
-#### `isOwnable(address, walletClient)`
 ```typescript
 async isOwnable(
   address: string, 
@@ -98,7 +101,6 @@ async isOwnable(
 ```
 Returns `true` if the contract exposes an Ownable-compatible `owner()` (useful to decide reverse eligibility).
 
-#### `isReverseClaimable(address, walletClient, ensRegistry)`
 ```typescript
 async isReverseClaimable(
   address: string, 
@@ -108,7 +110,6 @@ async isReverseClaimable(
 ```
 Detects **ReverseClaimer** compatibility (self-claiming reverse).
 
-#### `isContractOwner(address, walletClient, ensRegistry)`
 ```typescript
 async isContractOwner(
   address: string, 
@@ -118,13 +119,11 @@ async isContractOwner(
 ```
 Checks whether the caller controls the target (helpful before attempting reverse).
 
-#### `parseNormalizedName(name)`
 ```typescript
 parseNormalizedName(name: string): { label: string; parent: string }
 ```
 `"vault.myapp.eth"` → `{ label: "vault", parent: "myapp.eth" }`
 
-#### `isAddressValid(address)`
 ```typescript
 isAddressValid(address: string): boolean
 ```
@@ -134,25 +133,21 @@ Lightweight checksum/address validation.
 
 ## Network helpers
 
-#### `getContractAddresses(networkName)`
 ```typescript
 getContractAddresses(networkName: NetworkName): ENSContracts
 ```
 Returns the ENS registry/resolver addresses used on that network.
 
-#### `getNetworkNameFromChainId(chainId)`
 ```typescript
 getNetworkNameFromChainId(chainId: number): NetworkName
 ```
 Maps a `chainId` to the library's `NetworkName`.
 
-#### `validateContractAddresses(addresses)`
 ```typescript
 validateContractAddresses(addresses: Record<string, string>): void
 ```
 Throws if any address is malformed (useful for custom overrides).
 
-#### `ENS_CONTRACTS`
 ```typescript
 const ENS_CONTRACTS: Record<NetworkName, ENSContracts>
 ```
@@ -202,23 +197,33 @@ interface NameContractResult {
 
 ## Low-level functions
 
-#### `async createSubname(options: CreateSubnameOptions): Promise<OnchainStepResult>`
+```typescript
+async createSubname(options: CreateSubnameOptions): Promise<OnchainStepResult>
+```
 
 Creates (or ensures) a subname under a parent you control, and points it at a resolver.
 
 #### Parameters — `CreateSubnameOptions`
-- `name: string` — The FQDN to create (e.g., `vault.myapp.eth`). Will be normalized internally.
-- `walletClient: WalletClient` — Signer on the target chain.
-- `ensContracts: ENSContracts` — ENS contracts addresses.
-- `contractAddress: string` — Contract being named.
-- `contractType: ContractType` — Contract type: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
-- `chainName: NetworkName | string` — Network key.
-- `opType?: string` — Optional operation label for metrics.
-- `enableMetrics?: boolean` — Enable lightweight metrics (default `false`).
+```typescript
+interface CreateSubnameOptions {
+  name: string;                    // The FQDN to create (e.g., `vault.myapp.eth`). Will be normalized internally.
+  walletClient: WalletClient;      // Signer on the target chain.
+  ensContracts: ENSContracts;      // ENS contracts addresses.
+  contractAddress: string;         // Contract being named.
+  contractType: ContractType;      // Contract type: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
+  chainName: NetworkName | string; // Network name.
+  opType?: string;                 // Optional operation label for metrics.
+  enableMetrics?: boolean;         // Enable lightweight metrics (default `false`).
+}
+```
 
 #### Returns — `CreateSubnameResult`
-- `created: boolean` — `true` if subname was created.
-- `transactionHash?: string` — Transaction hash for subname creation if created.
+```typescript
+interface CreateSubnameResult {
+  created: boolean;         // `true` if subname was created.
+  transactionHash?: string; // Transaction hash for subname creation if created.
+}
+```
 
 #### Example
 ```typescript
@@ -236,24 +241,33 @@ const { txHash } = await createSubname({
 
 ---
 
-#### `async setForwardResolution(options: SetForwardResolutionOptions): Promise<OnchainStepResult>`
+```typescript
+async setForwardResolution(options: SetForwardResolutionOptions): Promise<OnchainStepResult>
+```
 
 Sets **forward resolution** for an ENS name: name → `contractAddress`.
 
 #### Parameters — `SetForwardResolutionOptions`
-- `name: string` — ENS name (normalized).
-- `contractAddress: string` — Target address to resolve to.
-- `walletClient: WalletClient` - Wallet client for the target chain.
-- `ensContracts: ENSContracts` — ENS contracts addresses.
-- `contractType: ContractType` — Contract type: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
-- `chainName: NetworkName | string` - Network key.
-- `opType?: string` — Optional operation label for metrics.
-- `coinType?: number` — Optional coin type for the target chain.
-- `enableMetrics?: boolean` — Enable lightweight metrics (default `false`).
+```typescript
+interface SetForwardResolutionOptions {
+  name: string;                    // ENS name (normalized).
+  contractAddress: string;         // Target address to resolve to.
+  walletClient: WalletClient;      // Wallet client for the target chain.
+  ensContracts: ENSContracts;      // ENS contracts addresses.
+  contractType: ContractType;      // Contract type: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
+  chainName: NetworkName | string; // Network key.
+  opType?: string;                 // Optional operation label for metrics.
+  enableMetrics?: boolean;         // Enable lightweight metrics (default `false`).
+}
+```
 
 #### Returns — `SetForwardResolutionResult`
-- `set: boolean` — `true` if forward resolution was set.
-- `transactionHash?: string` — Transaction hash for subname creation if created.
+```typescript
+interface SetForwardResolutionResult {
+  set: boolean;             // `true` if forward resolution was set.
+  transactionHash?: string; // Transaction hash for subname creation if created.
+}
+```
 
 #### Example
 ```typescript
@@ -272,24 +286,34 @@ await setForwardResolution({
 
 ---
 
-#### `async setReverseResolution(options: SetReverseResolutionOptions): Promise<OnchainStepResult>`
+```typescript
+async setReverseResolution(options: SetReverseResolutionOptions): Promise<OnchainStepResult>
+```
 
 Sets **reverse resolution** for the **address**: address → `name`. The caller must be authorized (e.g., Ownable/ReverseClaimer).
 
 #### Parameters — `SetReverseResolutionOptions`
-- `name: string` — ENS name to set as the reverse record.
-- `contractAddress: string` — The address whose reverse record is being set (often the proxy address users hit).
-- `walletClient: WalletClient` - Wallet client for the target chain.
-- `ensContracts: ENSContracts` — ENS contracts addresses.
-- `contractType: ContractType` — Contract type: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
-- `chainName: NetworkName | string` - Network key.
-- `opType?: string` — Optional operation label for metrics.
-- `enableMetrics?: boolean` — Enable lightweight metrics (default `false`).
+```typescript
+interface SetReverseResolutionOptions {
+  name: string;                    // ENS name to set as the reverse record.
+  contractAddress: string;         // The address whose reverse record is being set (often the proxy address users hit).
+  walletClient: WalletClient;      // Wallet client for the target chain.
+  ensContracts: ENSContracts;      // ENS contracts addresses.
+  contractType: ContractType;      // Contract type: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
+  chainName: NetworkName | string; // Network key.
+  opType?: string;                 // Optional operation label for metrics.
+  enableMetrics?: boolean;         // Enable lightweight metrics (default `false`).
+}
+```
 
 #### Returns — `SetReverseResolutionResult`
-- `set: boolean` — `true` if reverse resolution was set.
-- `transactionHash?: string` — Transaction hash for subname creation if created.
-- `reason?: string` — Reason for the failure if reverse resolution was not set.
+```typescript
+interface SetReverseResolutionResult {
+  set: boolean;                    // `true` if reverse resolution was set.
+  transactionHash?: string;        // Transaction hash for subname creation if created.
+  reason?: string;                 // Reason for the failure if reverse resolution was not set.
+}
+```
 
 #### Example
 ```typescript
