@@ -53,61 +53,109 @@ console.log(res.transactions);
 ```
 
 ##### `NameContractOptions`
-- `name: string` — Fully normalized ENS name (e.g., `"vault.myapp.eth"`).
-- `contractAddress: string` — Checksummed target address.
-- `walletClient: WalletClient` — **viem** wallet client for the target chain.
-- `l2WalletClient?: WalletClient | null` — Optional second client for L2 flows.
-- `chainName: NetworkName | string` — Network key (e.g., `"mainnet"`, `"sepolia"`, `"base"`, `"optimism"`, `"arbitrum"`, `"scroll"`, `"linea"`).
-- `opType?: string` — Optional operation label for telemetry.
-- `enableMetrics?: boolean` — Enable lightweight metrics (default `false`).
+
+```typescript
+interface NameContractOptions {
+  name: string;                    // Fully normalized ENS name (e.g., "vault.myapp.eth")
+  contractAddress: string;         // Checksummed target address
+  walletClient: WalletClient;      // viem wallet client for the target chain
+  l2WalletClient?: WalletClient | null;  // Optional second client for L2 flows
+  chainName: NetworkName | string; // Network key (e.g., "mainnet", "sepolia", "base", etc.)
+  opType?: string;                 // Optional operation label for telemetry
+  enableMetrics?: boolean;         // Enable lightweight metrics (default false)
+}
+```
 
 ##### `NameContractResult`
-- `success: boolean` - `true` if the naming operation was successful.
-- `name: string` - The fully normalized ENS name.
-- `contractAddress: string` - The contract being named.
-- `transactions: {` - Object containing the transaction hashes for each step of the naming operation.
-  - `subname?: string` - Transaction hash for subname creation if created.
-  - `forwardResolution?: string` - Transaction hash for forward resolution if set.
-  - `reverseResolution?: string` - Transaction hash for reverse resolution if set.
-  - `l2ForwardResolution?: string` - Transaction hash for L2 forward resolution if set.
-  - `l2ReverseResolution?: string` - Transaction hash for L2 reverse resolution if set.
-  - `}`
-- `contractType: ContractType` - The type of contract: `"Ownable"`, `"ReverseClaimer"`, `"Unknown"`.
-- `explorerUrl: string` - The explorer URL for the contract.
+
+```typescript
+interface NameContractResult {
+  success: boolean;                // true if the naming operation was successful
+  name: string;                    // The fully normalized ENS name
+  contractAddress: string;         // The contract being named
+  transactions: {                  // Object containing transaction hashes for each step
+    subname?: string;              // Transaction hash for subname creation if created
+    forwardResolution?: string;    // Transaction hash for forward resolution if set
+    reverseResolution?: string;    // Transaction hash for reverse resolution if set
+    l2ForwardResolution?: string;  // Transaction hash for L2 forward resolution if set
+    l2ReverseResolution?: string;  // Transaction hash for L2 reverse resolution if set
+  };
+  contractType: ContractType;      // The type of contract: "Ownable", "ReverseClaimer", "Unknown"
+  explorerUrl: string;             // The explorer URL for the contract
+}
+```
 
 ---
 
 ## Utilities
 
-#### `async isOwnable(address: string, walletClient: WalletClient): Promise<boolean>`
+#### `isOwnable(address, walletClient)`
+```typescript
+async isOwnable(
+  address: string, 
+  walletClient: WalletClient
+): Promise<boolean>
+```
 Returns `true` if the contract exposes an Ownable-compatible `owner()` (useful to decide reverse eligibility).
 
-#### `async isReverseClaimable(address: string, walletClient: WalletClient, ensRegistry: string): Promise<boolean>`
+#### `isReverseClaimable(address, walletClient, ensRegistry)`
+```typescript
+async isReverseClaimable(
+  address: string, 
+  walletClient: WalletClient, 
+  ensRegistry: string
+): Promise<boolean>
+```
 Detects **ReverseClaimer** compatibility (self-claiming reverse).
 
-#### `async isContractOwner(address: string, walletClient: WalletClient, ensRegistry: string): Promise<boolean>`
+#### `isContractOwner(address, walletClient, ensRegistry)`
+```typescript
+async isContractOwner(
+  address: string, 
+  walletClient: WalletClient, 
+  ensRegistry: string
+): Promise<boolean>
+```
 Checks whether the caller controls the target (helpful before attempting reverse).
 
-#### `parseNormalizedName(name: string): { label: string; parent: string }`
-`"vault.myapp.eth"` → `{ label: "vault", parent: "myapp.eth" }`.
+#### `parseNormalizedName(name)`
+```typescript
+parseNormalizedName(name: string): { label: string; parent: string }
+```
+`"vault.myapp.eth"` → `{ label: "vault", parent: "myapp.eth" }`
 
-#### `isAddressValid(address: string): boolean`
+#### `isAddressValid(address)`
+```typescript
+isAddressValid(address: string): boolean
+```
 Lightweight checksum/address validation.
 
 ---
 
 ## Network helpers
 
-#### `getContractAddresses(networkName: NetworkName): ENSContracts`
+#### `getContractAddresses(networkName)`
+```typescript
+getContractAddresses(networkName: NetworkName): ENSContracts
+```
 Returns the ENS registry/resolver addresses used on that network.
 
-#### `getNetworkNameFromChainId(chainId: number): NetworkName`
-Maps a `chainId` to the library’s `NetworkName`.
+#### `getNetworkNameFromChainId(chainId)`
+```typescript
+getNetworkNameFromChainId(chainId: number): NetworkName
+```
+Maps a `chainId` to the library's `NetworkName`.
 
-#### `validateContractAddresses(addresses: Record<string, string>): void`
+#### `validateContractAddresses(addresses)`
+```typescript
+validateContractAddresses(addresses: Record<string, string>): void
+```
 Throws if any address is malformed (useful for custom overrides).
 
 #### `ENS_CONTRACTS`
+```typescript
+const ENS_CONTRACTS: Record<NetworkName, ENSContracts>
+```
 Constant mapping of supported networks to ENS contract bundles.
 
 ---
