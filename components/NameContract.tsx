@@ -130,6 +130,7 @@ export default function NameContract() {
   const [callDataList, setCallDataList] = useState<string[]>([])
   const [copied, setCopied] = useState<{ [key: string]: boolean }>({})
   const [allCallData, setAllCallData] = useState<string>('')
+  const [isCallDataOpen, setIsCallDataOpen] = useState<boolean>(false)
 
   const corelationId = uuid()
   const opType = 'nameexisting'
@@ -199,6 +200,7 @@ export default function NameContract() {
     setCallDataList([])
     setCopied({})
     setAllCallData('')
+    setIsCallDataOpen(false)
 
     // Reset L2 ownable states
     setIsOwnableOptimism(null)
@@ -282,6 +284,21 @@ export default function NameContract() {
   const generateCallData = async () => {
     if (!walletClient || !config || !existingContractAddress || !label) {
       setCallDataList([])
+      setAllCallData('')
+      return
+    }
+
+    // For subname creation, we need a valid parent name
+    if (selectedAction === 'subname' && !parentName.trim()) {
+      setCallDataList([])
+      setAllCallData('')
+      return
+    }
+
+    // Validate that label is not empty
+    if (!label.trim()) {
+      setCallDataList([])
+      setAllCallData('')
       return
     }
 
@@ -293,15 +310,39 @@ export default function NameContract() {
       let parentNameNormalized: string
       let name: string
 
-      if (selectedAction === 'pick') {
+      // Validate label before normalizing
+      try {
         labelNormalized = normalize(label)
+      } catch (error) {
+        console.log('Invalid label:', label, error)
+        setCallDataList([])
+        setAllCallData('')
+        return
+      }
+
+      if (selectedAction === 'pick') {
         parentNameNormalized = ''
         const cleanedLabel = label.replace(/\.$/, '')
         name = normalize(cleanedLabel)
       } else {
-        labelNormalized = normalize(label)
-        parentNameNormalized = normalize(parentName)
-        const constructedName = `${labelNormalized}.${parentNameNormalized}`.replace(/\.$/, '')
+        // Validate parent name before normalizing
+        parentNameNormalized = ''
+        if (parentName.trim()) {
+          // Check if parent name is valid (not just dots or empty)
+          const trimmedParent = parentName.trim()
+          if (trimmedParent !== '.' && trimmedParent !== '..' && !trimmedParent.startsWith('.') && !trimmedParent.endsWith('.')) {
+            try {
+              parentNameNormalized = normalize(trimmedParent)
+            } catch (error) {
+              console.log('Invalid parent name:', trimmedParent, error)
+              parentNameNormalized = ''
+            }
+          }
+        }
+        
+        const constructedName = parentNameNormalized 
+          ? `${labelNormalized}.${parentNameNormalized}`.replace(/\.$/, '')
+          : labelNormalized
         name = normalize(constructedName)
       }
 
@@ -334,16 +375,24 @@ export default function NameContract() {
             args: [parentNode, labelHash, walletAddress, publicResolverAddress, 0],
           })
           callDataArray.push(`ENSRegistry.setSubnodeRecord: ${callData}`)
-        } else {
-          // Check if wrapped
-          const isWrapped = await readContract(walletClient, {
-            address: config.NAME_WRAPPER as `0x${string}`,
-            abi: nameWrapperABI,
-            functionName: 'isWrapped',
-            args: [parentNode],
-          })
-          
-          if (isWrapped) {
+         } else {
+           // Check if wrapped (only if parentNode is valid)
+           let isWrapped = false
+           if (parentNode && parentNode !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
+             try {
+               isWrapped = (await readContract(walletClient, {
+                 address: config.NAME_WRAPPER as `0x${string}`,
+                 abi: nameWrapperABI,
+                 functionName: 'isWrapped',
+                 args: [parentNode],
+               })) as boolean
+             } catch (error) {
+               console.log('Error checking if wrapped:', error)
+               isWrapped = false
+             }
+           }
+           
+           if (isWrapped) {
             const callData = encodeFunctionData({
               abi: nameWrapperABI,
               functionName: 'setSubnodeRecord',
@@ -2591,68 +2640,79 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   </Button>
                 </div>
 
-                {/* Call data section */}
-                <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-                  <label className="block text-gray-700 dark:text-gray-300 mb-2">
-                    Call data
-                  </label>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
-                    {callDataList.length > 0 ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {callDataList.length} transaction{callDataList.length !== 1 ? 's' : ''} will be executed:
-                          </p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 px-2 text-xs"
-                            onClick={() => copyToClipboard(allCallData, 'allCallData')}
-                          >
-                            {copied['allCallData'] ? (
-                              <>
-                                <Check className="h-3 w-3 mr-1 text-green-500" />
-                                Copied!
-                              </>
-                            ) : (
-                              <>
-                                <Copy className="h-3 w-3 mr-1" />
-                                Copy All
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                        <div className="space-y-1 max-h-40 overflow-y-auto">
-                          {callDataList.map((callData, index) => (
-                            <div key={index} className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono break-all">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="text-gray-800 dark:text-gray-200 flex-1 min-w-0">
-                                  {callData}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 flex-shrink-0"
-                                  onClick={() => copyToClipboard(callData, `callData-${index}`)}
-                                >
-                                  {copied[`callData-${index}`] ? (
-                                    <Check className="h-3 w-3 text-green-500" />
-                                  ) : (
-                                    <Copy className="h-3 w-3" />
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 dark:text-gray-400">
-                        {existingContractAddress && label ? 'Generating call data...' : 'Enter contract address and name to see call data'}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                 {/* Call data section */}
+                 {callDataList.length > 0 && (
+                   <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
+                     <button
+                       type="button"
+                       onClick={() => setIsCallDataOpen(!isCallDataOpen)}
+                       className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors mb-2"
+                     >
+                       {isCallDataOpen ? (
+                         <ChevronDownIcon className="w-4 h-4" />
+                       ) : (
+                         <ChevronRightIcon className="w-4 h-4" />
+                       )}
+                       <span className="text-sm font-medium">Call data</span>
+                       <span className="text-xs text-gray-500 dark:text-gray-400">
+                         ({callDataList.length} transaction{callDataList.length !== 1 ? 's' : ''})
+                       </span>
+                     </button>
+
+                     {isCallDataOpen && (
+                       <div className="text-sm text-gray-600 dark:text-gray-400">
+                         <div className="space-y-2">
+                           <div className="flex items-center justify-between mb-2">
+                             <p className="text-xs text-gray-500 dark:text-gray-400">
+                               {callDataList.length} transaction{callDataList.length !== 1 ? 's' : ''} will be executed:
+                             </p>
+                             <Button
+                               variant="outline"
+                               size="sm"
+                               className="h-6 px-2 text-xs"
+                               onClick={() => copyToClipboard(allCallData, 'allCallData')}
+                             >
+                               {copied['allCallData'] ? (
+                                 <>
+                                   <Check className="h-3 w-3 mr-1 text-green-500" />
+                                   Copied!
+                                 </>
+                               ) : (
+                                 <>
+                                   <Copy className="h-3 w-3 mr-1" />
+                                   Copy All
+                                 </>
+                               )}
+                             </Button>
+                           </div>
+                           <div className="space-y-1 max-h-40 overflow-y-auto">
+                             {callDataList.map((callData, index) => (
+                               <div key={index} className="bg-gray-100 dark:bg-gray-700 p-2 rounded text-xs font-mono break-all">
+                                 <div className="flex items-start justify-between gap-2">
+                                   <div className="text-gray-800 dark:text-gray-200 flex-1 min-w-0">
+                                     {callData}
+                                   </div>
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     className="h-6 w-6 p-0 flex-shrink-0"
+                                     onClick={() => copyToClipboard(callData, `callData-${index}`)}
+                                   >
+                                     {copied[`callData-${index}`] ? (
+                                       <Check className="h-3 w-3 text-green-500" />
+                                     ) : (
+                                       <Copy className="h-3 w-3" />
+                                     )}
+                                   </Button>
+                                 </div>
+                               </div>
+                             ))}
+                           </div>
+                         </div>
+                       </div>
+                     )}
+                   </div>
+                 )}
               </div>
             )}
           </div>
@@ -3205,6 +3265,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             setCallDataList([])
             setCopied({})
             setAllCallData('')
+            setIsCallDataOpen(false)
           }
         }}
         title={modalTitle}
