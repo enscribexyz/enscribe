@@ -2696,7 +2696,12 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                                      variant="ghost"
                                      size="sm"
                                      className="h-6 w-6 p-0 flex-shrink-0"
-                                     onClick={() => copyToClipboard(callData, `callData-${index}`)}
+                                     onClick={() => {
+                                       // Extract just the hex call data (after the colon and space)
+                                       const parts = callData.split(': ')
+                                       const hexData = parts.length > 1 ? parts[1] : callData
+                                       copyToClipboard(hexData, `callData-${index}`)
+                                     }}
                                    >
                                      {copied[`callData-${index}`] ? (
                                        <Check className="h-3 w-3 text-green-500" />
