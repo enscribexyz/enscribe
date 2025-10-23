@@ -15,7 +15,6 @@ import TabItem from '@theme/TabItem';
   <TabItem value="pnpm" label="pnpm" default>
     ```bash
     pnpm add @enscribe/enscribe viem
-    # or: npm i @enscribe/enscribe viem
     ```
   </TabItem>
   <TabItem value="npm" label="npm">
@@ -29,7 +28,7 @@ import TabItem from '@theme/TabItem';
 
 ## High-level API
 
-### `async nameContract(options: NameContractOptions): Promise<NameContractResult>`
+#### `async nameContract(options: NameContractOptions): Promise<NameContractResult>`
 
 Names a contract with ENS: creates a subname (if needed), sets **forward** (name → address) and, when authorized, **reverse** (address → name) records. On L2s, may also perform L2 forwards/reverses.
 
@@ -54,7 +53,7 @@ console.log(res.success, res.contractType, res.explorerUrl);
 console.log(res.transactions); // subname / forward / reverse / L2 steps
 ```
 
-#### `NameContractOptions`
+##### `NameContractOptions`
 - `name: string` — Fully normalized ENS name (e.g., `"vault.myapp.eth"`).
 - `contractAddress: string` — Checksummed target address.
 - `walletClient: WalletClient` — **viem** wallet client for the target chain.
@@ -64,7 +63,7 @@ console.log(res.transactions); // subname / forward / reverse / L2 steps
 - `opType?: string` — Optional operation label for telemetry.
 - `enableMetrics?: boolean` — Enable lightweight metrics (default `false`).
 
-#### `NameContractResult`
+##### `NameContractResult`
 - `success: boolean`
 - `name: string`
 - `contractAddress: string`
@@ -82,42 +81,42 @@ console.log(res.transactions); // subname / forward / reverse / L2 steps
 
 ## Utilities
 
-### `async isOwnable(address: string, walletClient: WalletClient): Promise<boolean>`
+#### `async isOwnable(address: string, walletClient: WalletClient): Promise<boolean>`
 Returns `true` if the contract exposes an Ownable-compatible `owner()` (useful to decide reverse eligibility).
 
-### `async isReverseClaimable(address: string, walletClient: WalletClient, ensRegistry: string): Promise<boolean>`
+#### `async isReverseClaimable(address: string, walletClient: WalletClient, ensRegistry: string): Promise<boolean>`
 Detects **ReverseClaimer** compatibility (self-claiming reverse).
 
-### `async isContractOwner(address: string, walletClient: WalletClient, ensRegistry: string): Promise<boolean>`
+#### `async isContractOwner(address: string, walletClient: WalletClient, ensRegistry: string): Promise<boolean>`
 Checks whether the caller controls the target (helpful before attempting reverse).
 
-### `parseNormalizedName(name: string): { label: string; parent: string }`
+#### `parseNormalizedName(name: string): { label: string; parent: string }`
 `"vault.myapp.eth"` → `{ label: "vault", parent: "myapp.eth" }`.
 
-### `isAddressValid(address: string): boolean`
+#### `isAddressValid(address: string): boolean`
 Lightweight checksum/address validation.
 
 ---
 
 ## Network helpers
 
-### `getContractAddresses(networkName: NetworkName): ENSContracts`
+#### `getContractAddresses(networkName: NetworkName): ENSContracts`
 Returns the ENS registry/resolver addresses used on that network.
 
-### `getNetworkNameFromChainId(chainId: number): NetworkName`
+#### `getNetworkNameFromChainId(chainId: number): NetworkName`
 Maps a `chainId` to the library’s `NetworkName`.
 
-### `validateContractAddresses(addresses: Record<string, string>): void`
+#### `validateContractAddresses(addresses: Record<string, string>): void`
 Throws if any address is malformed (useful for custom overrides).
 
-### `ENS_CONTRACTS`
+#### `ENS_CONTRACTS`
 Constant mapping of supported networks to ENS contract bundles.
 
 ---
 
 ## Types (summary)
 
-```ts
+```typescript
 type NetworkName =
   | "mainnet" | "sepolia"
   | "base" | "optimism" | "arbitrum" | "scroll" | "linea"
@@ -184,7 +183,7 @@ Creates (or ensures) a subname under a parent you control, and points it at a re
 - `didChange: boolean` — `true` if a write occurred.
 
 #### Example
-```ts
+```typescript
 import { createSubname } from "@enscribe/enscribe";
 
 const { txHash } = await createSubname({
@@ -213,7 +212,7 @@ Sets **forward resolution** for an ENS name: name → `contractAddress`.
 - `didChange: boolean`
 
 #### Example
-```ts
+```typescript
 import { setForwardResolution } from "@enscribe/enscribe";
 
 await setForwardResolution({
@@ -226,7 +225,7 @@ await setForwardResolution({
 
 ---
 
-### `async setReverseResolution(options: SetReverseResolutionOptions): Promise<OnchainStepResult>`
+#### `async setReverseResolution(options: SetReverseResolutionOptions): Promise<OnchainStepResult>`
 
 Sets **reverse resolution** for the **address**: address → `name`. The caller must be authorized (e.g., Ownable/ReverseClaimer).
 
@@ -241,7 +240,7 @@ Sets **reverse resolution** for the **address**: address → `name`. The caller 
 - `didChange: boolean`
 
 #### Example
-```ts
+```typescript
 import { setReverseResolution } from "@enscribe/enscribe";
 
 await setReverseResolution({
@@ -256,7 +255,7 @@ await setReverseResolution({
 
 ### Shared return type
 
-```ts
+```typescript
 interface OnchainStepResult {
   txHash?: string;   // present when a write was sent
   didChange: boolean; // true if a state change occurred
