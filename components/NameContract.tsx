@@ -246,6 +246,20 @@ export default function NameContract() {
     return await checkIfSafe(connector)
   }
 
+  // Validate ENS name format (for "Use Existing Name" flow)
+  const validateFullENSName = (name: string): string | null => {
+    if (!name.includes('.')) {
+      return 'Please enter a full ENS name (e.g., "myawesomeapp.mydomain.eth")'
+    }
+    
+    const parts = name.split('.')
+    if (parts.length < 2 || parts[parts.length - 1].trim() === '') {
+      return 'Invalid ENS name format'
+    }
+    
+    return null
+  }
+
   const fetchUserOwnedDomains = async () => {
     if (!walletAddress) {
       console.warn('Address or chain configuration is missing')
@@ -458,6 +472,16 @@ export default function NameContract() {
       'parentName:',
       parentName,
     )
+    
+    // In "use existing name" flow, validate that the name contains dots (full ENS name)
+    if (selectedAction === 'pick') {
+      const validationError = validateFullENSName(label)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+    }
+    
     if (selectedAction !== 'pick' && !parentName.trim()) {
       setError('Parent name cannot be empty')
       return
@@ -793,6 +817,15 @@ export default function NameContract() {
   const setPrimaryName = async () => {
     setError('')
     if (!walletClient || !walletAddress) return
+
+    // In "use existing name" flow, validate that the name contains dots (full ENS name)
+    if (selectedAction === 'pick') {
+      const validationError = validateFullENSName(label)
+      if (validationError) {
+        setError(validationError)
+        return
+      }
+    }
 
     // Force clear error for "Use Existing Name" flow
     if (selectedAction === 'pick') {
