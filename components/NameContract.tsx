@@ -2453,7 +2453,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     void checkENSReverseResolution()
                   }
                 }}
-                placeholder="myawesomeapp.mydomain.eth"
+                placeholder={selectedAction === 'subname' ? 'myawesomeapp' : 'myawesomeapp.mydomain.eth'}
                 className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600"
               />
               {selectedAction === 'subname' ? (
