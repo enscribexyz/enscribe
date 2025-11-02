@@ -235,6 +235,59 @@ export default function NameContract() {
     }
   }, [selectedL2ChainNames])
 
+  // Automatically select L2 chains when contract is detected to be Ownable on them
+  useEffect(() => {
+    // Only run this on L1 chains (mainnet or sepolia)
+    if (chain?.id !== CHAINS.MAINNET && chain?.id !== CHAINS.SEPOLIA) {
+      return
+    }
+
+    // Use functional update to access current state and avoid dependency on selectedL2ChainNames
+    setSelectedL2ChainNames((prev) => {
+      const chainsToAdd: string[] = []
+
+      // Check each L2 chain flag and add to selection if detected and not already selected
+      if (isOwnableOptimism === true && !prev.includes('Optimism')) {
+        chainsToAdd.push('Optimism')
+      }
+      if (isOwnableArbitrum === true && !prev.includes('Arbitrum')) {
+        chainsToAdd.push('Arbitrum')
+      }
+      if (isOwnableScroll === true && !prev.includes('Scroll')) {
+        chainsToAdd.push('Scroll')
+      }
+      if (isOwnableBase === true && !prev.includes('Base')) {
+        chainsToAdd.push('Base')
+      }
+      if (isOwnableLinea === true && !prev.includes('Linea')) {
+        chainsToAdd.push('Linea')
+      }
+
+      // Only update if there are chains to add
+      if (chainsToAdd.length > 0) {
+        // Automatically expand Advanced Options when chains are auto-selected
+        setIsAdvancedOpen(true)
+        return [...prev, ...chainsToAdd]
+      }
+
+      return prev
+    })
+  }, [isOwnableOptimism, isOwnableArbitrum, isOwnableScroll, isOwnableBase, isOwnableLinea, chain?.id])
+
+  // Clear L2 chains and collapse Advanced Options when contract address is removed
+  useEffect(() => {
+    // Check if address is empty
+    const isAddressEmpty =
+      !existingContractAddress || existingContractAddress.trim() === ''
+
+    if (isAddressEmpty) {
+      // Clear selected L2 chains
+      setSelectedL2ChainNames([])
+      // Collapse Advanced Options
+      setIsAdvancedOpen(false)
+    }
+  }, [existingContractAddress])
+
   useEffect(() => {
     const initFromQuery = async () => {
       if (
