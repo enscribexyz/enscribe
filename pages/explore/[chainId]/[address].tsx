@@ -70,19 +70,13 @@ export default function ExploreAddressPage() {
       ].includes(chainId)
     ) {
       // For L2s, use reverse registrar nameForAddr.
-      // For Base/Linea only, if empty, fall back to resolver flow; for others, never fallback.
-      const isBaseOrLinea =
-        chainId === CHAINS.BASE ||
-        chainId === CHAINS.BASE_SEPOLIA ||
-        chainId === CHAINS.LINEA ||
-        chainId === CHAINS.LINEA_SEPOLIA
 
       try {
         console.log(
           `[address] Looking up ENS name via reverse registrar nameForAddr for ${addr} on chain ${chainId}`,
         )
 
-        if (!config?.REVERSE_REGISTRAR) {
+        if (!config?.L2_REVERSE_REGISTRAR) {
           console.error(
             `[address] Missing reverse registrar for chain ${chainId}`,
           )
@@ -102,7 +96,7 @@ export default function ExploreAddressPage() {
         ]
 
         const rr = new ethers.Contract(
-          config.REVERSE_REGISTRAR,
+          config.L2_REVERSE_REGISTRAR,
           nameForAddrABI,
           provider,
         )
@@ -111,100 +105,6 @@ export default function ExploreAddressPage() {
         if (name && name.length > 0) return name
       } catch (err) {
         console.error('[address] nameForAddr failed:', err)
-        if (!isBaseOrLinea) return ''
-      }
-
-      if (!isBaseOrLinea) return ''
-
-      // Base/Linea fallback to resolver path
-      try {
-        console.log(
-          `[address] Falling back to resolver for ${addr} on chain ${chainId}`,
-        )
-
-        // Check if contract addresses are configured
-        if (!config?.REVERSE_REGISTRAR || !config?.PUBLIC_RESOLVER) {
-          console.error(
-            `[address] Missing contract addresses for chain ${chainId}`,
-          )
-          return ''
-        }
-
-        // Get reversed node with error handling
-        let reversedNode
-        try {
-          const reverseRegistrarContract = new ethers.Contract(
-            config.REVERSE_REGISTRAR,
-            reverseRegistrarABI,
-            provider,
-          )
-          reversedNode = await reverseRegistrarContract.node(addr)
-          console.log(`[address] Reversed node for ${addr}: ${reversedNode}`)
-        } catch (nodeError) {
-          console.error('[address] Error getting reversed node:', nodeError)
-          return ''
-        }
-
-        // If we don't have a valid reversed node, return empty
-        if (!reversedNode) {
-          console.log('[address] No reversed node found, returning empty name')
-          return ''
-        }
-
-        const ensRegistryContract = new ethers.Contract(
-          config?.ENS_REGISTRY!,
-          ensRegistryABI,
-          provider,
-        )
-
-        let publicResolverAddress = config?.PUBLIC_RESOLVER!
-        try {
-          publicResolverAddress =
-            (await ensRegistryContract.resolver(reversedNode)) ||
-            config?.PUBLIC_RESOLVER!
-        } catch (err) {
-          console.log('err ' + err)
-          setError('Failed to get public resolver')
-        }
-
-        // Get name from resolver with error handling
-        try {
-          const resolverContract = new ethers.Contract(
-            publicResolverAddress,
-            publicResolverABI,
-            provider,
-          )
-
-          try {
-            const name = (await resolverContract.name(reversedNode)) || ''
-            console.log(`[address] ENS name for ${addr}: ${name}`)
-            return name
-          } catch (nameError: any) {
-            // Check for specific BAD_DATA error or empty result
-            if (
-              nameError.code === 'BAD_DATA' ||
-              nameError.message?.includes('could not decode result data')
-            ) {
-              console.log(
-                `[address] Resolver doesn't have a valid name record for ${addr}, this is normal for some addresses`,
-              )
-              return ''
-            }
-            throw nameError
-          }
-        } catch (resolverError: any) {
-          console.error(
-            '[address] Error calling resolver contract:',
-            resolverError,
-          )
-          return ''
-        }
-      } catch (error) {
-        console.error(
-          '[address] Error in Base/Linea fallback reverse lookup:',
-          error,
-        )
-        return ''
       }
     }
 
