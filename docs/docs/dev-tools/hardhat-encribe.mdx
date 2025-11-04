@@ -1,0 +1,162 @@
+---
+sidebar_position: 1
+---
+
+# Hardhat Enscribe Plugin
+
+`hardhat-enscribe` is a Hardhat v3 plugin that assigns ENS names to contracts, handling the full flow for you: 
+
+- subname creation 
+- forward resolution and 
+- reverse resolution
+
+It auto-detects common patterns like Ownable and ReverseClaimer, waits for confirmations and plugs neatly into a viem-powered stack.
+
+It can be installed using the following command:
+
+```
+pnpm install @enscribe/hardhat-enscribe  
+```
+
+Let’s create new Hardhat project to deploy a contract –
+
+```
+mkdir hardhat-example
+cd hardhat-example
+pnpm dlx hardhat --init
+```
+
+This will generate a skeletal Hardhat project with a sample contract with the following project structure –
+
+```
+hardhat.config.ts
+contracts
+├── Counter.sol
+└── Counter.t.sol
+test
+└── Counter.ts
+ignition
+└── modules
+    └── Counter.ts
+scripts
+└── send-op-tx.ts
+```
+
+We can build our project with the following command –
+
+```
+npx hardhat build
+```
+
+Let’s now deploy our contract on Sepolia. For this, we’ll need to add configuration to interact with Sepolia. First, let’s export some env variables for the RPC url and the private key of the account that we want to use to deploy the contract –
+
+```
+$ export SEPOLIA_RPC_URL=<sepolia rpc url>
+$ export SEPOLIA_PRIVATE_KEY=<your sepolia account private key>
+$ npx hardhat keystore set SEPOLIA_RPC_URL
+$ npx hardhat keystore set SEPOLIA_PRIVATE_KEY
+```
+
+Now open the hardhat.config.ts file and add configuration for sepolia –
+
+```
+const config: HardhatUserConfig = {
+  …
+  networks: {
+    sepolia: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("SEPOLIA_RPC_URL"),
+      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+    },
+  },
+}
+```
+
+Our sample contract Counter.sol can now be deployed on sepolia with –
+
+```
+npx hardhat ignition --network localhost deploy ignition/modules/Counter.ts
+```
+
+Once deployed, we are now ready to name our deployed contract. We need to add the hardhat-enscribe plugin to the list of plugins first. Open the hardhat.config.ts file and add the plugin –
+
+```
+import hardhatEnscribePlugin from "@enscribe/hardhat-enscribe";
+…
+const config: HardhatUserConfig = {
+  plugins: [hardhatToolboxViemPlugin, hardhatEnscribePlugin],
+  …
+}
+```
+
+Then, invoke the plugin by passing the name and contract address in the command–
+
+```
+pnpm hardhat enscribe name mycontract.app.eth --contract 0x1234...abcd
+```
+
+This is what you’ll see in the output –
+
+```
+normalized name is mycontract.app.eth
+
+Naming completed successfully!
+Contract Type: ReverseClaimer
+Transactions: {
+  subname: '0xb5a4131bb0bf3c2708a8181349998f57c76226559042cf68423aeefc74e8cd55',
+  forwardResolution: '0xa6aa6ac9a0857aaeaff1ef3d69b2962ab01650230bc5c9d8d3108dcfb63cebfa',
+  reverseResolution: '0xb1f260a587f793251804b6f809b4d1546d81dd98c1605c5eb7d812d1afc190b9'
+}
+```
+
+## Naming your contract from a Hardhat deployment script
+
+You aren’t limited to setting a name for a contract from the CLI though. Scripting is a very powerful feature of Hardhat that allows you to do more than just contract development. You can call APIs, interact with contracts and even interact with the blockchain. You can now name your contract from a script too and we shall now see how you can do that.
+First, connect to the network and deploy the CounterModule –
+
+```
+import hre from "hardhat";
+import CounterModule from "../ignition/modules/Counter.js";
+
+
+const connection = await hre.network.connect();
+const { counter } = await connection.ignition.deploy(CounterModule);
+```
+
+Next, get the walletClient –
+
+```
+ const [walletClient] = await connection.viem.getWalletClients();
+ console.log(`Using account: ${walletClient.account?.address}`);
+```
+
+
+```
+ const ensName = `wpsqhsld.abhi.eth`;
+ const normalizedName = normalize(ensName);
+
+```
+
+We are now ready to set the name by using the enscribe library –
+
+```
+import { nameContract } from "@enscribe/enscribe";
+…
+
+try {
+   const result = await nameContract({
+     name: normalizedName,
+     contractAddress: counter.address,
+     walletClient: walletClient,
+     chainName: networkName,
+     opType: "ignition-deploy-and-name",
+     enableMetrics: true,
+   });
+  …
+} catch (error) {
+  …
+}
+```
+
+That’s it! Your contract can be deployed and named with a Hardhat script easily. You can see the full example here: https://github.com/enscribexyz/hardhat-enscribe/blob/main/demo/scripts/deploy-counter-and-name.ts

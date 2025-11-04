@@ -426,11 +426,11 @@ export default function ExploreAddressPage() {
           // If it's a contract, check if it's a proxy
           if (isContractAddress) {
             try {
-              console.log('fetching contract deployer details ...')
               const creatorAddress = await fetchContractCreator(
                 targetAddress,
                 Number(chainId),
               )
+              console.log(`fetching contract deployer details: "${creatorAddress}"`)
               setContractDeployerAddress(creatorAddress)
 
               if (creatorAddress !== null) {
@@ -518,7 +518,7 @@ export default function ExploreAddressPage() {
       {isValidAddress && isValidChain && (
         <ENSDetails
           address={resolvedAddress || (address as string)}
-          contractDeployerAddress={contractDeployerAddress!}
+          contractDeployerAddress={contractDeployerAddress}
           contractDeployerName={contractDeployerPrimaryName}
           chainId={typeof chainId === 'string' ? parseInt(chainId) : undefined}
           isContract={isContract}

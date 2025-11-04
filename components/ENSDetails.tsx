@@ -42,7 +42,7 @@ import { useToast } from '@/hooks/use-toast'
 
 interface ENSDetailsProps {
   address: string
-  contractDeployerAddress: string
+  contractDeployerAddress: string | null
   contractDeployerName: string | null
   chainId?: number
   isContract: boolean
@@ -1080,7 +1080,7 @@ export default function ENSDetails({
               </Button>
             </div>
 
-            {isContract && (
+            {isContract && contractDeployerAddress && (
               <div>
                 <div className="flex items-center mt-2">
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -1192,8 +1192,8 @@ export default function ENSDetails({
                       </div>
                       <ENSDetails
                         address={proxyInfo.implementationAddress}
-                        contractDeployerAddress={''}
-                        contractDeployerName={''}
+                        contractDeployerAddress={null}
+                        contractDeployerName={null}
                         chainId={effectiveChainId}
                         isContract={true}
                         isNestedView={true}
