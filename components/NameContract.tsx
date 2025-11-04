@@ -230,20 +230,48 @@ export default function NameContract() {
     if (allSelected && dropdownValue !== '') {
       setDropdownValue('')
     }
-    if (selectedL2ChainNames.length === 0 && skipL1Naming) {
+    if (selectedL2ChainNames.length === 0) {
       setSkipL1Naming(false)
+      // Collapse Advanced Options when all L2 chains are cleared
+      setIsAdvancedOpen(false)
     }
   }, [selectedL2ChainNames])
 
   // Automatically select L2 chains when contract is detected to be Ownable on them
+  // Also clear L2 chains when contract is not deployed on any L2
   useEffect(() => {
     // Only run this on L1 chains (mainnet or sepolia)
     if (chain?.id !== CHAINS.MAINNET && chain?.id !== CHAINS.SEPOLIA) {
       return
     }
 
+    // Don't run if address is empty
+    if (!existingContractAddress || existingContractAddress.trim() === '') {
+      return
+    }
+
+    // Check if all L2 checks have completed (all flags are not null)
+    const allL2ChecksComplete = 
+      isOwnableOptimism !== null && 
+      isOwnableArbitrum !== null && 
+      isOwnableScroll !== null && 
+      isOwnableBase !== null && 
+      isOwnableLinea !== null
+
     // Use functional update to access current state and avoid dependency on selectedL2ChainNames
     setSelectedL2ChainNames((prev) => {
+      // If all checks are complete and none are true, clear all selected L2 chains
+      if (allL2ChecksComplete && 
+          !isOwnableOptimism && 
+          !isOwnableArbitrum && 
+          !isOwnableScroll && 
+          !isOwnableBase && 
+          !isOwnableLinea) {
+        // Collapse Advanced Options when all L2 chains are cleared
+        setIsAdvancedOpen(false)
+        return []
+      }
+
       const chainsToAdd: string[] = []
 
       // Check each L2 chain flag and add to selection if detected and not already selected
@@ -272,7 +300,7 @@ export default function NameContract() {
 
       return prev
     })
-  }, [isOwnableOptimism, isOwnableArbitrum, isOwnableScroll, isOwnableBase, isOwnableLinea, chain?.id])
+  }, [isOwnableOptimism, isOwnableArbitrum, isOwnableScroll, isOwnableBase, isOwnableLinea, chain?.id, existingContractAddress])
 
   // Clear L2 chains and collapse Advanced Options when contract address is removed
   useEffect(() => {
@@ -2284,7 +2312,31 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
         )}
 
         {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
-        {!isAddressEmpty && !isAddressInvalid && isContractExists === false && (!isOwnableOptimism && !isOwnableArbitrum && !isOwnableScroll && !isOwnableBase && !isOwnableLinea) && (
+        {/* Only show error after L2 checks are complete (not null) when on L1 chains */}
+        {!isAddressEmpty && 
+         !isAddressInvalid && 
+         isContractExists === false && 
+         (() => {
+           // If not on L1, show error immediately (no L2 checks needed)
+           const isOnL1 = chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA
+           if (!isOnL1) return true
+           
+           // If on L1, wait for all L2 checks to complete
+           const allL2ChecksComplete = 
+             isOwnableOptimism !== null && 
+             isOwnableArbitrum !== null && 
+             isOwnableScroll !== null && 
+             isOwnableBase !== null && 
+             isOwnableLinea !== null
+           
+           // Only show error if all L2 checks are complete AND contract not found on any L2
+           return allL2ChecksComplete && 
+                  !isOwnableOptimism && 
+                  !isOwnableArbitrum && 
+                  !isOwnableScroll && 
+                  !isOwnableBase && 
+                  !isOwnableLinea
+         })() && (
           <p className="text-red-600 dark:text-red-300">
             {chain?.name}: Contract doesn't exist
           </p>
