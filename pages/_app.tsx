@@ -23,6 +23,7 @@ import { TransactionProvider } from 'ethereum-identity-kit'
 import { ThemeProvider } from '@/hooks/useTheme'
 import { ThemeAwareRainbowKit } from '@/components/ThemeAwareRainbowKit'
 import { SafeAutoConnect } from '@/components/SafeAutoConnect'
+import { WalletReconnect } from '@/components/WalletReconnect'
 import '@rainbow-me/rainbowkit/styles.css'
 import '@/styles/globals.css'
 
@@ -68,7 +69,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
     ;(async () => {
       const rainbowkit = await import('@rainbow-me/rainbowkit')
       const { safe } = await import('@wagmi/connectors')
-      const { createConfig, http } = await import('wagmi')
+      const { createConfig, http, createStorage } = await import('wagmi')
 
       // Create Safe connector
       const safeConnector = safe({
@@ -97,6 +98,9 @@ export default function MyApp({ Component, pageProps }: AppProps) {
           {} as Record<number, ReturnType<typeof http>>,
         ),
         ssr: false,
+        storage: createStorage({
+          storage: window.localStorage,
+        }),
       })
 
       if (isMounted) {
@@ -126,6 +130,7 @@ export default function MyApp({ Component, pageProps }: AppProps) {
         >
           <ThemeAwareRainbowKit>
             <SafeAutoConnect />
+            <WalletReconnect />
             <TransactionProvider>
               <Component {...pageProps} />
             </TransactionProvider>
