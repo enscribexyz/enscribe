@@ -430,13 +430,33 @@ export default function ENSDetails({
       const nameParts = primaryENS.split('.')
       if (nameParts.length < 2) return
 
-      // For other networks or 2LD names, query the 2LD
-      const tld = nameParts[nameParts.length - 1]
-      const sld = nameParts[nameParts.length - 2]
-      const domainToQuery = `${sld}.${tld}`
-      console.log(
-        `[ENSDetails] Fetching expiry date for 2LD: ${domainToQuery}`,
-      )
+      // Check if we're on Linea or its testnet
+      const isLinea = effectiveChainId
+        ? [
+            CHAINS.LINEA,
+            CHAINS.LINEA_SEPOLIA,
+          ].includes(effectiveChainId)
+        : false
+
+      let domainToQuery
+
+      if (isLinea && nameParts.length >= 3) {
+        const tld = nameParts[nameParts.length - 1]
+        const sld = nameParts[nameParts.length - 2]
+        const thirdLevel = nameParts[nameParts.length - 3]
+        domainToQuery = `${thirdLevel}.${sld}.${tld}`
+        console.log(
+          `[ENSDetails] Fetching expiry date for 3LD: ${domainToQuery}`,
+        )
+      } else {
+        // For other networks or 2LD names, query the 2LD
+        const tld = nameParts[nameParts.length - 1]
+        const sld = nameParts[nameParts.length - 2]
+        domainToQuery = `${sld}.${tld}`
+        console.log(
+          `[ENSDetails] Fetching expiry date for 2LD: ${domainToQuery}`,
+        )
+      }
 
       // Query the subgraph for the domain with its registration data
       const domainResponse = await fetch(config.SUBGRAPH_API, {
@@ -733,6 +753,10 @@ export default function ENSDetails({
         CHAINS.LINEA_SEPOLIA,
       ].includes((effectiveChainId ?? -1) as CHAINS)
     ) {
+      // For L2s, use ReverseRegistrar.nameForAddr(address).
+      // For Base/Linea only, if empty, fall back to resolver flow.
+      const isLinea = effectiveChainId === CHAINS.LINEA || effectiveChainId === CHAINS.LINEA_SEPOLIA
+
       try {
         console.log(
           `[ENSDetails] Looking up ENS name via nameForAddr for ${addr} on chain ${effectiveChainId}`,
@@ -767,6 +791,99 @@ export default function ENSDetails({
         if (name && name.length > 0) return name
       } catch (err) {
         console.error('[ENSDetails] nameForAddr failed:', err)
+      }
+
+      if (!isLinea) return ''
+
+      try {
+        console.log(
+          `[ENSDetails] Falling back to resolver for ${addr} on chain ${effectiveChainId}`,
+        )
+
+        // Check if contract addresses are configured
+        if (!config?.REVERSE_REGISTRAR || !config?.PUBLIC_RESOLVER) {
+          console.error(
+            `[ENSDetails] Missing contract addresses for chain ${effectiveChainId}`,
+          )
+          return ''
+        }
+
+        // Get reversed node with error handling
+        let reversedNode
+        try {
+          const reverseRegistrarContract = new ethers.Contract(
+            config.REVERSE_REGISTRAR,
+            reverseRegistrarABI,
+            provider,
+          )
+          reversedNode = await reverseRegistrarContract.node(addr)
+          console.log(`[ENSDetails] Reversed node for ${addr}: ${reversedNode}`)
+        } catch (nodeError) {
+          console.error('[ENSDetails] Error getting reversed node:', nodeError)
+          return ''
+        }
+
+        // If we don't have a valid reversed node, return empty
+        if (!reversedNode) {
+          console.log(
+            '[ENSDetails] No reversed node found, returning empty name',
+          )
+          return ''
+        }
+
+        const ensRegistryContract = new ethers.Contract(
+          config?.ENS_REGISTRY!,
+          ensRegistryABI,
+          provider,
+        )
+
+        let publicResolverAddress = config?.PUBLIC_RESOLVER!
+        try {
+          publicResolverAddress =
+            (await ensRegistryContract.resolver(reversedNode)) ||
+            config?.PUBLIC_RESOLVER!
+        } catch (err) {
+          console.log('err ' + err)
+          setError('Failed to get public resolver')
+        }
+
+        // Get name from resolver with error handling
+        try {
+          const resolverContract = new ethers.Contract(
+            publicResolverAddress,
+            publicResolverABI,
+            provider,
+          )
+
+          try {
+            const name = (await resolverContract.name(reversedNode)) || ''
+            console.log(`[ENSDetails] ENS name for ${addr}: ${name}`)
+            return name
+          } catch (nameError: any) {
+            if (
+              nameError.code === 'BAD_DATA' ||
+              nameError.message?.includes('could not decode result data')
+            ) {
+              console.log(
+                `[ENSDetails] Resolver doesn't have a valid name record for ${addr}, this is normal for some addresses`,
+              )
+              return ''
+            }
+            throw nameError
+          }
+        } catch (resolverError: any) {
+          console.error(
+            '[ENSDetails] Error calling resolver contract:',
+            resolverError,
+          )
+          return ''
+        }
+      } catch (error) {
+        console.error(
+          '[ENSDetails] Error in Linea fallback reverse lookup:',
+          error,
+        )
+        return ''
       }
     }
 
@@ -912,7 +1029,23 @@ export default function ENSDetails({
                       const tld = nameParts[nameParts.length - 1]
                       const sld = nameParts[nameParts.length - 2]
 
-                      const domainToShow = `${sld}.${tld}`
+                      const isLinea = effectiveChainId
+                        ? [
+                            CHAINS.LINEA,
+                            CHAINS.LINEA_SEPOLIA,
+                          ].includes(effectiveChainId)
+                        : false
+
+                      let domainToShow
+                      if (isLinea && nameParts.length >= 3) {
+                        const tld3 = nameParts[nameParts.length - 1]
+                        const sld3 = nameParts[nameParts.length - 2]
+                        const thirdLevel = nameParts[nameParts.length - 3]
+                        domainToShow = `${thirdLevel}.${sld3}.${tld3}`
+                      } else {
+                        domainToShow = `${sld}.${tld}`
+                      }
+
                       const now = new Date()
                       const expiryDate = new Date(primaryNameExpiryDate * 1000)
                       const threeMonthsFromNow = new Date()
