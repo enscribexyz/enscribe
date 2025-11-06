@@ -418,7 +418,7 @@ export default function SetNameStepsModal({
               )}
 
               {/* Goto Safe Wallet button */}
-              {chain?.id && (
+              {chain?.id && walletAddress && (
                 <div className="text-center mt-6">
                   <Button
                     asChild
