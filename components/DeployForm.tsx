@@ -999,7 +999,7 @@ export default function DeployForm() {
               //     value: txCost
               // })
               if (safeCheck) {
-                const txPromise = writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeploy',
@@ -1013,7 +1013,7 @@ export default function DeployForm() {
                   account: walletAddress,
                 })
                 const txn = 'safe wallet' as `0x${string}`
-                await logMetric(
+                try {await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1024,8 +1024,10 @@ export default function DeployForm() {
                   txn,
                   'Ownable',
                   opType,
-                )
-                await txPromise // Wait for Safe to queue the transaction
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1051,7 +1053,7 @@ export default function DeployForm() {
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
-                  await logMetric(
+                  try { await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1062,7 +1064,10 @@ export default function DeployForm() {
                     txn,
                     'Ownable',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                 }
                 return txn
               }
@@ -1084,7 +1089,7 @@ export default function DeployForm() {
               title: 'Give operator access',
               action: async () => {
                 if (safeCheck) {
-                  const txPromise = writeContract(walletClient, {
+                  await writeContract(walletClient, {
                     address: config?.ENS_REGISTRY as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setApprovalForAll',
@@ -1092,7 +1097,7 @@ export default function DeployForm() {
                     account: walletAddress,
                   })
                   const txn = 'safe wallet'
-                  await logMetric(
+                  try {await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1103,8 +1108,10 @@ export default function DeployForm() {
                     txn,
                     'Ownable',
                     opType,
-                  )
-                  await txPromise // Wait for Safe to queue the transaction
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                   return txn
                 } else {
                   const txn = await writeContract(walletClient, {
@@ -1120,7 +1127,7 @@ export default function DeployForm() {
                       hash: txn,
                     },
                   )
-                  await logMetric(
+                  try {await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1131,7 +1138,10 @@ export default function DeployForm() {
                     txReceipt.transactionHash,
                     'Ownable',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                   return txn
                 }
             },
@@ -1142,7 +1152,7 @@ export default function DeployForm() {
             title: 'Deploy and Set primary Name',
             action: async () => {
               if (safeCheck) {
-                const txPromise = writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeploy',
@@ -1156,7 +1166,7 @@ export default function DeployForm() {
                   account: walletAddress,
                 })
                 const txn = 'safe wallet' as `0x${string}`
-                await logMetric(
+                try {await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1167,8 +1177,10 @@ export default function DeployForm() {
                   txn,
                   'Ownable',
                   opType,
-                )
-                await txPromise // Wait for Safe to queue the transaction
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1193,7 +1205,7 @@ export default function DeployForm() {
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
-                  await logMetric(
+                  try {await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1204,7 +1216,10 @@ export default function DeployForm() {
                     txReceipt.transactionHash,
                     'Ownable',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                 }
                 return txn
               }
@@ -1235,7 +1250,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    const txPromise = writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config?.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setApprovalForAll',
@@ -1243,7 +1258,7 @@ export default function DeployForm() {
                       account: walletAddress,
                     })
                     const txn = 'safe wallet' as `0x${string}`
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1254,8 +1269,10 @@ export default function DeployForm() {
                       txn,
                       'Ownable',
                       opType,
-                    )
-                    await txPromise // Wait for Safe to queue the transaction
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1271,7 +1288,7 @@ export default function DeployForm() {
                         hash: txn,
                       },
                     )
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1282,7 +1299,10 @@ export default function DeployForm() {
                       txReceipt.transactionHash,
                       'Ownable',
                       opType,
-                    )
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   }
                 },
@@ -1304,7 +1324,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    const txPromise = writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config?.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setApprovalForAll',
@@ -1312,7 +1332,7 @@ export default function DeployForm() {
                       account: walletAddress,
                     })
                     const txn = 'safe wallet' as `0x${string}`
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1323,8 +1343,10 @@ export default function DeployForm() {
                       txn,
                       'Ownable',
                       opType,
-                    )
-                    await txPromise // Wait for Safe to queue the transaction
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1340,7 +1362,7 @@ export default function DeployForm() {
                         hash: txn,
                       },
                     )
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1351,7 +1373,10 @@ export default function DeployForm() {
                       txReceipt.transactionHash,
                       'Ownable',
                       opType,
-                    )
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   }
                 },
@@ -1363,7 +1388,7 @@ export default function DeployForm() {
             title: 'Deploy and Set primary Name',
             action: async () => {
               if (safeCheck) {
-                const txPromise = writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeploy',
@@ -1377,7 +1402,7 @@ export default function DeployForm() {
                   account: walletAddress,
                 })
                 const txn = 'safe wallet' as `0x${string}`
-                await logMetric(
+                try {await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1388,8 +1413,10 @@ export default function DeployForm() {
                   txn,
                   'Ownable',
                   opType,
-                )
-                await txPromise // Wait for Safe to queue the transaction
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1414,7 +1441,7 @@ export default function DeployForm() {
                 const deployedContractAddress =
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
-                  await logMetric(
+                  try {await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1425,7 +1452,10 @@ export default function DeployForm() {
                     txReceipt.transactionHash,
                     'Ownable',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                 }
                 return txn
               }
@@ -1466,7 +1496,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    const txPromise = writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config?.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setApprovalForAll',
@@ -1474,7 +1504,7 @@ export default function DeployForm() {
                       account: walletAddress,
                     })
                     const txn = 'safe wallet' as `0x${string}`
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1485,8 +1515,10 @@ export default function DeployForm() {
                       txn,
                       'ReverseSetter',
                       opType,
-                    )
-                    await txPromise // Wait for Safe to queue the transaction
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1502,7 +1534,7 @@ export default function DeployForm() {
                         hash: txn,
                       },
                     )
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1513,7 +1545,10 @@ export default function DeployForm() {
                       txReceipt.transactionHash,
                       'ReverseSetter',
                       opType,
-                    )
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   }
                 },
@@ -1534,7 +1569,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    const txPromise = writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config?.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setApprovalForAll',
@@ -1542,7 +1577,7 @@ export default function DeployForm() {
                       account: walletAddress,
                     })
                     const txn = 'safe wallet' as `0x${string}`
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1553,8 +1588,10 @@ export default function DeployForm() {
                       txn,
                       'ReverseSetter',
                       opType,
-                    )
-                    await txPromise // Wait for Safe to queue the transaction
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1571,7 +1608,7 @@ export default function DeployForm() {
                         hash: txn,
                       },
                     )
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1582,7 +1619,10 @@ export default function DeployForm() {
                       txReceipt.transactionHash,
                       'ReverseSetter',
                       opType,
-                    )
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   }
                 },
@@ -1595,7 +1635,7 @@ export default function DeployForm() {
             title: 'Set name & Deploy contract',
             action: async () => {
               if (safeCheck) {
-                const txPromise = writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeployReverseSetter',
@@ -1609,7 +1649,7 @@ export default function DeployForm() {
                   account: walletAddress,
                 })
                 const txn = 'safe wallet'
-                await logMetric(
+                try {await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1620,8 +1660,10 @@ export default function DeployForm() {
                   txn,
                   'ReverseSetter',
                   opType,
-                )
-                await txPromise // Wait for Safe to queue the transaction
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1649,7 +1691,7 @@ export default function DeployForm() {
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
                   setDeployedAddress(deployedContractAddress)
-                  await logMetric(
+                  try {await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1660,7 +1702,10 @@ export default function DeployForm() {
                     txReceipt.transactionHash,
                     'ReverseSetter',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                 }
                 return txn
               }
@@ -1691,7 +1736,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    const txPromise = writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config?.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setApprovalForAll',
@@ -1699,7 +1744,7 @@ export default function DeployForm() {
                       account: walletAddress,
                     })
                     const txn = 'safe wallet' as `0x${string}`
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1710,8 +1755,10 @@ export default function DeployForm() {
                       txn,
                       'ReverseClaimer',
                       opType,
-                    )
-                    await txPromise // Wait for Safe to queue the transaction
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1727,7 +1774,7 @@ export default function DeployForm() {
                         hash: txn,
                       },
                     )
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1738,7 +1785,10 @@ export default function DeployForm() {
                       txReceipt.transactionHash,
                       'ReverseClaimer',
                       opType,
-                    )
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   }
                 },
@@ -1759,7 +1809,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    const txPromise = writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config?.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setApprovalForAll',
@@ -1767,7 +1817,7 @@ export default function DeployForm() {
                       account: walletAddress,
                     })
                     const txn = 'safe wallet' as `0x${string}`
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1778,8 +1828,10 @@ export default function DeployForm() {
                       txn,
                       'ReverseClaimer',
                       opType,
-                    )
-                    await txPromise // Wait for Safe to queue the transaction
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1796,7 +1848,7 @@ export default function DeployForm() {
                       },
                     )
 
-                    await logMetric(
+                    try {await logMetric(
                       corelationId,
                       Date.now(),
                       chainId,
@@ -1807,7 +1859,10 @@ export default function DeployForm() {
                       txReceipt.transactionHash,
                       'ReverseClaimer',
                       opType,
-                    )
+                    )} catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
                     return txn
                   }
                 },
@@ -1820,7 +1875,7 @@ export default function DeployForm() {
             title: 'Set name & Deploy contract',
             action: async () => {
               if (safeCheck) {
-                const txPromise = writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeployReverseClaimer',
@@ -1834,7 +1889,7 @@ export default function DeployForm() {
                   account: walletAddress,
                 })
                 const txn = 'safe wallet' as `0x${string}`
-                await logMetric(
+                try {await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1845,8 +1900,10 @@ export default function DeployForm() {
                   txn,
                   'ReverseClaimer',
                   opType,
-                )
-                await txPromise // Wait for Safe to queue the transaction
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1874,7 +1931,7 @@ export default function DeployForm() {
                   await getDeployedAddress(txReceipt)
                 if (deployedContractAddress) {
                   setDeployedAddress(deployedContractAddress)
-                  await logMetric(
+                  try {await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1885,7 +1942,10 @@ export default function DeployForm() {
                     txReceipt.transactionHash,
                     'ReverseClaimer',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                 }
                 return txn
               }
