@@ -144,6 +144,8 @@ export default function NameContract() {
     CHAINS.ARBITRUM_SEPOLIA,
     CHAINS.SCROLL,
     CHAINS.SCROLL_SEPOLIA,
+    CHAINS.LINEA,
+    CHAINS.LINEA_SEPOLIA,
     CHAINS.BASE,
     CHAINS.BASE_SEPOLIA,
   ].includes((chain?.id as number) || -1)
@@ -161,11 +163,15 @@ export default function NameContract() {
               ? 'Scroll'
               : chain?.id === CHAINS.SCROLL_SEPOLIA
                 ? 'Scroll Sepolia'
-                  : chain?.id === CHAINS.BASE
-                    ? 'Base'
-                    : chain?.id === CHAINS.BASE_SEPOLIA
-                      ? 'Base Sepolia'
-                      : ''
+                : chain?.id === CHAINS.LINEA
+                  ? 'Linea'
+                  : chain?.id === CHAINS.LINEA_SEPOLIA
+                    ? 'Linea Sepolia'
+                    : chain?.id === CHAINS.BASE
+                      ? 'Base'
+                      : chain?.id === CHAINS.BASE_SEPOLIA
+                        ? 'Base Sepolia'
+                        : ''
 
   const getParentNode = (name: string) => {
     try {
@@ -1207,7 +1213,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
 
     if (isUnsupportedL2Chain) {
       setError(
-        `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
+        `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.LINEA || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
       )
       return
     }
@@ -2181,7 +2187,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
         <p className="text-red-500">
           {!isConnected
             ? 'Please connect your wallet.'
-            : `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chain option.`}
+            : `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.LINEA || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chain option.`}
         </p>
       )}
 
