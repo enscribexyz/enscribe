@@ -1462,7 +1462,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 let txn
 
                 if (isSafeWallet) {
-                  const txPromise = writeContract(walletClient, {
+                  writeContract(walletClient, {
                     address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                     abi: contractABI,
                     functionName: 'setName',
@@ -1476,7 +1476,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     account: walletAddress,
                   })
                   txn = 'safe wallet'
-                  await txPromise // Wait for Safe to queue the transaction
                 } else {
                   txn = await writeContract(walletClient, {
                     address: config.ENSCRIBE_CONTRACT as `0x${string}`,
@@ -1521,7 +1520,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 let txn
 
                 if (isSafeWallet) {
-                  const txPromise = writeContract(walletClient, {
+                  writeContract(walletClient, {
                     address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setSubnodeRecord',
@@ -1535,7 +1534,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     account: walletAddress,
                   })
                   txn = 'safe wallet'
-                  await txPromise // Wait for Safe to queue the transaction
                 } else {
                   txn = await writeContract(walletClient, {
                     address: config.ENSCRIBE_CONTRACT as `0x${string}`,
@@ -1582,7 +1580,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   let txn
 
                   if (isSafeWallet) {
-                    const txPromise = writeContract(walletClient, {
+                    writeContract(walletClient, {
                       address: config.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setSubnodeRecord',
@@ -1598,7 +1596,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                       account: walletAddress,
                     })
                     txn = 'safe wallet'
-                    await txPromise // Wait for Safe to queue the transaction
                   } else {
                     txn = await writeContract(walletClient, {
                       address: config.NAME_WRAPPER as `0x${string}`,
@@ -1637,7 +1634,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   let txn
 
                   if (isSafeWallet) {
-                    const txPromise = writeContract(walletClient, {
+                    writeContract(walletClient, {
                       address: config.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setSubnodeRecord',
@@ -1651,7 +1648,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                       account: walletAddress,
                     })
                     txn = 'safe wallet'
-                    await txPromise // Wait for Safe to queue the transaction
                   } else {
                     txn = await writeContract(walletClient, {
                       address: config.ENS_REGISTRY as `0x${string}`,
@@ -1713,7 +1709,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               let txn
 
               if (isSafeWallet) {
-                const txPromise = writeContract(walletClient, {
+                writeContract(walletClient, {
                   address: publicResolverAddress,
                   abi: publicResolverABI,
                   functionName: 'setAddr',
@@ -1721,7 +1717,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   account: walletAddress,
                 })
                 txn = 'safe wallet'
-                await txPromise // Wait for Safe to queue the transaction
               } else {
                 txn = await writeContract(walletClient, {
                   address: publicResolverAddress,
@@ -1768,7 +1763,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             let txn
 
             if (isSafeWallet) {
-              const txPromise = writeContract(walletClient, {
+              writeContract(walletClient, {
                 address: publicResolverAddress,
                 abi: publicResolverABI,
                 functionName: 'setName',
@@ -1776,7 +1771,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 account: walletAddress,
               })
               txn = 'safe wallet'
-              await txPromise // Wait for Safe to queue the transaction
             } else {
               txn = await writeContract(walletClient, {
                 address: publicResolverAddress,
@@ -1814,7 +1808,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             let txn
 
             if (isSafeWallet) {
-              const txPromise = writeContract(walletClient, {
+              writeContract(walletClient, {
                 address: config.REVERSE_REGISTRAR as `0x${string}`,
                 abi: reverseRegistrarABI,
                 functionName: 'setNameForAddr',
@@ -1827,7 +1821,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 account: walletAddress,
               })
               txn = 'safe wallet'
-              await txPromise // Wait for Safe to queue the transaction
             } else {
               txn = await writeContract(walletClient, {
                 address: config.REVERSE_REGISTRAR as `0x${string}`,
@@ -1926,7 +1919,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               ) {
                 let txn
                 if (isSafeWallet) {
-                  const txPromise = writeContract(walletClient, {
+                  writeContract(walletClient, {
                     address: publicResolverAddress,
                     abi: publicResolverABI,
                     functionName: 'setAddr',
@@ -1934,7 +1927,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     account: walletAddress,
                   })
                   txn = 'safe wallet'
-                  await txPromise // Wait for Safe to queue the transaction
                 } else {
                   txn = await writeContract(walletClient, {
                     address: publicResolverAddress,
@@ -2056,7 +2048,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               // Perform reverse resolution on L2
               let txn
               if (isSafeWallet) {
-                const txPromise = writeContract(walletClient, {
+                writeContract(walletClient, {
                   address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
                   abi: [
                     {
@@ -2088,9 +2080,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 })
                 txn = 'safe wallet'
                 
-                console.log(`${l2Chain.name} transaction submitted:`, txn)
-
-                await txPromise // Wait for Safe to queue the transaction
               } else {
                 txn = await writeContract(walletClient, {
                   address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
