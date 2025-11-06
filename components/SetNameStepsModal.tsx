@@ -80,10 +80,12 @@ export default function SetNameStepsModal({
     string | undefined
   >(contractAddress)
 
-  const { chain } = useAccount()
+  const { chain, address } = useAccount()
   const router = useRouter()
   const config = chain?.id ? CONTRACTS[chain.id] : undefined
   const { data: walletClient } = useWalletClient()
+
+  if(!walletAddress){walletAddress = address}
 
   // Reset state when modal opens or closes
   useEffect(() => {
@@ -418,7 +420,7 @@ export default function SetNameStepsModal({
               )}
 
               {/* Goto Safe Wallet button */}
-              {chain?.id && walletAddress && (
+              {chain?.id && (
                 <div className="text-center mt-6">
                   <Button
                     asChild

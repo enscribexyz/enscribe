@@ -1462,7 +1462,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 let txn
 
                 if (isSafeWallet) {
-                  writeContract(walletClient, {
+                  await writeContract(walletClient, {
                     address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                     abi: contractABI,
                     functionName: 'setName',
@@ -1492,18 +1492,22 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   })
                 }
 
-                await logMetric(
-                  corelationId,
-                  Date.now(),
-                  chainId,
-                  existingContractAddress,
-                  walletAddress,
-                  name,
-                  'subname::setName',
-                  txn,
-                  isOwnable ? 'Ownable' : 'ReverseClaimer',
-                  opType,
-                )
+                try {
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    name,
+                    'subname::setName',
+                    txn,
+                    isOwnable ? 'Ownable' : 'ReverseClaimer',
+                    opType,
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 setError('Forward resolution already set')
@@ -1520,7 +1524,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 let txn
 
                 if (isSafeWallet) {
-                  writeContract(walletClient, {
+                  await writeContract(walletClient, {
                     address: config.ENSCRIBE_CONTRACT as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setSubnodeRecord',
@@ -1550,7 +1554,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   })
                 }
 
-                await logMetric(
+                try {
+                  await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1561,7 +1566,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   txn,
                   isOwnable ? 'Ownable' : 'ReverseClaimer',
                   opType,
-                )
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               }
             } else {
@@ -1580,7 +1588,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   let txn
 
                   if (isSafeWallet) {
-                    writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setSubnodeRecord',
@@ -1614,7 +1622,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     })
                   }
 
-                  await logMetric(
+                  try {
+                    await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1625,7 +1634,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     txn,
                     isOwnable ? 'Ownable' : 'ReverseClaimer',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                   return txn
                 } else {
                   console.log(
@@ -1634,7 +1646,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   let txn
 
                   if (isSafeWallet) {
-                    writeContract(walletClient, {
+                    await writeContract(walletClient, {
                       address: config.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setSubnodeRecord',
@@ -1664,7 +1676,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     })
                   }
 
-                  await logMetric(
+                  try {
+                    await logMetric(
                     corelationId,
                     Date.now(),
                     chainId,
@@ -1675,7 +1688,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     txn,
                     isOwnable ? 'Ownable' : 'ReverseClaimer',
                     opType,
-                  )
+                  )} catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
                   return txn
                 }
               }
@@ -1709,7 +1725,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               let txn
 
               if (isSafeWallet) {
-                writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: publicResolverAddress,
                   abi: publicResolverABI,
                   functionName: 'setAddr',
@@ -1727,7 +1743,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 })
               }
 
-              await logMetric(
+              try {
+                await logMetric(
                 corelationId,
                 Date.now(),
                 chainId,
@@ -1738,7 +1755,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 txn,
                 isOwnable ? 'Ownable' : 'ReverseClaimer',
                 opType,
-              )
+              )} catch (err) {
+                console.log('err ' + err)
+                setError('Failed to log metric')
+              }
               return txn
             } else {
               setError('Forward resolution already set')
@@ -1763,7 +1783,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             let txn
 
             if (isSafeWallet) {
-              writeContract(walletClient, {
+              await writeContract(walletClient, {
                 address: publicResolverAddress,
                 abi: publicResolverABI,
                 functionName: 'setName',
@@ -1781,7 +1801,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               })
             }
 
-            await logMetric(
+            try { 
+              await logMetric(
               corelationId,
               Date.now(),
               chainId,
@@ -1792,7 +1813,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               txn,
               'ReverseClaimer',
               opType,
-            )
+            )} catch (err) {
+              console.log('err ' + err)
+              setError('Failed to log metric')
+            }
             return txn
           },
         })
@@ -1808,7 +1832,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             let txn
 
             if (isSafeWallet) {
-              writeContract(walletClient, {
+              await writeContract(walletClient, {
                 address: config.REVERSE_REGISTRAR as `0x${string}`,
                 abi: reverseRegistrarABI,
                 functionName: 'setNameForAddr',
@@ -1836,7 +1860,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               })
             }
 
-            await logMetric(
+            try { 
+              await logMetric(
               corelationId,
               Date.now(),
               chainId,
@@ -1847,7 +1872,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               txn,
               'Ownable',
               opType,
-            )
+            )} catch (err) {
+              console.log('err ' + err)
+              setError('Failed to log metric')
+            }
             return txn
           },
         })
@@ -1936,7 +1964,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     account: walletAddress,
                   })
                 }
-                await logMetric(
+                try {
+                  await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
@@ -1947,7 +1976,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   txn,
                   isOwnable ? 'Ownable' : 'ReverseClaimer',
                   opType,
-                )
+                )} catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
                 return txn
               } else {
                 setError('Forward resolution already set on this chain')
@@ -2048,7 +2080,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               // Perform reverse resolution on L2
               let txn
               if (isSafeWallet) {
-                writeContract(walletClient, {
+                await writeContract(walletClient, {
                   address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
                   abi: [
                     {
@@ -2079,6 +2111,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                   chain: l2Chain.chain,
                 })
                 txn = 'safe wallet'
+                
               } else {
                 txn = await writeContract(walletClient, {
                   address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
@@ -2112,7 +2145,8 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               console.log(`${l2Chain.name} transaction submitted:`, txn)
 
               // Log the L2 transaction
-              await logMetric(
+              try {
+                await logMetric(
                 `${l2Chain.name.toLowerCase()}-l2-primary`, // correlationId
                 Date.now(),
                 l2Chain.chainId,
@@ -2123,7 +2157,10 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 txn,
                 'L2Primary',
                 opType,
-              )
+              )} catch (err) {
+                console.log('err ' + err)
+                setError('Failed to log metric')
+              }
 
               return txn
             },
