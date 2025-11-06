@@ -607,6 +607,42 @@ export default function DeployForm() {
     }
   }
 
+  // Check record existence and operator access when parentName changes
+  useEffect(() => {
+    const checkParentNameAccess = async () => {
+      if (!walletClient || !config?.ENS_REGISTRY || !parentName) {
+        setRecordExists(false)
+        setOperatorAccess(false)
+        return
+      }
+
+      try {
+        // Check if record exists
+        const exist = await recordExist(parentName)
+        setRecordExists(exist)
+
+        // Check operator access
+        const approved = await checkOperatorAccess(parentName)
+        setOperatorAccess(approved)
+        
+        console.log(
+          'Auto-check for',
+          parentName,
+          '- Record exists:',
+          exist,
+          '- Operator access:',
+          approved,
+        )
+      } catch (err) {
+        console.error('Error checking parent name access:', err)
+        setRecordExists(false)
+        setOperatorAccess(false)
+      }
+    }
+
+    checkParentNameAccess()
+  }, [parentName, walletClient, config?.ENS_REGISTRY])
+
   const revokeOperatorAccess = async () => {
     if (
       !walletClient ||
@@ -963,7 +999,7 @@ export default function DeployForm() {
               //     value: txCost
               // })
               if (safeCheck) {
-                writeContract(walletClient, {
+                const txPromise = writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeploy',
@@ -989,6 +1025,7 @@ export default function DeployForm() {
                   'Ownable',
                   opType,
                 )
+                await txPromise // Wait for Safe to queue the transaction
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1047,7 +1084,7 @@ export default function DeployForm() {
               title: 'Give operator access',
               action: async () => {
                 if (safeCheck) {
-                  writeContract(walletClient, {
+                  const txPromise = writeContract(walletClient, {
                     address: config?.ENS_REGISTRY as `0x${string}`,
                     abi: ensRegistryABI,
                     functionName: 'setApprovalForAll',
@@ -1067,6 +1104,7 @@ export default function DeployForm() {
                     'Ownable',
                     opType,
                   )
+                  await txPromise // Wait for Safe to queue the transaction
                   return txn
                 } else {
                   const txn = await writeContract(walletClient, {
@@ -1096,15 +1134,15 @@ export default function DeployForm() {
                   )
                   return txn
                 }
-              },
-            })
+            },
+          })
           }
 
           steps.push({
             title: 'Deploy and Set primary Name',
             action: async () => {
               if (safeCheck) {
-                writeContract(walletClient, {
+                const txPromise = writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeploy',
@@ -1130,6 +1168,7 @@ export default function DeployForm() {
                   'Ownable',
                   opType,
                 )
+                await txPromise // Wait for Safe to queue the transaction
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1190,12 +1229,13 @@ export default function DeployForm() {
               args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
+            console.log('isApprovedForAll - ', isApprovedForAll)
             if (!isApprovedForAll) {
               steps.push({
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    writeContract(walletClient, {
+                    const txPromise = writeContract(walletClient, {
                       address: config?.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setApprovalForAll',
@@ -1215,6 +1255,7 @@ export default function DeployForm() {
                       'Ownable',
                       opType,
                     )
+                    await txPromise // Wait for Safe to queue the transaction
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1257,12 +1298,13 @@ export default function DeployForm() {
               args: [walletAddress, config?.ENSCRIBE_CONTRACT],
             })) as boolean
 
+            console.log('isApprovedForAll - ', isApprovedForAll)
             if (!isApprovedForAll) {
               steps.push({
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    writeContract(walletClient, {
+                    const txPromise = writeContract(walletClient, {
                       address: config?.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setApprovalForAll',
@@ -1282,6 +1324,7 @@ export default function DeployForm() {
                       'Ownable',
                       opType,
                     )
+                    await txPromise // Wait for Safe to queue the transaction
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1320,7 +1363,7 @@ export default function DeployForm() {
             title: 'Deploy and Set primary Name',
             action: async () => {
               if (safeCheck) {
-                writeContract(walletClient, {
+                const txPromise = writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeploy',
@@ -1346,6 +1389,7 @@ export default function DeployForm() {
                   'Ownable',
                   opType,
                 )
+                await txPromise // Wait for Safe to queue the transaction
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1422,7 +1466,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    writeContract(walletClient, {
+                    const txPromise = writeContract(walletClient, {
                       address: config?.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setApprovalForAll',
@@ -1442,6 +1486,7 @@ export default function DeployForm() {
                       'ReverseSetter',
                       opType,
                     )
+                    await txPromise // Wait for Safe to queue the transaction
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1489,7 +1534,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    writeContract(walletClient, {
+                    const txPromise = writeContract(walletClient, {
                       address: config?.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setApprovalForAll',
@@ -1509,6 +1554,7 @@ export default function DeployForm() {
                       'ReverseSetter',
                       opType,
                     )
+                    await txPromise // Wait for Safe to queue the transaction
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1549,7 +1595,7 @@ export default function DeployForm() {
             title: 'Set name & Deploy contract',
             action: async () => {
               if (safeCheck) {
-                writeContract(walletClient, {
+                const txPromise = writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeployReverseSetter',
@@ -1575,6 +1621,7 @@ export default function DeployForm() {
                   'ReverseSetter',
                   opType,
                 )
+                await txPromise // Wait for Safe to queue the transaction
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
@@ -1644,7 +1691,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    writeContract(walletClient, {
+                    const txPromise = writeContract(walletClient, {
                       address: config?.NAME_WRAPPER as `0x${string}`,
                       abi: nameWrapperABI,
                       functionName: 'setApprovalForAll',
@@ -1664,6 +1711,7 @@ export default function DeployForm() {
                       'ReverseClaimer',
                       opType,
                     )
+                    await txPromise // Wait for Safe to queue the transaction
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1711,7 +1759,7 @@ export default function DeployForm() {
                 title: 'Give operator access',
                 action: async () => {
                   if (safeCheck) {
-                    writeContract(walletClient, {
+                    const txPromise = writeContract(walletClient, {
                       address: config?.ENS_REGISTRY as `0x${string}`,
                       abi: ensRegistryABI,
                       functionName: 'setApprovalForAll',
@@ -1731,6 +1779,7 @@ export default function DeployForm() {
                       'ReverseClaimer',
                       opType,
                     )
+                    await txPromise // Wait for Safe to queue the transaction
                     return txn
                   } else {
                     const txn = await writeContract(walletClient, {
@@ -1771,7 +1820,7 @@ export default function DeployForm() {
             title: 'Set name & Deploy contract',
             action: async () => {
               if (safeCheck) {
-                writeContract(walletClient, {
+                const txPromise = writeContract(walletClient, {
                   address: config?.ENSCRIBE_CONTRACT as `0x${string}`,
                   abi: enscribeContractABI,
                   functionName: 'setNameAndDeployReverseClaimer',
@@ -1797,6 +1846,7 @@ export default function DeployForm() {
                   'ReverseClaimer',
                   opType,
                 )
+                await txPromise // Wait for Safe to queue the transaction
                 return txn
               } else {
                 const txn = await writeContract(walletClient, {
