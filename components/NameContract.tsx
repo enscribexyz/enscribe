@@ -144,6 +144,10 @@ export default function NameContract() {
     CHAINS.ARBITRUM_SEPOLIA,
     CHAINS.SCROLL,
     CHAINS.SCROLL_SEPOLIA,
+    CHAINS.LINEA,
+    CHAINS.LINEA_SEPOLIA,
+    CHAINS.BASE,
+    CHAINS.BASE_SEPOLIA,
   ].includes((chain?.id as number) || -1)
 
   const unsupportedL2Name =
@@ -159,7 +163,15 @@ export default function NameContract() {
               ? 'Scroll'
               : chain?.id === CHAINS.SCROLL_SEPOLIA
                 ? 'Scroll Sepolia'
-                : ''
+                : chain?.id === CHAINS.LINEA
+                  ? 'Linea'
+                  : chain?.id === CHAINS.LINEA_SEPOLIA
+                    ? 'Linea Sepolia'
+                    : chain?.id === CHAINS.BASE
+                      ? 'Base'
+                      : chain?.id === CHAINS.BASE_SEPOLIA
+                        ? 'Base Sepolia'
+                        : ''
 
   const getParentNode = (name: string) => {
     try {
@@ -218,10 +230,91 @@ export default function NameContract() {
     if (allSelected && dropdownValue !== '') {
       setDropdownValue('')
     }
-    if (selectedL2ChainNames.length === 0 && skipL1Naming) {
+    if (selectedL2ChainNames.length === 0) {
       setSkipL1Naming(false)
+      // Collapse Advanced Options when all L2 chains are cleared
+      setIsAdvancedOpen(false)
     }
   }, [selectedL2ChainNames])
+
+  // Automatically select L2 chains when contract is detected to be Ownable on them
+  // Also clear L2 chains when contract is not deployed on any L2
+  useEffect(() => {
+    // Only run this on L1 chains (mainnet or sepolia)
+    if (chain?.id !== CHAINS.MAINNET && chain?.id !== CHAINS.SEPOLIA) {
+      return
+    }
+
+    // Don't run if address is empty
+    if (!existingContractAddress || existingContractAddress.trim() === '') {
+      return
+    }
+
+    // Check if all L2 checks have completed (all flags are not null)
+    const allL2ChecksComplete = 
+      isOwnableOptimism !== null && 
+      isOwnableArbitrum !== null && 
+      isOwnableScroll !== null && 
+      isOwnableBase !== null && 
+      isOwnableLinea !== null
+
+    // Use functional update to access current state and avoid dependency on selectedL2ChainNames
+    setSelectedL2ChainNames((prev) => {
+      // If all checks are complete and none are true, clear all selected L2 chains
+      if (allL2ChecksComplete && 
+          !isOwnableOptimism && 
+          !isOwnableArbitrum && 
+          !isOwnableScroll && 
+          !isOwnableBase && 
+          !isOwnableLinea) {
+        // Collapse Advanced Options when all L2 chains are cleared
+        setIsAdvancedOpen(false)
+        return []
+      }
+
+      const chainsToAdd: string[] = []
+
+      // Check each L2 chain flag and add to selection if detected and not already selected
+      if (isOwnableOptimism === true && !prev.includes('Optimism')) {
+        chainsToAdd.push('Optimism')
+      }
+      if (isOwnableArbitrum === true && !prev.includes('Arbitrum')) {
+        chainsToAdd.push('Arbitrum')
+      }
+      if (isOwnableScroll === true && !prev.includes('Scroll')) {
+        chainsToAdd.push('Scroll')
+      }
+      if (isOwnableBase === true && !prev.includes('Base')) {
+        chainsToAdd.push('Base')
+      }
+      if (isOwnableLinea === true && !prev.includes('Linea')) {
+        chainsToAdd.push('Linea')
+      }
+
+      // Only update if there are chains to add
+      if (chainsToAdd.length > 0) {
+        // Automatically expand Advanced Options when chains are auto-selected
+        setIsAdvancedOpen(true)
+        return [...prev, ...chainsToAdd]
+      }
+
+      return prev
+    })
+  }, [isOwnableOptimism, isOwnableArbitrum, isOwnableScroll, isOwnableBase, isOwnableLinea, chain?.id, existingContractAddress])
+
+  // Clear L2 chains and collapse Advanced Options when contract address is removed
+  useEffect(() => {
+    // Check if address is empty
+    const isAddressEmpty =
+      !existingContractAddress || existingContractAddress.trim() === ''
+
+    if (isAddressEmpty) {
+      // Clear selected L2 chains
+      setSelectedL2ChainNames([])
+      // Collapse Advanced Options
+      setIsAdvancedOpen(false)
+    }
+  }, [existingContractAddress])
 
   useEffect(() => {
     const initFromQuery = async () => {
@@ -382,14 +475,7 @@ export default function NameContract() {
             args: [existingContractAddress, labelNormalized, parentNameNormalized, parentNode],
           })
           callDataArray.push(`Enscribe.setName: ${callData}`)
-        } else if (chain?.id == CHAINS.BASE || chain?.id == CHAINS.BASE_SEPOLIA) {
-          const callData = encodeFunctionData({
-            abi: ensRegistryABI,
-            functionName: 'setSubnodeRecord',
-            args: [parentNode, labelHash, walletAddress, publicResolverAddress, 0],
-          })
-          callDataArray.push(`ENSRegistry.setSubnodeRecord: ${callData}`)
-         } else {
+        } else {
            // Check if wrapped (only if parentNode is valid)
            let isWrapped = false
            if (parentNode && parentNode !== '0x0000000000000000000000000000000000000000000000000000000000000000') {
@@ -732,23 +818,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
 
         // Apply chain-specific filtering
         let chainFilteredDomains = sortedDomains
-
-        // Filter based on chain
-        if (chain?.id === CHAINS.BASE) {
-          // For Base chain, only keep .base.eth names
-          console.log(
-            '[DeployForm] Filtering owned domains for Base chain - only keeping .base.eth names',
-          )
-          chainFilteredDomains = sortedDomains.filter((domain) =>
-            domain.endsWith('.base.eth'),
-          )
-        } else if (chain?.id === CHAINS.BASE_SEPOLIA) {
-          // For Base Sepolia, don't show any names
-          console.log(
-            '[DeployForm] Base Sepolia detected - not showing any owned ENS names',
-          )
-          chainFilteredDomains = []
-        }
 
         setUserOwnedDomains(chainFilteredDomains)
         console.log(
@@ -1144,7 +1213,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
 
     if (isUnsupportedL2Chain) {
       setError(
-        `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
+        `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.LINEA || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
       )
       return
     }
@@ -1512,65 +1581,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
               } else {
                 setError('Forward resolution already set')
                 console.log('Forward resolution already set')
-              }
-            } else if (
-              chain?.id == CHAINS.BASE ||
-              chain?.id == CHAINS.BASE_SEPOLIA
-            ) {
-              if (!nameExist) {
-                console.log(
-                  'create subname::writeContract calling setSubnodeRecord on ENSCRIBE_CONTRACT',
-                )
-                let txn
-
-                if (isSafeWallet) {
-                  await writeContract(walletClient, {
-                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                    abi: ensRegistryABI,
-                    functionName: 'setSubnodeRecord',
-                    args: [
-                      parentNode,
-                      labelHash,
-                      walletAddress,
-                      publicResolverAddress,
-                      0,
-                    ],
-                    account: walletAddress,
-                  })
-                  txn = 'safe wallet'
-                } else {
-                  txn = await writeContract(walletClient, {
-                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                    abi: ensRegistryABI,
-                    functionName: 'setSubnodeRecord',
-                    args: [
-                      parentNode,
-                      labelHash,
-                      walletAddress,
-                      publicResolverAddress,
-                      0,
-                    ],
-                    account: walletAddress,
-                  })
-                }
-
-                try {
-                  await logMetric(
-                  corelationId,
-                  Date.now(),
-                  chainId,
-                  existingContractAddress,
-                  walletAddress,
-                  name,
-                  'subname::setSubnodeRecord',
-                  txn,
-                  isOwnable ? 'Ownable' : 'ReverseClaimer',
-                  opType,
-                )} catch (err) {
-                  console.log('err ' + err)
-                  setError('Failed to log metric')
-                }
-                return txn
               }
             } else {
               const isWrapped = await readContract(walletClient, {
@@ -2210,7 +2220,7 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
         <p className="text-red-500">
           {!isConnected
             ? 'Please connect your wallet.'
-            : `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chain option.`}
+            : `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.LINEA || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chain option.`}
         </p>
       )}
 
@@ -2367,6 +2377,37 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
           </div>
         )}
 
+        {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
+        {/* Only show error after L2 checks are complete (not null) when on L1 chains */}
+        {!isAddressEmpty && 
+         !isAddressInvalid && 
+         isContractExists === false && 
+         (() => {
+           // If not on L1, show error immediately (no L2 checks needed)
+           const isOnL1 = chain?.id === CHAINS.MAINNET || chain?.id === CHAINS.SEPOLIA
+           if (!isOnL1) return true
+           
+           // If on L1, wait for all L2 checks to complete
+           const allL2ChecksComplete = 
+             isOwnableOptimism !== null && 
+             isOwnableArbitrum !== null && 
+             isOwnableScroll !== null && 
+             isOwnableBase !== null && 
+             isOwnableLinea !== null
+           
+           // Only show error if all L2 checks are complete AND contract not found on any L2
+           return allL2ChecksComplete && 
+                  !isOwnableOptimism && 
+                  !isOwnableArbitrum && 
+                  !isOwnableScroll && 
+                  !isOwnableBase && 
+                  !isOwnableLinea
+         })() && (
+          <p className="text-red-600 dark:text-red-300">
+            {chain?.name}: Contract doesn't exist
+          </p>
+        )}
+
         {/* Toggle Buttons */}
         <div className="flex items-center gap-2 mt-4">
           <Button
@@ -2418,12 +2459,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
           </Button>
         </div>
 
-        {/* Error message for invalid Ownable/ReverseClaimable bytecode */}
-        {!isAddressEmpty && !isAddressInvalid && isContractExists === false && (
-          <p className="text-red-600 dark:text-red-300">
-            {chain?.name}: Contract doesn't exist
-          </p>
-        )}
         {!isAddressEmpty &&
           !isAddressInvalid &&
           isContractExists === true &&
