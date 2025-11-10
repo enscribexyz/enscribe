@@ -161,6 +161,17 @@ export default function EnscribeLandingPage() {
       </header>
 
       <main className="flex-1">
+        {/* === ENS Contract Naming Season Banner === */}
+        <div
+            className="contract-season-banner w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-fuchsia-500 text-white text-center py-3 px-4 font-semibold shadow-md">
+          🌟 <span className="font-bold">ENS Contract Naming Season is Live! 10,000 $ENS in rewards.</span>
+          <a
+              href="/blog/contract-naming-season"
+              className="ml-2 font-normal opacity-90 hover:opacity-100 hover:underline transition"
+          >
+            Learn more →
+          </a>
+        </div>
         {/* Hero Section */}
         <section className="relative py-6 overflow-hidden">
           <div className="container mx-auto px-4 md:px-6 relative z-10">
@@ -463,7 +474,7 @@ export default function EnscribeLandingPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:h-24">
             <div className="flex items-center gap-2">
-              <HiCode className="h-6 w-6 text-cyan-400" />
+              <HiCode className="h-6 w-6 text-cyan-400"/>
               <span className="text-lg font-bold">Enscribe</span>
             </div>
             <p className="text-center md:text-left text-sm text-slate-400">© {new Date().getFullYear()} Web3 Labs Ltd. All rights reserved.</p>

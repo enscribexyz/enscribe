@@ -284,3 +284,13 @@ a.button:active {
   position: relative;
   z-index: 1;
 }
+
+/* Ensure light mode banner text and links remain legible */
+.contract-season-banner a {
+  color: #ffffff !important;
+}
+
+.contract-season-banner a:hover {
+  color: #e0e0e0 !important;
+  text-decoration: underline !important;
+}
