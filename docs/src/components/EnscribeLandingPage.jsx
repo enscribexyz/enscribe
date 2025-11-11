@@ -2,13 +2,12 @@
 
 import { useState } from "react"
 import Link from "@docusaurus/Link"
-import useBaseUrl from "@docusaurus/useBaseUrl"
 import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
-import { useEffect } from "react";
 import { FaShieldAlt, FaBolt, FaGlobe, FaStar, FaGithub, FaTelegram, FaDiscord, FaUserAlt, FaLock, FaPlug } from "react-icons/fa"
 import { FaXTwitter } from "react-icons/fa6"
 import { SiFarcaster } from "react-icons/si";
 import { HiArrowDown, HiArrowRight, HiCheck, HiCode, HiChevronDown, HiMenu, HiX } from "react-icons/hi"
+import HeroNameIt from "./HeroNameIt";
 
 // FAQ Accordion component
 const FAQItem = ({ question, answer }) => {
@@ -197,11 +196,7 @@ export default function EnscribeLandingPage() {
                 </div>
               </div>
               <div className="flex-1 flex justify-center">
-                <img
-                  src={useBaseUrl("/img/hero-image.png") || "/placeholder.svg?height=400&width=600"}
-                  alt="Enscribe ENS integration illustration"
-                  className="max-w-full h-auto rounded-lg shadow-[0_20px_40px_rgba(0,0,0,0.3)]"
-                />
+                <HeroNameIt/>
               </div>
             </div>
           </div>
