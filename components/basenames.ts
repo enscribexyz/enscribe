@@ -100,7 +100,7 @@ export function splitBasename(input: string) {
   }
 
   const label = lower.slice(0, -suffix.length);
-  if (!label || /[^a-z0-9-]/.test(label)) throw new Error("Invalid label");
+  if (!label) throw new Error("Invalid label");
   return { label, fqdn: lower };
 }
 

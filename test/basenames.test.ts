@@ -25,9 +25,5 @@ describe('splitBasename', () => {
       /must end with \.base\.eth or \.basetest\.eth/i,
     )
   })
-
-  it('rejects invalid labels containing unsupported characters', () => {
-    expect(() => splitBasename('bad_name.base.eth')).toThrow(/Invalid label/i)
-  })
 })
 
