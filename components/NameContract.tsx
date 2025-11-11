@@ -148,6 +148,15 @@ export default function NameContract() {
     CHAINS.LINEA_SEPOLIA,
   ].includes((chain?.id as number) || -1)
 
+  const isBaseChain =
+    chain?.id === CHAINS.BASE || chain?.id === CHAINS.BASE_SEPOLIA
+  const baseRequiredParentDomain =
+    chain?.id === CHAINS.BASE
+      ? 'base.eth'
+      : chain?.id === CHAINS.BASE_SEPOLIA
+        ? 'basetest.eth'
+        : null
+
   const unsupportedL2Name =
     chain?.id === CHAINS.OPTIMISM
       ? 'Optimism'
@@ -1214,6 +1223,26 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
         `To name your contract on ${unsupportedL2Name}, change to the ${chain?.id === CHAINS.OPTIMISM || chain?.id === CHAINS.ARBITRUM || chain?.id === CHAINS.SCROLL || chain?.id === CHAINS.LINEA || chain?.id === CHAINS.BASE ? 'Ethereum Mainnet' : 'Sepolia'} network and use the Naming on L2 Chains option.`,
       )
       return
+    }
+
+    if (
+      isBaseChain &&
+      selectedAction === 'subname' &&
+      baseRequiredParentDomain
+    ) {
+      const normalizedParent = parentName.trim().toLowerCase()
+      const parentTwoLD = normalizedParent
+        .split('.')
+        .filter(Boolean)
+        .slice(-2)
+        .join('.')
+
+      if (parentTwoLD !== baseRequiredParentDomain) {
+        setError(
+          `Parent domain must end with ${baseRequiredParentDomain} when using ${chain?.name ?? 'Base'}.`,
+        )
+        return
+      }
     }
 
     if (!isAddressValid(existingContractAddress)) {
