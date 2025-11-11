@@ -146,8 +146,6 @@ export default function NameContract() {
     CHAINS.SCROLL_SEPOLIA,
     CHAINS.LINEA,
     CHAINS.LINEA_SEPOLIA,
-    CHAINS.BASE,
-    CHAINS.BASE_SEPOLIA,
   ].includes((chain?.id as number) || -1)
 
   const unsupportedL2Name =
