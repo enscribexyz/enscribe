@@ -1536,15 +1536,12 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
 
       // if chain selected is base/base-sepolia then register basename
       if (isBaseChain && baseRequiredParentDomain) {
-        const baseRpcEndpoint = CONTRACTS[chainId]?.RPC_ENDPOINT
         const baseSuffix = `.${baseRequiredParentDomain}`
         const shouldRunBasename =
           typeof name === 'string' &&
           (name === baseRequiredParentDomain || name.endsWith(baseSuffix))
 
-        if (!baseRpcEndpoint) {
-          console.warn('Missing Base RPC endpoint, skipping basename step')
-        } else if (!shouldRunBasename) {
+        if (!shouldRunBasename) {
           console.warn('Skipping basename step; name is not a Base domain', {
             name,
             baseRequiredParentDomain,
@@ -1559,7 +1556,6 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             action: async () => {
               try {
                 const result = await setBasenameAsPrimary({
-                  rpcUrl: baseRpcEndpoint,
                   walletClient,
                   network: baseNetwork,
                   inputName: name,

@@ -120,13 +120,11 @@ type Network = "base" | "base-sepolia";
  * `targetAddr` can be an EOA or a CONTRACT address. For contracts, your signer must be the Ownable owner.
  */
 export async function setBasenameAsPrimary({
-  rpcUrl,
   walletClient,      // viem wallet client
   network,           // "base" | "base-sepolia"
   inputName,         // e.g. "abhi.base.eth"
   targetAddr,        // address whose primary name you want to set (EOA or contract)
 }: {
-  rpcUrl: string;
   walletClient: WalletClient;
   network: Network;
   inputName: string;
@@ -134,8 +132,6 @@ export async function setBasenameAsPrimary({
 }) {
   const chain = network === "base" ? base : baseSepolia;
   const addrs = network === "base" ? BASE_ADDRESSES : BASE_SEPOLIA_ADDRESSES;
-
-  const pub = createPublicClient({ chain, transport: http(rpcUrl) });
 
   const { label, fqdn } = splitBasename(inputName);
   const node = namehash(fqdn);
@@ -197,7 +193,7 @@ export async function setBasenameAsPrimary({
   //    This covers the “already registered” path and also works to set primary for a CONTRACT.
   if (!didRegister) {
     // (Re)ensure forward record points to targetAddr
-    const encoded = await pub.readContract({
+    const encoded = await readContract(walletClient, {
       // quick existence check: just attempt a call to resolver at the node;
       // if you maintain your own logic you can skip this and always setAddr.
       address: addrs.resolver as `0x${string}`,
