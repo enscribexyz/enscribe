@@ -1,0 +1,153 @@
+---
+slug: enscribe-v2
+title: "EnscribeV2 is now live on Ethereum mainnet"
+description: "Name multiple contracts in one transaction with Enscribe V2's batch operations and multi-chain support"
+authors: [nischal]
+tags: [enscribe, mainnet, batch-naming, ensip-19]
+keywords: [ENS names, Enscribe V2, batch naming, smart contracts, multi-chain, ENSIP-19, contract identity, ethereum mainnet]
+image: enscribe-v2-hero.png
+---
+
+# EnscribeV2 is now live on Ethereum mainnet
+
+Enscribe V2 is now deployed on Ethereum mainnet. This upgrade brings batch operations, multi-chain support, and gas optimizations that make naming large numbers of contracts practical.
+
+## Contract Addresses
+
+**Ethereum Mainnet:**
+- [Enscribe V2](https://etherscan.io/address/0x9B95a964DB0ab154A587cC667b4964BD5dD8dE81): `0x9B95a964DB0ab154A587cC667b4964BD5dD8dE81`
+- [ENS Name](https://app.ens.domains/v2.app.enscribe.eth): `v2.app.enscribe.eth`
+
+**Testnet (Sepolia):**
+- [Enscribe V2](https://sepolia.etherscan.io/address/0xeA80b94a8B339c592c4F08bcCC87De7b57384BDD): `0xeA80b94a8B339c592c4F08bcCC87De7b57384BDD`
+- [ENS Name](https://sepolia.app.ens.domains/v2.enscribe.named.eth): `v2.enscribe.named.eth`
+
+## The Problem: Naming Contracts at Scale
+
+Projects deploying multiple smart contracts face a challenge: each contract needs a separate ENS transaction to get a human-readable name. For a project with 10, 20, or 100+ contracts, this means:
+
+- Dozens of individual transactions
+- High cumulative gas costs
+- Hours of manual execution
+- Complex workflow coordination
+
+A DAO deploying governance contracts, treasury modules, and token contracts previously needed separate ENS transactions for each — monitoring every transaction and managing a complex deployment process.
+
+Enscribe V2 solves this.
+
+## What's New
+
+### Batch Contract Naming
+
+Name multiple existing contracts in a single transaction.
+
+```solidity
+// Name 10 contracts at once
+address[] memory contracts = [
+    0x1234..., // governance.dao.eth
+    0x5678..., // treasury.dao.eth
+    0x9abc..., // token.dao.eth
+    0x0000.... // 0x0 address to reserve the subname
+];
+
+string[] memory labels = ["governance", "treasury", "token", "reserve"];
+
+enscribeV2.setNameBatch(
+    contracts,
+    labels,
+    "dao.eth",
+    [60, 2147492101] // Ethereum and Base cointypes
+);
+```
+Note: The `reserve` subname is created with the `address(0)` address. This is useful when you just want to create the subname but not set an address yet.
+
+### ENSIP-19 Multi-Chain Support
+
+Set forward resolution for multiple chains at once:
+```solidity
+uint256[] memory coinTypes = [
+    60,    // Ethereum
+    2147492101,   // Base
+    42161, // Arbitrum
+    10     // Optimism
+];
+
+enscribeV2.setName(
+    contractAddress,
+    "bridge",
+    "protocol.eth",
+    coinTypes
+);
+```
+
+This matters for cross-chain protocols and multi-chain deployments where the same contract needs to resolve on different networks.
+
+### Simpler API
+
+**Before V2:**
+```solidity
+bytes32 parentNode = namehash("myproject.eth"); // Manual computation
+enscribe.setName(addr, "app", "myproject.eth", parentNode);
+```
+
+**With V2:**
+```solidity
+enscribe.setName(addr, "app", "myproject.eth"); // Computed automatically
+```
+
+The contract now computes parent nodes using ENS's NameCoder library.
+
+### Reserve Names Without Addresses
+
+Create subnames without setting an address:
+```solidity
+address[] memory contracts = [
+    0x1234...,    // Active contract
+    address(0),   // Reserve "staging", 0x0000000000000000000000000000000000000000 address
+    0x5678...     // Active contract
+];
+
+enscribeV2.setNameBatch(
+    contracts,
+    ["prod", "staging", "analytics"],
+    "myproject.eth"
+);
+```
+
+As demontrated in [Batch Contract Naming section](#batch-contract-naming) also, using `address(0)` creates the subname but skips forward resolution — useful for just creating the subname.
+
+![EnscribeV2 Functions](enscribev2.png)
+
+Projects can now:
+- Name dozens of contracts in one transaction
+- Save gas through batch operations and  new gas optimizations
+- Can name contracts on multiple chains at once
+- Fully ENSIP-19 compatible
+
+## Technical Improvements
+
+V2 includes several optimizations:
+
+- **ENS NameCoder Integration**: Uses official ENS library gas savings per operation
+- **OpenZeppelin Create2**: Deterministic contract deployment with industry-standard implementation
+- **Custom Errors and Events**: ~50% gas savings on reverts compared to string messages
+- **Internal Optimizations**: Automatic subname existence checking and address validation
+
+## What's Next
+
+Enscribe V2 contracts are live and ready to use via web3 libraries or transaction builders like Gnosis Safe.
+
+**Coming Soon:**
+- UI updates for batch operations and multi-chain support on [Enscribe app](https://app.enscribe.xyz)
+- EnscribeV2 integration to our Enscribe library
+- EnscribeV2 for Basenames
+
+## Building Contract Identity
+
+Enscribe makes smart contracts easier to trust by giving them human-readable names. Earlier this year, we [proposed an ENSIP](/blog/ensip-proposal) for contract metadata standards. V2's batch capabilities and multi-chain support lay the groundwork for that vision — making it practical for projects to build complete, discoverable contract identities.
+
+Whether you're deploying a DeFi protocol, launching a DAO, or building any multi-contract system, Enscribe V2 helps you establish clear contract identity from day one.
+
+Questions? Join our [Discord](https://discord.gg/8QUMMdS5GY), [Telegram](https://t.me/enscribers) or reach out on [X](https://x.com/enscribe_).
+
+Happy naming! 🚀
