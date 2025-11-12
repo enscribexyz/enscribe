@@ -14,6 +14,7 @@ export default function HeroNameIt() {
     const [demoRunning, setDemoRunning] = useState(true);
     const [idx, setIdx] = useState(0);
     const [showCursor, setShowCursor] = useState(true); // typing caret pulse
+    const [addrFlash, setAddrFlash] = useState(false);
 
     const cycleTimer = useRef<number | null>(null);
     const typerTimer = useRef<number | null>(null);
@@ -25,6 +26,8 @@ export default function HeroNameIt() {
             { address: "0xd01607c3C5eCABa394D8be377a08590149325722", name: "eth-staking.aave.eth" },
             { address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", name: "usdc.circle.eth" },
             { address: "0x283Af0B28c62C092C9727F1Ee09c02CA627EB7F5", name: "registrar.ens.eth" },
+            { address: "0xC18360217D8F7Ab5e7c516566761Ea12Ce7F9D72", name: "token.ensdao.eth" },
+            { address: "0x9b95a964db0ab154a587cc667b4964bd5dd8de81", name: "v2.app.enscribe.eth" },
             () => ({ address: randomHexAddress(), name: "v1.yourapp.eth" }),
         ],
         []
@@ -59,6 +62,9 @@ export default function HeroNameIt() {
             const item = examples[idx % examples.length];
             const pair = typeof item === "function" ? item() : item;
             setAddress(pair.address);
+            setAddrFlash(true);
+            window.setTimeout(() => setAddrFlash(false), 450);
+
             typeName(pair.name);
         };
 
@@ -105,9 +111,10 @@ export default function HeroNameIt() {
                       opacity-0 group-hover:opacity-100 blur-xl transition duration-700" />
 
             <div className="relative z-10">
-                <h3 className="text-xl font-semibold text-slate-50 mb-1 text-center">Name a Smart Contract</h3>
+                <h3 className="text-xl font-semibold text-slate-50 mb-1 text-center">Name a Smart
+                    Contract</h3>
                 <p className="text-slate-400 text-sm text-center mb-6">
-                    Paste a contract address and give it an ENS name
+                    Paste a contract address below
                 </p>
 
                 {/* Address */}
@@ -117,31 +124,39 @@ export default function HeroNameIt() {
                     onFocus={stopDemoAndClearIfDemo}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="0x…"
-                    className="w-full mb-4 bg-slate-800/70 text-slate-100 rounded-lg px-4 py-3
+                    className={`w-full mb-4 bg-slate-800/70 text-slate-100 rounded-lg px-4 py-3
                      border border-slate-700 focus:border-cyan-400 focus:ring-2
                      focus:ring-cyan-500/30 outline-none transition-all duration-300
-                     placeholder:text-slate-500 font-mono"
+                     placeholder:text-slate-500 font-mono ${addrFlash ? "animate-input-flash" : ""}`}
                     autoComplete="off"
                     spellCheck={false}
                 />
                 {!isHexAddr && address && (
-                    <p className="text-xs text-amber-300 -mt-3 mb-3">Enter a valid 0x-prefixed address.</p>
+                    <p className="text-xs text-amber-300 -mt-3 mb-3">Enter a valid 0x-prefixed
+                        address.</p>
                 )}
 
                 {/* Name */}
                 <label className="block text-slate-200 text-sm mb-1">Name</label>
                 <input
+                    readOnly
                     value={demoRunning ? `${ensName}${showCursor ? "|" : " "}` : ensName}
                     onFocus={stopDemoAndClearIfDemo}
                     onChange={(e) => setEnsName(e.target.value)}
                     placeholder="your-awesome-name.eth"
                     className="w-full mb-4 bg-slate-800/70 text-slate-100 rounded-lg px-4 py-3
-                     border border-slate-700 focus:border-cyan-400 focus:ring-2
-                     focus:ring-cyan-500/30 outline-none transition-all duration-300
+                     border border-slate-700  outline-none transition-all duration-300
                      placeholder:text-slate-500 font-mono"
                     autoComplete="off"
                     spellCheck={false}
                 />
+
+                {!demoRunning && (
+                    <p className="text-slate-400 text-xs mt-1 italic">
+                        Click below to start naming
+                    </p>
+                )}
+
 
                 {/* CTA */}
                 <button
@@ -158,16 +173,16 @@ export default function HeroNameIt() {
 
                     {/* Shine sweep */}
                     <span className="absolute inset-0 h-full w-full bg-gradient-to-r from-purple-600/0 via-white/70 to-purple-600/0
-            opacity-0 group-hover/button:opacity-100 group-hover/button:animate-shine pointer-events-none blur-sm" />
+            opacity-0 group-hover/button:opacity-100 group-hover/button:animate-shine pointer-events-none blur-sm"/>
 
                     {/* Outer glow */}
                     <span className="absolute -inset-1 rounded-lg bg-gradient-to-r from-purple-600 via-pink-500 to-red-500
-            opacity-0 group-hover/button:opacity-70 group-hover/button:blur-md transition-all duration-300 pointer-events-none" />
+            opacity-0 group-hover/button:opacity-70 group-hover/button:blur-md transition-all duration-300 pointer-events-none"/>
                 </button>
 
                 {demoRunning && (
                     <p className="mt-3 text-xs text-slate-300/80 text-center">
-                        (Click either box to try your own)
+                        (Click to try naming a contract)
                     </p>
                 )}
             </div>

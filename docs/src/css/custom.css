@@ -294,3 +294,12 @@ a.button:active {
   color: #e0e0e0 !important;
   text-decoration: underline !important;
 }
+
+@keyframes input-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(103,232,249,0); }
+  30%  { box-shadow: 0 0 0 6px rgba(103,232,249,0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(103,232,249,0); }
+}
+.animate-input-flash {
+  animation: input-flash 450ms ease-out;
+}
