@@ -12,3 +12,8 @@ linea:
   label: linea
   permalink: linea
   description: Linea Layer 2 Network
+
+safe:
+  label: safe
+  permalink: safe
+  description: Safe Multisig Wallet
