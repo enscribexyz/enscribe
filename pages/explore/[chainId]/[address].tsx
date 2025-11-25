@@ -1,6 +1,6 @@
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback } from 'react'
-import { isAddress } from 'viem/utils'
+import { isAddress, parseAbi } from 'viem/utils'
 import { createPublicClient, http, toCoinType } from 'viem'
 import { normalize } from 'viem/ens'
 import { mainnet, sepolia, base, linea } from 'viem/chains'
@@ -16,6 +16,8 @@ import { ethers } from 'ethers'
 import reverseRegistrarABI from '@/contracts/ReverseRegistrar'
 import ensRegistryABI from '@/contracts/ENSRegistry'
 import publicResolverABI from '@/contracts/PublicResolver'
+import { namehash } from 'viem/ens'
+import { readContract } from 'viem/actions'
 
 export default function ExploreAddressPage() {
   const router = useRouter()
@@ -190,9 +192,11 @@ export default function ExploreAddressPage() {
       let chainClient: any = null
       let reqObject
 
+      // Try to resolve the ENS name on the current chain
+      let resolvedAddress: string | null = null
+
       if (
         chainIdNumber === CHAINS.MAINNET ||
-        chainIdNumber === CHAINS.BASE ||
         chainIdNumber === CHAINS.LINEA ||
         chainIdNumber === CHAINS.ARBITRUM ||
         chainIdNumber === CHAINS.OPTIMISM ||
@@ -207,6 +211,37 @@ export default function ExploreAddressPage() {
           coinType: toCoinType(chainIdNumber),
         }
         console.log('[address] Using mainnet client for ENS resolution')
+      } else if (chainIdNumber === CHAINS.BASE || chainIdNumber === CHAINS.BASE_SEPOLIA) {
+        const config = CONTRACTS[chainIdNumber]
+        console.log('config.RPC_ENDPOINT: ', config.RPC_ENDPOINT)
+        const baseClient = createPublicClient({
+          transport: http(config.RPC_ENDPOINT),
+          chain: {
+            id: chainIdNumber,
+            name: 'Base',
+            network: 'base',
+            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls: { default: { http: [config.RPC_ENDPOINT] } },
+          },
+        })
+
+        const publicResolverAbi = parseAbi([
+          'function addr(bytes32 node, uint256 coinType) view returns (bytes)',
+        ]);
+        const node = namehash(normalizedName)
+        console.log('publicResolverAbi: ', publicResolverAbi)
+        console.log('namehash(cleanedQuery): ', node)
+        console.log('toCoinType(selectedChain): ', toCoinType(chainIdNumber))
+        console.log('config.PUBLIC_RESOLVER: ', config.PUBLIC_RESOLVER)
+        const address = await readContract(baseClient, {
+          address: config.PUBLIC_RESOLVER as `0x${string}`,
+          abi: publicResolverAbi,
+          functionName: 'addr',
+          args: [node, toCoinType(chainIdNumber)],
+        }) as `0x${string}`
+        console.log('address: ', address)
+        resolvedAddress = address
+        return resolvedAddress
       } else {
         chainClient = createPublicClient({
           chain: sepolia,
@@ -218,9 +253,6 @@ export default function ExploreAddressPage() {
         }
         console.log('[address] Using sepolia client for ENS resolution')
       }
-
-      // Try to resolve the ENS name on the current chain
-      let resolvedAddress: string | null = null
 
       try {
         resolvedAddress = await chainClient.getEnsAddress(reqObject)
