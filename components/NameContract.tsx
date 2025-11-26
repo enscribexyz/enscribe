@@ -61,8 +61,8 @@ import {
   getBytecode,
 } from 'viem/actions'
 import { namehash, normalize } from 'viem/ens'
-import { isAddress, keccak256, toBytes, toHex, getAddress, encodeFunctionData } from 'viem'
-import { createPublicClient, http } from 'viem'
+import { isAddress, keccak256, toBytes, encodeFunctionData, parseAbi, encodePacked } from 'viem'
+import { createPublicClient, http, toCoinType } from 'viem'
 import enscribeContractABI from '../contracts/Enscribe'
 import ownableContractABI from '@/contracts/Ownable'
 
@@ -146,9 +146,16 @@ export default function NameContract() {
     CHAINS.SCROLL_SEPOLIA,
     CHAINS.LINEA,
     CHAINS.LINEA_SEPOLIA,
-    CHAINS.BASE,
-    CHAINS.BASE_SEPOLIA,
   ].includes((chain?.id as number) || -1)
+
+  const isBaseChain =
+    chain?.id === CHAINS.BASE || chain?.id === CHAINS.BASE_SEPOLIA
+  const baseRequiredParentDomain =
+    chain?.id === CHAINS.BASE
+      ? 'base.eth'
+      : chain?.id === CHAINS.BASE_SEPOLIA
+        ? 'basetest.eth'
+        : null
 
   const unsupportedL2Name =
     chain?.id === CHAINS.OPTIMISM
@@ -1218,6 +1225,26 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
       return
     }
 
+    if (
+      isBaseChain &&
+      selectedAction === 'subname' &&
+      baseRequiredParentDomain
+    ) {
+      const normalizedParent = parentName.trim().toLowerCase()
+      const parentTwoLD = normalizedParent
+        .split('.')
+        .filter(Boolean)
+        .slice(-2)
+        .join('.')
+
+      if (parentTwoLD !== baseRequiredParentDomain) {
+        setError(
+          `Parent domain must end with ${baseRequiredParentDomain} when using ${chain?.name ?? 'Base'}.`,
+        )
+        return
+      }
+    }
+
     if (!isAddressValid(existingContractAddress)) {
       setIsOwnable(false)
       return
@@ -1506,61 +1533,97 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
             : 'Set forward resolution'
           : 'Create subname'
 
-      // Step 1: Create Subname (skip if using existing name)
-      if (!skipSubnameCreation) {
-        steps.push({
-          title: titleFirst,
-          chainId: chainId, // Add chainId for L1 transaction
-          action: async () => {
-            console.log(`nameExist is ${nameExist} parentType is ${parentType}`)
-            if (parentType === 'web3labs') {
-              const currentAddr = (await readContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'addr',
-                args: [node],
-              })) as `0x${string}`
+        // chain selected is other than base/base-sepolia
 
-              if (
-                currentAddr.toLowerCase() !==
-                existingContractAddress.toLowerCase()
-              ) {
-                console.log(
-                  'create subname::writeContract calling setName on ENSCRIBE_CONTRACT',
-                )
-                let txn
+        // Step 1: Create Subname (skip if using existing name)
+        if (!skipSubnameCreation) {
+          steps.push({
+            title: titleFirst,
+            chainId: chainId, // Add chainId for L1 transaction
+            action: async () => {
+              console.log(`nameExist is ${nameExist} parentType is ${parentType}`)
+              if (parentType === 'web3labs') {
+                const currentAddr = (await readContract(walletClient, {
+                  address: publicResolverAddress,
+                  abi: publicResolverABI,
+                  functionName: 'addr',
+                  args: [node],
+                })) as `0x${string}`
 
-                if (isSafeWallet) {
-                  await writeContract(walletClient, {
-                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                    abi: contractABI,
-                    functionName: 'setName',
-                    args: [
+                if (
+                  currentAddr.toLowerCase() !==
+                  existingContractAddress.toLowerCase()
+                ) {
+                  console.log(
+                    'create subname::writeContract calling setName on ENSCRIBE_CONTRACT',
+                  )
+                  let txn
+
+                  if (isSafeWallet) {
+                    await writeContract(walletClient, {
+                      address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                      abi: contractABI,
+                      functionName: 'setName',
+                      args: [
+                        existingContractAddress,
+                        labelNormalized,
+                        parentNameNormalized,
+                        parentNode,
+                      ],
+                      value: txCost,
+                      account: walletAddress,
+                    })
+                    txn = 'safe wallet'
+                  } else {
+                    txn = await writeContract(walletClient, {
+                      address: config.ENSCRIBE_CONTRACT as `0x${string}`,
+                      abi: contractABI,
+                      functionName: 'setName',
+                      args: [
+                        existingContractAddress,
+                        labelNormalized,
+                        parentNameNormalized,
+                        parentNode,
+                      ],
+                      value: txCost,
+                      account: walletAddress,
+                    })
+                  }
+
+                  try {
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
                       existingContractAddress,
-                      labelNormalized,
-                      parentNameNormalized,
-                      parentNode,
-                    ],
-                    value: txCost,
-                    account: walletAddress,
-                  })
-                  txn = 'safe wallet'
+                      walletAddress,
+                      name,
+                      'subname::setName',
+                      txn,
+                      isOwnable ? 'Ownable' : 'ReverseClaimer',
+                      opType,
+                    )
+                  } catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
+                  return txn
                 } else {
-                  txn = await writeContract(walletClient, {
-                    address: config.ENSCRIBE_CONTRACT as `0x${string}`,
-                    abi: contractABI,
-                    functionName: 'setName',
-                    args: [
-                      existingContractAddress,
-                      labelNormalized,
-                      parentNameNormalized,
-                      parentNode,
-                    ],
-                    value: txCost,
-                    account: walletAddress,
-                  })
+                  setError('Forward resolution already set')
+                  console.log('Forward resolution already set')
                 }
-
+              } else if (chainId === CHAINS.BASE || chainId === CHAINS.BASE_SEPOLIA) {
+                const ensRegistryAbi = parseAbi([
+                  'function setSubnodeRecord(bytes32 node, bytes32 label, address owner, address resolver, uint64 ttl)',
+                ]);
+                let txn = await writeContract(walletClient, {
+                  chain,
+                  address: config.ENS_REGISTRY as `0x${string}`,
+                  abi: ensRegistryAbi,
+                  functionName: 'setSubnodeRecord',
+                  args: [parentNode as `0x${string}`, labelHash, walletAddress as `0x${string}`, config.PUBLIC_RESOLVER as `0x${string}`, BigInt(0)],
+                  account: walletAddress
+                });
                 try {
                   await logMetric(
                     corelationId,
@@ -1569,177 +1632,272 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                     existingContractAddress,
                     walletAddress,
                     name,
-                    'subname::setName',
+                    'subname::setSubnodeRecord',
                     txn,
                     isOwnable ? 'Ownable' : 'ReverseClaimer',
                     opType,
-                )} catch (err) {
+                  )
+                } catch (err) {
                   console.log('err ' + err)
                   setError('Failed to log metric')
                 }
                 return txn
               } else {
-                setError('Forward resolution already set')
-                console.log('Forward resolution already set')
-              }
-            } else {
-              const isWrapped = await readContract(walletClient, {
-                address: config.NAME_WRAPPER as `0x${string}`,
-                abi: nameWrapperABI,
-                functionName: 'isWrapped',
-                args: [parentNode],
-              })
-              console.log(`nameExist is ${nameExist}`)
-              if (!nameExist) {
-                if (isWrapped) {
-                  console.log(
-                    'create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER',
-                  )
-                  let txn
+                const isWrapped = await readContract(walletClient, {
+                  address: config.NAME_WRAPPER as `0x${string}`,
+                  abi: nameWrapperABI,
+                  functionName: 'isWrapped',
+                  args: [parentNode],
+                })
+                console.log(`nameExist is ${nameExist}`)
+                if (!nameExist) {
+                  if (isWrapped) {
+                    console.log(
+                      'create subname::writeContract calling setSubnodeRecord on NAME_WRAPPER',
+                    )
+                    let txn
 
-                  if (isSafeWallet) {
-                    await writeContract(walletClient, {
-                      address: config.NAME_WRAPPER as `0x${string}`,
-                      abi: nameWrapperABI,
-                      functionName: 'setSubnodeRecord',
-                      args: [
-                        parentNode,
-                        labelNormalized,
+                    if (isSafeWallet) {
+                      await writeContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'setSubnodeRecord',
+                        args: [
+                          parentNode,
+                          labelNormalized,
+                          walletAddress,
+                          publicResolverAddress,
+                          0,
+                          0,
+                          0,
+                        ],
+                        account: walletAddress,
+                      })
+                      txn = 'safe wallet'
+                    } else {
+                      txn = await writeContract(walletClient, {
+                        address: config.NAME_WRAPPER as `0x${string}`,
+                        abi: nameWrapperABI,
+                        functionName: 'setSubnodeRecord',
+                        args: [
+                          parentNode,
+                          labelNormalized,
+                          walletAddress,
+                          publicResolverAddress,
+                          0,
+                          0,
+                          0,
+                        ],
+                        account: walletAddress,
+                      })
+                    }
+
+                    try {
+                      await logMetric(
+                        corelationId,
+                        Date.now(),
+                        chainId,
+                        existingContractAddress,
                         walletAddress,
-                        publicResolverAddress,
-                        0,
-                        0,
-                        0,
-                      ],
-                      account: walletAddress,
-                    })
-                    txn = 'safe wallet'
+                        name,
+                        'subname::setSubnodeRecord',
+                        txn,
+                        isOwnable ? 'Ownable' : 'ReverseClaimer',
+                        opType,
+                      )
+                    } catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
+                    return txn
                   } else {
-                    txn = await writeContract(walletClient, {
-                      address: config.NAME_WRAPPER as `0x${string}`,
-                      abi: nameWrapperABI,
-                      functionName: 'setSubnodeRecord',
-                      args: [
-                        parentNode,
-                        labelNormalized,
-                        walletAddress,
-                        publicResolverAddress,
-                        0,
-                        0,
-                        0,
-                      ],
-                      account: walletAddress,
-                    })
-                  }
+                    console.log(
+                      'create subname::writeContract calling setSubnodeRecord on ENS_REGISTRY',
+                    )
+                    let txn
 
-                  try {
-                    await logMetric(
-                    corelationId,
-                    Date.now(),
-                    chainId,
-                    existingContractAddress,
-                    walletAddress,
-                    name,
-                    'subname::setSubnodeRecord',
-                    txn,
-                    isOwnable ? 'Ownable' : 'ReverseClaimer',
-                    opType,
-                  )} catch (err) {
-                    console.log('err ' + err)
-                    setError('Failed to log metric')
-                  }
-                  return txn
-                } else {
-                  console.log(
-                    'create subname::writeContract calling setSubnodeRecord on ENS_REGISTRY',
-                  )
-                  let txn
+                    if (isSafeWallet) {
+                      await writeContract(walletClient, {
+                        address: config.ENS_REGISTRY as `0x${string}`,
+                        abi: ensRegistryABI,
+                        functionName: 'setSubnodeRecord',
+                        args: [
+                          parentNode,
+                          labelHash,
+                          walletAddress,
+                          publicResolverAddress,
+                          0,
+                        ],
+                        account: walletAddress,
+                      })
+                      txn = 'safe wallet'
+                    } else {
+                      txn = await writeContract(walletClient, {
+                        address: config.ENS_REGISTRY as `0x${string}`,
+                        abi: ensRegistryABI,
+                        functionName: 'setSubnodeRecord',
+                        args: [
+                          parentNode,
+                          labelHash,
+                          walletAddress,
+                          publicResolverAddress,
+                          0,
+                        ],
+                        account: walletAddress,
+                      })
+                    }
 
-                  if (isSafeWallet) {
-                    await writeContract(walletClient, {
-                      address: config.ENS_REGISTRY as `0x${string}`,
-                      abi: ensRegistryABI,
-                      functionName: 'setSubnodeRecord',
-                      args: [
-                        parentNode,
-                        labelHash,
+                    try {
+                      await logMetric(
+                        corelationId,
+                        Date.now(),
+                        chainId,
+                        existingContractAddress,
                         walletAddress,
-                        publicResolverAddress,
-                        0,
-                      ],
-                      account: walletAddress,
-                    })
-                    txn = 'safe wallet'
-                  } else {
-                    txn = await writeContract(walletClient, {
-                      address: config.ENS_REGISTRY as `0x${string}`,
-                      abi: ensRegistryABI,
-                      functionName: 'setSubnodeRecord',
-                      args: [
-                        parentNode,
-                        labelHash,
-                        walletAddress,
-                        publicResolverAddress,
-                        0,
-                      ],
-                      account: walletAddress,
-                    })
+                        name,
+                        'subname::setSubnodeRecord',
+                        txn,
+                        isOwnable ? 'Ownable' : 'ReverseClaimer',
+                        opType,
+                      )
+                    } catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
+                    return txn
                   }
-
-                  try {
-                    await logMetric(
-                    corelationId,
-                    Date.now(),
-                    chainId,
-                    existingContractAddress,
-                    walletAddress,
-                    name,
-                    'subname::setSubnodeRecord',
-                    txn,
-                    isOwnable ? 'Ownable' : 'ReverseClaimer',
-                    opType,
-                  )} catch (err) {
-                    console.log('err ' + err)
-                    setError('Failed to log metric')
-                  }
-                  return txn
                 }
               }
-            }
-          },
-        })
-      }
+            },
+          })
+        }
 
-      // Step 2: Set Forward Resolution
-      // For existing names, always set forward resolution (even for web3labs), since we skip subname creation.
-      // For new names, set forward only if parentType is not 'web3labs'. If skipL1Naming, omit this.
-      if (!skipL1Naming && (skipSubnameCreation || parentType != 'web3labs')) {
-        steps.push({
-          title: 'Set forward resolution',
-          chainId: chainId, // Add chainId for L1 transaction
-          action: async () => {
-            const currentAddr = (await readContract(walletClient, {
-              address: publicResolverAddress,
-              abi: publicResolverABI,
-              functionName: 'addr',
-              args: [node],
-            })) as `0x${string}`
+        // Step 2: Set Forward Resolution
+        // For existing names, always set forward resolution (even for web3labs), since we skip subname creation.
+        // For new names, set forward only if parentType is not 'web3labs'. If skipL1Naming, omit this.
+        if (!skipL1Naming && (skipSubnameCreation || parentType != 'web3labs')) {
+          steps.push({
+            title: 'Set forward resolution',
+            chainId: chainId, // Add chainId for L1 transaction
+            action: async () => {
+                const currentAddr = (await readContract(walletClient, {
+                  address: publicResolverAddress,
+                  abi: publicResolverABI,
+                  functionName: 'addr',
+                  args: [node],
+                })) as `0x${string}`
 
-            if (
-              currentAddr.toLowerCase() !==
-              existingContractAddress.toLowerCase()
-            ) {
+                if (
+                  currentAddr.toLowerCase() !==
+                  existingContractAddress.toLowerCase()
+                ) {
+                  console.log(
+                    'set fwdres::writeContract calling setAddr on PUBLIC_RESOLVER',
+                  )
+                  let txn
+
+                  if (chainId === CHAINS.BASE || chainId === CHAINS.BASE_SEPOLIA) {
+                    const resolverAbi = parseAbi([
+                      'function setAddr(bytes32 node, address a)',
+                      'function setAddr(bytes32 node, uint256 coinType, bytes memory a)',
+                    ]);
+
+                    let txn = await writeContract(walletClient, {
+                      chain,
+                      address: config.PUBLIC_RESOLVER as `0x${string}`,
+                      abi: resolverAbi,
+                      functionName: 'setAddr',
+                      args: [node, toCoinType(chainId), encodePacked(['address'], [existingContractAddress as `0x${string}`])],
+                      account: walletAddress,
+                    });
+
+                    try {
+                      await logMetric(
+                        corelationId,
+                        Date.now(),
+                        chainId,
+                        existingContractAddress,
+                        walletAddress,
+                        name,
+                        'fwdres::setAddr',
+                        txn,
+                        isOwnable ? 'Ownable' : 'ReverseClaimer',
+                        opType,
+                      )
+                    } catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
+
+                    return txn
+                  } else {
+                    if (isSafeWallet) {
+                      await writeContract(walletClient, {
+                        address: publicResolverAddress,
+                        abi: publicResolverABI,
+                        functionName: 'setAddr',
+                        args: [node, existingContractAddress],
+                        account: walletAddress,
+                      })
+                      txn = 'safe wallet'
+                    } else {
+                      txn = await writeContract(walletClient, {
+                        address: publicResolverAddress,
+                        abi: publicResolverABI,
+                        functionName: 'setAddr',
+                        args: [node, existingContractAddress],
+                        account: walletAddress,
+                      })
+                    }
+
+                    try {
+                      await logMetric(
+                        corelationId,
+                        Date.now(),
+                        chainId,
+                        existingContractAddress,
+                        walletAddress,
+                        name,
+                        'fwdres::setAddr',
+                        txn,
+                        isOwnable ? 'Ownable' : 'ReverseClaimer',
+                        opType,
+                      )
+                    } catch (err) {
+                      console.log('err ' + err)
+                      setError('Failed to log metric')
+                    }
+                    return txn
+                  }
+                } else {
+                  setError('Forward resolution already set')
+                  console.log('Forward resolution already set')
+                }
+            },
+          })
+        }
+
+        // Step 3: Set Reverse Resolution (if Primary). If skipL1Naming, omit this.
+        if (isReverseClaimable && !skipL1Naming) {
+          setIsPrimaryNameSet(true)
+          const addrLabel = existingContractAddress.slice(2).toLowerCase()
+          const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
+          steps.push({
+            title: 'Set reverse resolution',
+            chainId: chainId, // Add chainId for L1 transaction
+            action: async () => {
               console.log(
-                'set fwdres::writeContract calling setAddr on PUBLIC_RESOLVER',
+                'set revres::writeContract calling setName on PUBLIC_RESOLVER',
               )
+
               let txn
 
               if (isSafeWallet) {
                 await writeContract(walletClient, {
                   address: publicResolverAddress,
                   abi: publicResolverABI,
-                  functionName: 'setAddr',
-                  args: [node, existingContractAddress],
+                  functionName: 'setName',
+                  args: [reversedNode, name],
                   account: walletAddress,
                 })
                 txn = 'safe wallet'
@@ -1747,445 +1905,436 @@ ${callDataArray.map((item, index) => `${index + 1}. ${item}`).join('\n')}`
                 txn = await writeContract(walletClient, {
                   address: publicResolverAddress,
                   abi: publicResolverABI,
-                  functionName: 'setAddr',
-                  args: [node, existingContractAddress],
+                  functionName: 'setName',
+                  args: [reversedNode, name],
                   account: walletAddress,
                 })
               }
 
               try {
                 await logMetric(
-                corelationId,
-                Date.now(),
-                chainId,
-                existingContractAddress,
-                walletAddress,
-                name,
-                'fwdres::setAddr',
-                txn,
-                isOwnable ? 'Ownable' : 'ReverseClaimer',
-                opType,
-              )} catch (err) {
-                console.log('err ' + err)
-                setError('Failed to log metric')
-              }
-              return txn
-            } else {
-              setError('Forward resolution already set')
-              console.log('Forward resolution already set')
-            }
-          },
-        })
-      }
-
-      // Step 3: Set Reverse Resolution (if Primary). If skipL1Naming, omit this.
-      if (isReverseClaimable && !skipL1Naming) {
-        setIsPrimaryNameSet(true)
-        const addrLabel = existingContractAddress.slice(2).toLowerCase()
-        const reversedNode = namehash(addrLabel + '.' + 'addr.reverse')
-        steps.push({
-          title: 'Set reverse resolution',
-          chainId: chainId, // Add chainId for L1 transaction
-          action: async () => {
-            console.log(
-              'set revres::writeContract calling setName on PUBLIC_RESOLVER',
-            )
-            let txn
-
-            if (isSafeWallet) {
-              await writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setName',
-                args: [reversedNode, name],
-                account: walletAddress,
-              })
-              txn = 'safe wallet'
-            } else {
-              txn = await writeContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'setName',
-                args: [reversedNode, name],
-                account: walletAddress,
-              })
-            }
-
-            try { 
-              await logMetric(
-              corelationId,
-              Date.now(),
-              chainId,
-              existingContractAddress,
-              walletAddress,
-              name,
-              'revres::setName',
-              txn,
-              'ReverseClaimer',
-              opType,
-            )} catch (err) {
-              console.log('err ' + err)
-              setError('Failed to log metric')
-            }
-            return txn
-          },
-        })
-      } else if (isContractOwner && isOwnable && !skipL1Naming) {
-        setIsPrimaryNameSet(true)
-        steps.push({
-          title: 'Set reverse resolution',
-          chainId: chainId, // Add chainId for L1 transaction
-          action: async () => {
-            console.log(
-              'set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR',
-            )
-            let txn
-
-            if (isSafeWallet) {
-              await writeContract(walletClient, {
-                address: config.REVERSE_REGISTRAR as `0x${string}`,
-                abi: reverseRegistrarABI,
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress,
-                  walletAddress,
-                  publicResolverAddress,
-                  name,
-                ],
-                account: walletAddress,
-              })
-              txn = 'safe wallet'
-            } else {
-              txn = await writeContract(walletClient, {
-                address: config.REVERSE_REGISTRAR as `0x${string}`,
-                abi: reverseRegistrarABI,
-                functionName: 'setNameForAddr',
-                args: [
-                  existingContractAddress,
-                  walletAddress,
-                  publicResolverAddress,
-                  name,
-                ],
-                account: walletAddress,
-              })
-            }
-
-            try { 
-              await logMetric(
-              corelationId,
-              Date.now(),
-              chainId,
-              existingContractAddress,
-              walletAddress,
-              name,
-              'revres::setNameForAddr',
-              txn,
-              'Ownable',
-              opType,
-            )} catch (err) {
-              console.log('err ' + err)
-              setError('Failed to log metric')
-            }
-            return txn
-          },
-        })
-      } else {
-        setIsPrimaryNameSet(false)
-      }
-
-      // Add L2 primary name steps for all selected chains
-      const selectedL2Chains: Array<{
-        name: string
-        chainId: number
-        chain: any
-      }> = []
-
-      // Map selected chain names to their configurations for steps
-      const stepChainConfigs = {
-        Optimism: {
-          chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA,
-          chain: isL1Mainnet ? optimism : optimismSepolia,
-        },
-        Arbitrum: {
-          chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA,
-          chain: isL1Mainnet ? arbitrum : arbitrumSepolia,
-        },
-        Scroll: {
-          chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA,
-          chain: isL1Mainnet ? scroll : scrollSepolia,
-        },
-        Base: {
-          chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA,
-          chain: isL1Mainnet ? base : baseSepolia,
-        },
-        Linea: {
-          chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA,
-          chain: isL1Mainnet ? linea : lineaSepolia,
-        },
-      }
-
-      // Add selected chains to steps
-      for (const selectedChain of selectedL2ChainNames) {
-        const config =
-          stepChainConfigs[selectedChain as keyof typeof stepChainConfigs]
-        if (config) {
-          selectedL2Chains.push({ name: selectedChain, ...config })
-        }
-      }
-
-      // Second: Add all L2 forward resolution steps (on current chain)
-      for (const l2Chain of selectedL2Chains) {
-        const l2Config = CONTRACTS[l2Chain.chainId]
-        const coinType = Number(l2Config.COIN_TYPE || '60')
-
-        if (l2Config && coinType) {
-          // Add forward resolution step for this L2 chain
-          steps.push({
-            title: `Set forward resolution for ${l2Chain.name}`,
-            chainId: chainId, // Add chainId for L1 transaction (forward resolution happens on L1)
-            action: async () => {
-              const currentAddr = (await readContract(walletClient, {
-                address: publicResolverAddress,
-                abi: publicResolverABI,
-                functionName: 'addr',
-                args: [node, coinType],
-              })) as `0x${string}`
-
-              if (
-                currentAddr.toLowerCase() !==
-                existingContractAddress.toLowerCase()
-              ) {
-                let txn
-                if (isSafeWallet) {
-                  writeContract(walletClient, {
-                    address: publicResolverAddress,
-                    abi: publicResolverABI,
-                    functionName: 'setAddr',
-                    args: [node, coinType, existingContractAddress],
-                    account: walletAddress,
-                  })
-                  txn = 'safe wallet'
-                } else {
-                  txn = await writeContract(walletClient, {
-                    address: publicResolverAddress,
-                    abi: publicResolverABI,
-                    functionName: 'setAddr',
-                    args: [node, coinType, existingContractAddress],
-                    account: walletAddress,
-                  })
-                }
-                try {
-                  await logMetric(
                   corelationId,
                   Date.now(),
                   chainId,
                   existingContractAddress,
                   walletAddress,
                   name,
-                  'fwdres::setAddr',
+                  'revres::setName',
                   txn,
-                  isOwnable ? 'Ownable' : 'ReverseClaimer',
+                  'ReverseClaimer',
                   opType,
-                )} catch (err) {
+                )
+              } catch (err) {
+                console.log('err ' + err)
+                setError('Failed to log metric')
+              }
+              return txn
+            },
+          })
+        } else if (isContractOwner && isOwnable && !skipL1Naming) {
+          setIsPrimaryNameSet(true)
+          steps.push({
+            title: 'Set reverse resolution',
+            chainId: chainId, // Add chainId for L1 transaction
+            action: async () => {
+              console.log(
+                'set revres::writeContract calling setNameForAddr on REVERSE_REGISTRAR',
+              )
+              let txn
+
+              if (chainId === CHAINS.BASE || chainId === CHAINS.BASE_SEPOLIA) {
+                const reverseAbi = [
+                  // setNameForAddr(addr, owner, resolver, name)
+                  {
+                    type: "function",
+                    name: "setNameForAddr",
+                    stateMutability: "nonpayable",
+                    inputs: [
+                      { name: "addr", type: "address" },
+                      { name: "name", type: "string" },
+                    ],
+                    outputs: [],
+                  },
+                ] as const;
+
+                let txn = await writeContract(walletClient, {
+                  chain,
+                  address: config.L2_REVERSE_REGISTRAR as `0x${string}`,
+                  abi: reverseAbi,
+                  functionName: 'setNameForAddr',
+                  args: [existingContractAddress as `0x${string}`, name],
+                  account: walletAddress,
+                })
+
+                try {
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    name,
+                    'revres::setNameForAddr',
+                    txn,
+                    'Ownable',
+                    opType,
+                  )
+                } catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
+
+                return txn
+              } else {
+                if (isSafeWallet) {
+                  await writeContract(walletClient, {
+                    address: config.REVERSE_REGISTRAR as `0x${string}`,
+                    abi: reverseRegistrarABI,
+                    functionName: 'setNameForAddr',
+                    args: [
+                      existingContractAddress,
+                      walletAddress,
+                      publicResolverAddress,
+                      name,
+                    ],
+                    account: walletAddress,
+                  })
+                  txn = 'safe wallet'
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: config.REVERSE_REGISTRAR as `0x${string}`,
+                    abi: reverseRegistrarABI,
+                    functionName: 'setNameForAddr',
+                    args: [
+                      existingContractAddress,
+                      walletAddress,
+                      publicResolverAddress,
+                      name,
+                    ],
+                    account: walletAddress,
+                  })
+                }
+
+                try {
+                  await logMetric(
+                    corelationId,
+                    Date.now(),
+                    chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    name,
+                    'revres::setNameForAddr',
+                    txn,
+                    'Ownable',
+                    opType,
+                  )
+                } catch (err) {
                   console.log('err ' + err)
                   setError('Failed to log metric')
                 }
                 return txn
-              } else {
-                setError('Forward resolution already set on this chain')
-                console.log('Forward resolution already set on this chain')
               }
             },
           })
         } else {
-          console.error(`${l2Chain.name} configuration missing:`, {
-            hasConfig: !!l2Config,
-            config: l2Config,
-          })
-        }
-      }
-
-      // Then: Add L2 primary naming steps (switch to each chain, then proceed)
-      for (const l2Chain of selectedL2Chains) {
-        const l2Config = CONTRACTS[l2Chain.chainId]
-
-        // Check if contract is ownable on this specific L2 chain
-        let isOwnableOnThisL2Chain = false
-        switch (l2Chain.name) {
-          case 'Optimism':
-            isOwnableOnThisL2Chain = isOwnableOptimism === true
-            break
-          case 'Arbitrum':
-            isOwnableOnThisL2Chain = isOwnableArbitrum === true
-            break
-          case 'Scroll':
-            isOwnableOnThisL2Chain = isOwnableScroll === true
-            break
-          case 'Base':
-            isOwnableOnThisL2Chain = isOwnableBase === true
-            break
-          case 'Linea':
-            isOwnableOnThisL2Chain = isOwnableLinea === true
-            break
-          default:
-            isOwnableOnThisL2Chain = false
+          setIsPrimaryNameSet(false)
         }
 
-        // Only add L2 primary name step if contract is ownable on this L2 chain
-        if (
-          l2Config &&
-          l2Config.L2_REVERSE_REGISTRAR &&
-          isOwnableOnThisL2Chain
-        ) {
-          setIsPrimaryNameSet(true)
-          // Add reverse resolution step for this L2 chain
-          steps.push({
-            title: `Switch to ${l2Chain.name} and set L2 primary name`,
-            chainId: l2Chain.chainId, // Add chainId for L2 transaction
-            action: async () => {
-              console.log(`Starting ${l2Chain.name} L2 primary name step...`)
+        // Add L2 primary name steps for all selected chains
+        const selectedL2Chains: Array<{
+          name: string
+          chainId: number
+          chain: any
+        }> = []
 
-              console.log(
-                `Switching to ${l2Chain.name} (chain ID: ${l2Chain.chainId})...`,
-              )
+        // Map selected chain names to their configurations for steps
+        const stepChainConfigs = {
+          Optimism: {
+            chainId: isL1Mainnet ? CHAINS.OPTIMISM : CHAINS.OPTIMISM_SEPOLIA,
+            chain: isL1Mainnet ? optimism : optimismSepolia,
+          },
+          Arbitrum: {
+            chainId: isL1Mainnet ? CHAINS.ARBITRUM : CHAINS.ARBITRUM_SEPOLIA,
+            chain: isL1Mainnet ? arbitrum : arbitrumSepolia,
+          },
+          Scroll: {
+            chainId: isL1Mainnet ? CHAINS.SCROLL : CHAINS.SCROLL_SEPOLIA,
+            chain: isL1Mainnet ? scroll : scrollSepolia,
+          },
+          Base: {
+            chainId: isL1Mainnet ? CHAINS.BASE : CHAINS.BASE_SEPOLIA,
+            chain: isL1Mainnet ? base : baseSepolia,
+          },
+          Linea: {
+            chainId: isL1Mainnet ? CHAINS.LINEA : CHAINS.LINEA_SEPOLIA,
+            chain: isL1Mainnet ? linea : lineaSepolia,
+          },
+        }
 
-              // Switch to L2 chain
-              await switchChain({ chainId: l2Chain.chainId })
+        // Add selected chains to steps
+        for (const selectedChain of selectedL2ChainNames) {
+          const config =
+            stepChainConfigs[selectedChain as keyof typeof stepChainConfigs]
+          if (config) {
+            selectedL2Chains.push({ name: selectedChain, ...config })
+          }
+        }
 
-              // Wait a moment for the chain switch to complete
-              console.log('Waiting for chain switch to complete...')
-              await new Promise((resolve) => setTimeout(resolve, 3000))
+        // Second: Add all L2 forward resolution steps (on current chain)
+        for (const l2Chain of selectedL2Chains) {
+          const l2Config = CONTRACTS[l2Chain.chainId]
+          const coinType = Number(l2Config.COIN_TYPE || '60')
 
-              // Wait for the chain to actually change
-              console.log('Waiting for chain to actually change...')
-              let attempts = 0
-              while (attempts < 10) {
-                const currentChain = await walletClient.getChainId()
-                console.log(
-                  `Current chain ID: ${currentChain}, Target: ${l2Chain.chainId}`,
-                )
-                if (currentChain === l2Chain.chainId) {
-                  console.log('Chain switch confirmed!')
-                  break
+          if (l2Config && coinType) {
+            // Add forward resolution step for this L2 chain
+            steps.push({
+              title: `Set forward resolution for ${l2Chain.name}`,
+              chainId: chainId, // Add chainId for L1 transaction (forward resolution happens on L1)
+              action: async () => {
+                const currentAddr = (await readContract(walletClient, {
+                  address: publicResolverAddress,
+                  abi: publicResolverABI,
+                  functionName: 'addr',
+                  args: [node, coinType],
+                })) as `0x${string}`
+
+                if (
+                  currentAddr.toLowerCase() !==
+                  existingContractAddress.toLowerCase()
+                ) {
+                  let txn
+                  if (isSafeWallet) {
+                    writeContract(walletClient, {
+                      address: publicResolverAddress,
+                      abi: publicResolverABI,
+                      functionName: 'setAddr',
+                      args: [node, coinType, existingContractAddress],
+                      account: walletAddress,
+                    })
+                    txn = 'safe wallet'
+                  } else {
+                    txn = await writeContract(walletClient, {
+                      address: publicResolverAddress,
+                      abi: publicResolverABI,
+                      functionName: 'setAddr',
+                      args: [node, coinType, existingContractAddress],
+                      account: walletAddress,
+                    })
+                  }
+                  try {
+                    await logMetric(
+                      corelationId,
+                      Date.now(),
+                      chainId,
+                      existingContractAddress,
+                      walletAddress,
+                      name,
+                      'fwdres::setAddr',
+                      txn,
+                      isOwnable ? 'Ownable' : 'ReverseClaimer',
+                      opType,
+                    )
+                  } catch (err) {
+                    console.log('err ' + err)
+                    setError('Failed to log metric')
+                  }
+                  return txn
+                } else {
+                  setError('Forward resolution already set on this chain')
+                  console.log('Forward resolution already set on this chain')
                 }
-                await new Promise((resolve) => setTimeout(resolve, 1000))
-                attempts++
-              }
-
-              if (attempts >= 10) {
-                throw new Error(
-                  `Chain switch timeout - chain did not change to ${l2Chain.name}`,
-                )
-              }
-
-              // Now execute the reverse resolution transaction on L2
-              console.log(`Executing reverse resolution on ${l2Chain.name}...`)
-              console.log(
-                'L2 Reverse Registrar:',
-                l2Config.L2_REVERSE_REGISTRAR,
-              )
-              console.log('Contract Address:', existingContractAddress)
-              console.log('ENS Name:', skipSubnameCreation ? label : name)
-
-              // Perform reverse resolution on L2
-              let txn
-              if (isSafeWallet) {
-                await writeContract(walletClient, {
-                  address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
-                  abi: [
-                    {
-                      inputs: [
-                        {
-                          internalType: 'address',
-                          name: 'addr',
-                          type: 'address',
-                        },
-                        {
-                          internalType: 'string',
-                          name: 'name',
-                          type: 'string',
-                        },
-                      ],
-                      name: 'setNameForAddr',
-                      outputs: [],
-                      stateMutability: 'nonpayable',
-                      type: 'function',
-                    },
-                  ],
-                  functionName: 'setNameForAddr',
-                  args: [
-                    existingContractAddress as `0x${string}`,
-                    skipSubnameCreation ? label : name,
-                  ],
-                  account: walletAddress,
-                  chain: l2Chain.chain,
-                })
-                txn = 'safe wallet'
-                
-              } else {
-                txn = await writeContract(walletClient, {
-                  address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
-                  abi: [
-                    {
-                      inputs: [
-                        {
-                          internalType: 'address',
-                          name: 'addr',
-                          type: 'address',
-                        },
-                        {
-                          internalType: 'string',
-                          name: 'name',
-                          type: 'string',
-                        },
-                      ],
-                      name: 'setNameForAddr',
-                      outputs: [],
-                      stateMutability: 'nonpayable',
-                      type: 'function',
-                    },
-                  ],
-                  functionName: 'setNameForAddr',
-                  args: [existingContractAddress as `0x${string}`, name],
-                  account: walletAddress,
-                  chain: l2Chain.chain,
-                })
-              }
-
-              console.log(`${l2Chain.name} transaction submitted:`, txn)
-
-              // Log the L2 transaction
-              try {
-                await logMetric(
-                `${l2Chain.name.toLowerCase()}-l2-primary`, // correlationId
-                Date.now(),
-                l2Chain.chainId,
-                existingContractAddress,
-                walletAddress,
-                skipSubnameCreation ? label : name,
-                'revres::setNameForAddr',
-                txn,
-                'L2Primary',
-                opType,
-              )} catch (err) {
-                console.log('err ' + err)
-                setError('Failed to log metric')
-              }
-
-              return txn
-            },
-          })
-        } else {
-          console.error(
-            `${l2Chain.name} configuration missing or contract not ownable:`,
-            {
+              },
+            })
+          } else {
+            console.error(`${l2Chain.name} configuration missing:`, {
               hasConfig: !!l2Config,
-              hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
               config: l2Config,
-            },
-          )
+            })
+          }
         }
-      }
+
+        // Then: Add L2 primary naming steps (switch to each chain, then proceed)
+        for (const l2Chain of selectedL2Chains) {
+          const l2Config = CONTRACTS[l2Chain.chainId]
+
+          // Check if contract is ownable on this specific L2 chain
+          let isOwnableOnThisL2Chain = false
+          switch (l2Chain.name) {
+            case 'Optimism':
+              isOwnableOnThisL2Chain = isOwnableOptimism === true
+              break
+            case 'Arbitrum':
+              isOwnableOnThisL2Chain = isOwnableArbitrum === true
+              break
+            case 'Scroll':
+              isOwnableOnThisL2Chain = isOwnableScroll === true
+              break
+            case 'Base':
+              isOwnableOnThisL2Chain = isOwnableBase === true
+              break
+            case 'Linea':
+              isOwnableOnThisL2Chain = isOwnableLinea === true
+              break
+            default:
+              isOwnableOnThisL2Chain = false
+          }
+
+          // Only add L2 primary name step if contract is ownable on this L2 chain
+          if (
+            l2Config &&
+            l2Config.L2_REVERSE_REGISTRAR &&
+            isOwnableOnThisL2Chain
+          ) {
+            setIsPrimaryNameSet(true)
+            // Add reverse resolution step for this L2 chain
+            steps.push({
+              title: `Switch to ${l2Chain.name} and set L2 primary name`,
+              chainId: l2Chain.chainId, // Add chainId for L2 transaction
+              action: async () => {
+                console.log(`Starting ${l2Chain.name} L2 primary name step...`)
+
+                console.log(
+                  `Switching to ${l2Chain.name} (chain ID: ${l2Chain.chainId})...`,
+                )
+
+                // Switch to L2 chain
+                await switchChain({ chainId: l2Chain.chainId })
+
+                // Wait a moment for the chain switch to complete
+                console.log('Waiting for chain switch to complete...')
+                await new Promise((resolve) => setTimeout(resolve, 3000))
+
+                // Wait for the chain to actually change
+                console.log('Waiting for chain to actually change...')
+                let attempts = 0
+                while (attempts < 10) {
+                  const currentChain = await walletClient.getChainId()
+                  console.log(
+                    `Current chain ID: ${currentChain}, Target: ${l2Chain.chainId}`,
+                  )
+                  if (currentChain === l2Chain.chainId) {
+                    console.log('Chain switch confirmed!')
+                    break
+                  }
+                  await new Promise((resolve) => setTimeout(resolve, 1000))
+                  attempts++
+                }
+
+                if (attempts >= 10) {
+                  throw new Error(
+                    `Chain switch timeout - chain did not change to ${l2Chain.name}`,
+                  )
+                }
+
+                // Now execute the reverse resolution transaction on L2
+                console.log(`Executing reverse resolution on ${l2Chain.name}...`)
+                console.log(
+                  'L2 Reverse Registrar:',
+                  l2Config.L2_REVERSE_REGISTRAR,
+                )
+                console.log('Contract Address:', existingContractAddress)
+                console.log('ENS Name:', skipSubnameCreation ? label : name)
+
+                // Perform reverse resolution on L2
+                let txn
+                if (isSafeWallet) {
+                  await writeContract(walletClient, {
+                    address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
+                    abi: [
+                      {
+                        inputs: [
+                          {
+                            internalType: 'address',
+                            name: 'addr',
+                            type: 'address',
+                          },
+                          {
+                            internalType: 'string',
+                            name: 'name',
+                            type: 'string',
+                          },
+                        ],
+                        name: 'setNameForAddr',
+                        outputs: [],
+                        stateMutability: 'nonpayable',
+                        type: 'function',
+                      },
+                    ],
+                    functionName: 'setNameForAddr',
+                    args: [
+                      existingContractAddress as `0x${string}`,
+                      skipSubnameCreation ? label : name,
+                    ],
+                    account: walletAddress,
+                    chain: l2Chain.chain,
+                  })
+                  txn = 'safe wallet'
+
+                } else {
+                  txn = await writeContract(walletClient, {
+                    address: l2Config.L2_REVERSE_REGISTRAR as `0x${string}`,
+                    abi: [
+                      {
+                        inputs: [
+                          {
+                            internalType: 'address',
+                            name: 'addr',
+                            type: 'address',
+                          },
+                          {
+                            internalType: 'string',
+                            name: 'name',
+                            type: 'string',
+                          },
+                        ],
+                        name: 'setNameForAddr',
+                        outputs: [],
+                        stateMutability: 'nonpayable',
+                        type: 'function',
+                      },
+                    ],
+                    functionName: 'setNameForAddr',
+                    args: [existingContractAddress as `0x${string}`, name],
+                    account: walletAddress,
+                    chain: l2Chain.chain,
+                  })
+                }
+
+                console.log(`${l2Chain.name} transaction submitted:`, txn)
+
+                // Log the L2 transaction
+                try {
+                  await logMetric(
+                    `${l2Chain.name.toLowerCase()}-l2-primary`, // correlationId
+                    Date.now(),
+                    l2Chain.chainId,
+                    existingContractAddress,
+                    walletAddress,
+                    skipSubnameCreation ? label : name,
+                    'revres::setNameForAddr',
+                    txn,
+                    'L2Primary',
+                    opType,
+                  )
+                } catch (err) {
+                  console.log('err ' + err)
+                  setError('Failed to log metric')
+                }
+
+                return txn
+              },
+            })
+          } else {
+            console.error(
+              `${l2Chain.name} configuration missing or contract not ownable:`,
+              {
+                hasConfig: !!l2Config,
+                hasReverseRegistrar: !!l2Config?.L2_REVERSE_REGISTRAR,
+                config: l2Config,
+              },
+            )
+          }
+        }
 
       // Check if connected wallet is a Safe wallet
       const safeCheck = await checkIfSafeWallet()

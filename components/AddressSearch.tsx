@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { usePublicClient, useAccount } from 'wagmi'
 import { ethers, isAddress } from 'ethers'
-import { createPublicClient, http } from 'viem'
+import { createPublicClient, http, parseAbi, toCoinType } from 'viem'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Search } from 'lucide-react'
 import { CHAINS, CONTRACTS } from '@/utils/constants'
 import { useAccount as useWagmiAccount } from 'wagmi'
+import { readContract } from 'viem/actions'
+import { namehash } from 'viem/ens'
 
 interface AddressSearchProps {
   selectedChain?: number
@@ -111,9 +113,38 @@ export default function AddressSearch({
             ensChainId,
             isTestnet ? '(testnet)' : '(mainnet)',
           )
-          const mainnetProvider = getProvider(ensChainId)
-          const resolvedAddress =
-            await mainnetProvider.resolveName(cleanedQuery)
+
+          let resolvedAddress: string | null = null
+
+          if (selectedChain === CHAINS.BASE || selectedChain === CHAINS.BASE_SEPOLIA) {
+            const config = CONTRACTS[selectedChain]
+            const baseClient = createPublicClient({
+              transport: http(config.RPC_ENDPOINT),
+              chain: {
+                id: selectedChain,
+                name: 'Base',
+                network: 'base',
+                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                rpcUrls: { default: { http: [config.RPC_ENDPOINT] } },
+              },
+            })
+
+            const publicResolverAbi = parseAbi([
+              'function addr(bytes32 node, uint256 coinType) view returns (address)',
+            ]);
+            const address = await readContract(baseClient, {
+              address: config.PUBLIC_RESOLVER as `0x${string}`,
+              abi: publicResolverAbi,
+              functionName: 'addr',
+              args: [namehash(cleanedQuery), toCoinType(selectedChain)],
+            }) as `0x${string}`
+            console.log('address: ', address)
+            resolvedAddress = address
+          } else {
+            const mainnetProvider = getProvider(ensChainId)
+            resolvedAddress =
+              await mainnetProvider.resolveName(cleanedQuery)
+          }
 
           if (resolvedAddress) {
             // Always use window.location for a full refresh to ensure contract status is re-checked

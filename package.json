@@ -36,7 +36,7 @@
     "tailwindcss-animate": "^1.0.7",
     "unique-names-generator": "^4.7.1",
     "uuid": "^11.1.0",
-    "viem": "^2.38.0",
+    "viem": "^2.39.0",
     "wagmi": "^2.14.12"
   },
   "devDependencies": {
@@ -46,6 +46,7 @@
     "postcss": "^8",
     "prettier": "3.5.3",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^4.0.8"
   }
 }
