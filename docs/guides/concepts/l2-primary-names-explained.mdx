@@ -52,11 +52,11 @@ The key concept is that **the forward address for a given chain must match the r
 **Example scenario:**
 1. You own `alice.eth` 
 2. It resolves to `0x1234...5678` on Ethereum
-3. You call `setName("alice.eth")` on Base reverse registrar
-4. **This doesn't work yet** because `alice.eth` only has an Ethereum address set
+3. You call `setName("alice.base.eth")` on Base reverse registrar
+4. **This doesn't work yet** because `alice.base.eth` only has an Ethereum address set
 
 **To fix this:**
-1. Set the Base address for `alice.eth` by calling:
+1. Set the Base address for `alice.base.eth` by calling:
 ```solidity
 setAddr(
   namehash("alice.eth"), 
@@ -65,8 +65,8 @@ setAddr(
 )
 ```
 2. Now both directions work:
-   - `alice.eth` → `0x1234...5678` on Base (forward)
-   - `0x1234...5678` → `alice.eth` on Base (reverse)
+   - `alice.base.eth` → `0x1234...5678` on Base (forward)
+   - `0x1234...5678` → `alice.base.eth` on Base (reverse)
 
 ### Network Coin Types
 
