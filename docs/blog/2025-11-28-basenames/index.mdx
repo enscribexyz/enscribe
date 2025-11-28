@@ -1,0 +1,65 @@
+---
+slug: enscribe-v2
+title: "EnscribeV2 is now live on Ethereum mainnet"
+description: "Name multiple contracts in one transaction with Enscribe V2's batch operations and multi-chain support"
+authors: [nischal]
+tags: [enscribe, mainnet, batch-naming, ensip-19]
+keywords: [ENS names, Enscribe V2, batch naming, smart contracts, multi-chain, ENSIP-19, contract identity, ethereum mainnet]
+image: enscribe-v2-hero.png
+---
+
+Basenames are growing in popularity. Users set them for their EOA accounts so that they don’t have to use hex addresses when interacting on Base. Basenames use the solid ENS infra underneath and are fully [ENSIP-19](https://docs.ens.domains/ensip/19/) compliant.
+
+Since Enscribe is on a mission to eradicate hex addresses from Web3 UX and [contract naming is overlooked](https://dune.com/enscribe/contract-naming), we wanted to enable users to set Basenames for deployed contracts as well. We are excited to announce support for naming your contracts using Basenames.
+
+## ENSIP-19 in short
+
+ENSIP-19 is an ENS Standardization Proposal that standardizes reverse and primary name resolution for all coin types, and defines how this resolution process operates across the multichain Ethereum ecosystem.
+
+This is done by deploying an L2-specific Reverse Registrar contract that takes care of setting reverse records.
+
+For example, suppose we want to set a Basename `v1app.alice.base.eth`. Then, we first create a subname on L2 ENS Registry by calling `setSubnodeRecord`:
+
+```solidity
+setSubnodeRecord(namehash(alice.base.eth), labelhas(v1app), deployerAddress, resolverAddress, 0)
+```
+
+Then we can set a forward resolution that maps the name to address with:
+
+```solidity
+setAddr(namehash(v1app.alice.base.eth), BASE_COIN_TYPE, contractAddress)
+```
+
+Finally, set the reverse record with the L2 Reverse Registrar:
+
+```solidity
+setNameForAddr(contractAddress, v1app.alice.base.eth)
+```
+
+## How to set a Basename for your contract?
+
+Navigate to the [Name Contract](https://app.enscribe.xyz/nameContract) page & connect your wallet if you haven’t already. From the chain dropdown, select Base/Base Sepolia i.e. the chain you want to set the Basename on.
+
+![Name Contract](namecontract.png)
+
+Enter your contract’s address in the *Contract Address* field and it should automatically detect the chain like shown above.
+
+Click on *Create New Name* button and enter the new contract name you want to register and the parent domain under which you want to register the subname:
+
+![details](details.png)
+
+Note: the parent domain entered should already be registered. If you want to register a new parent domain, then use [https://www.base.org/names](https://www.base.org/names) to do so.
+
+Click on Name Your Contract button & you’ll see all the transactions executing successfully:
+
+![success](success.png)
+
+And just like that, we have successfully set a Basename for our deployed Ownable contract!
+
+## What This Means for the Ecosystem
+
+We’re excited to see how the community puts this to use. As always, feedback is welcome—we’re continuing to refine our ENSIP-19 aligned features and would love to hear what you think.
+
+Head over to [Enscribe](https://app.enscribe.xyz) and use a Basename to name your contract!
+
+Happy naming! 🚀
