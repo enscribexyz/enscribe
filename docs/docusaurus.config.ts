@@ -93,6 +93,7 @@ const config = {
   customFields: {
     // Put your custom environment here
     appUrl: process.env.APP_URL,
+    formspreeUrl: process.env.FORMSPREE_URL,
   },
 
   themeConfig:

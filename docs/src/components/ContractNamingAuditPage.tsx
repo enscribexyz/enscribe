@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import useDocusaurusContext from '@docusaurus/useDocusaurusContext';
 
 type FormState = {
     name: string;
@@ -23,6 +24,12 @@ const primaryButtonStyle: React.CSSProperties = {
 };
 
 export default function ContractNamingAuditPage() {
+
+    const {
+        siteConfig: {customFields},
+    } = useDocusaurusContext();
+    const FORMSPREE_URL = customFields.formspreeUrl || 'formspreeUrl is not defined'
+
     const [form, setForm] = useState<FormState>(initialFormState);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [status, setStatus] = useState<null | "success" | "error">(null);
@@ -47,8 +54,6 @@ export default function ContractNamingAuditPage() {
         return null;
     };
 
-    const FORMSPREE_ENDPOINT = process.env.NEXT_PUBLIC_FORMSPREE_ENDPOINT!;
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setStatus(null);
@@ -64,7 +69,7 @@ export default function ContractNamingAuditPage() {
         try {
             setIsSubmitting(true);
 
-            const response = await fetch(FORMSPREE_ENDPOINT, {
+            const response = await fetch(FORMSPREE_URL, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -134,7 +139,7 @@ export default function ContractNamingAuditPage() {
                                     if (el) el.scrollIntoView({behavior: "smooth"});
                                 }}
                             >
-                                Request Your Contract Audit
+                                Request Your Naming Audit
                             </button>
                             <span className="text-sm text-[color:var(--ifm-color-emphasis-500)]">
                 Prefer email?{" "}
