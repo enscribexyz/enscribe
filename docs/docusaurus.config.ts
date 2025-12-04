@@ -143,7 +143,7 @@ const config = {
         items: [
           {
             type: "docSidebar",
-            sidebarId: "tutorialSidebar",
+            sidebarId: "docsSidebar",
             position: "left",
             label: "Docs",
           },
@@ -155,6 +155,7 @@ const config = {
             docsPluginId: "guides",
           },
           { to: "/blog", label: "Blog", position: "left" },
+          { to: "/audit", label: "Services", position: "left" },
           {
             href: "https://github.com/enscribexyz/enscribe",
             label: "GitHub",

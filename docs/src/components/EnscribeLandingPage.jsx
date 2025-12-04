@@ -123,6 +123,9 @@ export default function EnscribeLandingPage() {
             <Link to="/blog" className="text-sm font-medium transition-colors hover:text-cyan-400">
               Blog
             </Link>
+            <Link to="/audit" className="text-sm font-medium transition-colors hover:text-cyan-400">
+              Services
+            </Link>
           </nav>
           <Link to={customFields.appUrl} className="hidden md:flex button-primary rounded-md">
             Launch App
@@ -154,6 +157,9 @@ export default function EnscribeLandingPage() {
                 <Link to="/blog"
                       className="block text-white text-lg font-bold hover:text-cyan-400"
                       onClick={() => setMenuOpen(false)}>Blog</Link>
+                <Link to="/audit"
+                      className="block text-white text-lg font-bold hover:text-cyan-400"
+                      onClick={() => setMenuOpen(false)}>Services</Link>
               </div>
           )}
         </div>
@@ -163,7 +169,8 @@ export default function EnscribeLandingPage() {
         {/* === ENS Contract Naming Season Banner === */}
         <div
             className="contract-season-banner w-full bg-gradient-to-r from-indigo-500 via-purple-600 to-fuchsia-500 text-white text-center py-3 px-4 font-semibold shadow-md">
-          🌟 <span className="font-bold">ENS Contract Naming Season is Live! 10,000 $ENS in rewards.</span>
+          🌟 <span
+            className="font-bold">ENS Contract Naming Season is Live! 10,000 $ENS in rewards.</span>
           <a
               href="/blog/contract-naming-season"
               className="ml-2 font-normal opacity-90 hover:opacity-100 hover:underline transition"
@@ -171,6 +178,22 @@ export default function EnscribeLandingPage() {
             Learn more →
           </a>
         </div>
+
+        {/* === ENS Contract Audit Service Banner === */}
+        <div
+            className="w-full bg-slate-900 border-b border-slate-800 py-2 px-4 text-center text-sm">
+  <span className="text-slate-300">
+    🔍 <span className="font-medium text-white">New:</span> Smart Contract Naming Audits for Project Teams —
+    our bespoke naming service.
+  </span>
+          <a
+              href="/audit"
+              className="text-cyan-400 font-medium ml-2 hover:underline"
+          >
+            Learn More →
+          </a>
+        </div>
+
         {/* Hero Section */}
         <section className="relative py-6 overflow-hidden">
           <div className="container mx-auto px-4 md:px-6 relative z-10">
@@ -180,18 +203,19 @@ export default function EnscribeLandingPage() {
                   Give Your Smart Contracts a Name — and a Reputation
                 </h1>
                 <p className="text-slate-300 text-xl max-w-[600px] mb-8">
-                  With Enscribe, developers can easily assign ENS names to smart contracts, while providing verification data to increase user trust.
+                  With Enscribe, developers can easily assign ENS names to smart contracts, while
+                  providing verification data to increase user trust.
                 </p>
                 <div className="flex flex-wrap gap-4">
                   <Link to={customFields.appUrl} className="button-primary rounded-md">
                     Launch App
                   </Link>
                   <Link
-                    to="/docs"
-                    className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-slate-800 border border-cyan-500 text-cyan-400 font-bold hover:bg-slate-700 transition-colors gap-2"
+                      to="/docs"
+                      className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-slate-800 border border-cyan-500 text-cyan-400 font-bold hover:bg-slate-700 transition-colors gap-2"
                   >
                     Documentation
-                    <HiArrowRight className="w-4 h-4" />
+                    <HiArrowRight className="w-4 h-4"/>
                   </Link>
                 </div>
               </div>
@@ -200,7 +224,8 @@ export default function EnscribeLandingPage() {
               </div>
             </div>
           </div>
-          <div className="absolute inset-0 bg-[url('/img/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
+          <div
+              className="absolute inset-0 bg-[url('/img/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]"></div>
         </section>
 
         {/* Features Section */}
@@ -212,34 +237,37 @@ export default function EnscribeLandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
-                  <FaShieldAlt />
+                  <FaShieldAlt/>
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Enhanced Trust</h3>
                 <p className="text-slate-300">
-                  Associate human-readable ENS names with smart contracts, boosting user confidence and transparency.
+                  Associate human-readable ENS names with smart contracts, boosting user confidence
+                  and transparency.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
-                  <FaBolt />
+                  <FaBolt/>
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Automatic ENS Integration</h3>
                 <p className="text-slate-300">
-                  Seamlessly create ENS records for smart contracts at deployment, or for existing contracts, eliminating manual steps.
+                  Seamlessly create ENS records for smart contracts at deployment, or for existing
+                  contracts, eliminating manual steps.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
-                  <FaGlobe />
+                  <FaGlobe/>
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Multi-chain Support</h3>
                 <p className="text-slate-300">
-                  Name contracts on multiple ENS-supported chains including Ethereum, Base and Linea.
+                  Name contracts on multiple ENS-supported chains including Ethereum, Base and
+                  Linea.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
-                  <FaUserAlt />
+                  <FaUserAlt/>
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Bring Your Own Name</h3>
                 <p className="text-slate-300">
@@ -248,20 +276,22 @@ export default function EnscribeLandingPage() {
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
-                  <FaLock />
+                  <FaLock/>
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Track and Manager Your Contracts</h3>
                 <p className="text-slate-300">
-                  Track your existing contracts in the Enscribe dashboard to easily find, name and verify your contracts.
+                  Track your existing contracts in the Enscribe dashboard to easily find, name and
+                  verify your contracts.
                 </p>
               </div>
               <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
                 <div className="text-cyan-400 text-3xl mb-4">
-                  <FaPlug />
+                  <FaPlug/>
                 </div>
                 <h3 className="text-xl font-semibold mb-4">Smart Contract Verifications</h3>
                 <p className="text-slate-300">
-                  View and display verification status of contracts accross a number of sources including Etherscan, Blockscout, and Sourcify.
+                  View and display verification status of contracts accross a number of sources
+                  including Etherscan, Blockscout, and Sourcify.
                 </p>
               </div>
             </div>
@@ -280,11 +310,11 @@ export default function EnscribeLandingPage() {
                   <h3 className="text-xl font-bold text-cyan-400">Input</h3>
                   <ul className="space-y-2">
                     <li className="flex items-center">
-                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
+                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400"/>
                       <span className="text-slate-200">ENS subname for contract deployment</span>
                     </li>
                     <li className="flex items-center">
-                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
+                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400"/>
                       <span className="text-slate-200">Contract bytecode to be deployed or existing contract address</span>
                     </li>
                   </ul>
@@ -293,12 +323,13 @@ export default function EnscribeLandingPage() {
                   <h3 className="text-xl font-bold text-cyan-400">Output</h3>
                   <ul className="space-y-2">
                     <li className="flex items-center">
-                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
+                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400"/>
                       <span className="text-slate-200">ENS primary name that resolves to contract address</span>
                     </li>
                     <li className="flex items-center">
-                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400" />
-                      <span className="text-slate-200">Optional verifications for additional trust</span>
+                      <HiCheck className="mr-2 h-4 w-4 text-cyan-400"/>
+                      <span
+                          className="text-slate-200">Optional verifications for additional trust</span>
                     </li>
                   </ul>
                 </div>
@@ -308,12 +339,13 @@ export default function EnscribeLandingPage() {
                   <div className="space-y-2">
                     <div className="text-sm text-slate-400">Complex Contract Address</div>
                     <div className="bg-slate-950 p-3 rounded-md font-mono text-sm overflow-x-auto">
-                      <span className="text-red-400">0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437</span>
+                      <span
+                          className="text-red-400">0x3e71bC0e1729c111dd3E6aaB923886d0A7FeD437</span>
                     </div>
                   </div>
                   <div className="flex justify-center">
                     <div className="bg-cyan-500/10 rounded-full p-2">
-                      <HiArrowDown className="h-8 w-8 text-cyan-400" />
+                      <HiArrowDown className="h-8 w-8 text-cyan-400"/>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -323,7 +355,8 @@ export default function EnscribeLandingPage() {
                     </div>
                   </div>
                   <div className="mt-4 text-center text-sm text-slate-400">
-                    Enscribe automatically creates and links ENS names to your smart contracts, making them more
+                    Enscribe automatically creates and links ENS names to your smart contracts,
+                    making them more
                     accessible and trustworthy for users.
                   </div>
                 </div>
@@ -340,7 +373,7 @@ export default function EnscribeLandingPage() {
             </h2>
             <div className="max-w-3xl mx-auto">
               {faqs.map((faq, index) => (
-                <FAQItem key={index} question={faq.question} answer={faq.answer} />
+                  <FAQItem key={index} question={faq.question} answer={faq.answer}/>
               ))}
             </div>
           </div>
@@ -422,10 +455,12 @@ export default function EnscribeLandingPage() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center max-w-3xl mx-auto">
               <h2 className="text-3xl font-bold tracking-tight md:text-4xl bg-gradient-to-r from-white to-cyan-400 bg-clip-text text-transparent mb-4">
-                ENS names are only the beginning — start building trust into every contract interaction
+                ENS names are only the beginning — start building trust into every contract
+                interaction
               </h2>
               <p className="text-slate-300 text-xl mb-8 max-w-[600px]">
-                Join the growing community of developers using Enscribe to name their smart contracts, enhancing trust and transparency in their web3 apps.
+                Join the growing community of developers using Enscribe to name their smart
+                contracts, enhancing trust and transparency in their web3 apps.
               </p>
               <Link to={customFields.appUrl} className="button-primary rounded-md">
                 Launch App
@@ -438,23 +473,24 @@ export default function EnscribeLandingPage() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center space-y-4 text-center max-w-3xl mx-auto">
               <h2 className="text-2xl font-bold tracking-tight md:text-3xl text-white mb-4">
-                Join the growing community of developers using Enscribe to name their smart contracts
+                Join the growing community of developers using Enscribe to name their smart
+                contracts
               </h2>
               <form className="w-full max-w-md flex flex-col sm:flex-row gap-3"
-                action="https://web3labs.us17.list-manage.com/subscribe/post" method="POST"
+                    action="https://web3labs.us17.list-manage.com/subscribe/post" method="POST"
               >
                 <input type="hidden" name="u" value="412696652858d5fc58dd705c9"/>
                 <input type="hidden" name="id" value="6dd1b9fa2d"/>
 
                 <input
-                  type="email"
-                  placeholder="Enter your email"
-                  className="flex-1 px-4 py-3 rounded-md bg-slate-900 border border-slate-700 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                  name="MERGE0" id="MERGE0"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="flex-1 px-4 py-3 rounded-md bg-slate-900 border border-slate-700 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    name="MERGE0" id="MERGE0"
                 />
                 <button
-                  type="submit"
-                  className="px-6 py-3 rounded-md bg-cyan-500 text-white font-bold hover:bg-cyan-600 transition-colors whitespace-nowrap"
+                    type="submit"
+                    className="px-6 py-3 rounded-md bg-cyan-500 text-white font-bold hover:bg-cyan-600 transition-colors whitespace-nowrap"
                 >
                   Subscribe
                 </button>
@@ -472,10 +508,12 @@ export default function EnscribeLandingPage() {
               <HiCode className="h-6 w-6 text-cyan-400"/>
               <span className="text-lg font-bold">Enscribe</span>
             </div>
-            <p className="text-center md:text-left text-sm text-slate-400">© {new Date().getFullYear()} Web3 Labs Ltd. All rights reserved.</p>
+            <p className="text-center md:text-left text-sm text-slate-400">© {new Date().getFullYear()} Web3
+              Labs Ltd. All rights reserved.</p>
             <div className="flex items-center gap-4">
-              <Link to="https://x.com/enscribe_" className="text-slate-400 hover:text-cyan-400 transition-colors">
-                <FaXTwitter className="h-5 w-5" />
+              <Link to="https://x.com/enscribe_"
+                    className="text-slate-400 hover:text-cyan-400 transition-colors">
+              <FaXTwitter className="h-5 w-5" />
                 <span className="sr-only">X (formerly Twitter)</span>
               </Link>
               <Link to="https://github.com/enscribexyz/enscribe" className="text-slate-400 hover:text-cyan-400 transition-colors">
