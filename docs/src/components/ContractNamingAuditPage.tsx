@@ -144,10 +144,10 @@ export default function ContractNamingAuditPage() {
                             <span className="text-sm text-[color:var(--ifm-color-emphasis-500)]">
                 Prefer email?{" "}
                                 <a
-                                    href="mailto:contact@enscribe.xyz?subject=Contract%20Naming%20Audit"
+                                    href="mailto:hi@enscribe.xyz?subject=Contract%20Naming%20Audit"
                                     className="underline underline-offset-4 text-[color:var(--ifm-color-emphasis-800)]"
                                 >
-                  contact@enscribe.xyz
+                  hi@enscribe.xyz
                 </a>
               </span>
                         </div>
